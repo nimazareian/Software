@@ -212,7 +212,7 @@ class Simulator
      *
      * @return The present global time of the simulation (zero initially).
      */
-    float getGlobalTime() const
+    double getGlobalTime() const
     {
         return globalTime_;
     }
@@ -250,7 +250,7 @@ class Simulator
      *
      * @return The present time step of the simulation.
      */
-    float getTimeStep() const
+    double getTimeStep() const
     {
         return timeStep_;
     }
@@ -389,8 +389,12 @@ class Simulator
      *
      * @param timeStep  The replacement time step of the simulation.
      */
-    void setTimeStep(float timeStep)
+    void setTimeStep(double timeStep)
     {
+        if (timeStep_ <= 0.0)
+        {
+            throw std::runtime_error("Invalid time step used for the HRVO simulator.");
+        }
         timeStep_ = timeStep;
     }
 
@@ -403,8 +407,8 @@ class Simulator
 
     Agent *defaults_;
     KdTree *kdTree_;
-    float globalTime_;
-    float timeStep_;
+    double globalTime_;
+    double timeStep_;
     bool reachedGoals_;
     std::vector<Agent *> agents_;
     std::vector<Goal *> goals_;
