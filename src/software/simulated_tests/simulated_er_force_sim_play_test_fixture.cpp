@@ -69,15 +69,15 @@ void SimulatedErForceSimPlayTestFixture::updatePrimitives(
 {
     auto world_with_updated_game_state = world;
     world_with_updated_game_state.updateGameState(game_state);
+    auto world_proto = createWorld(world_with_updated_game_state);
 
     auto start_tick_time = std::chrono::system_clock::now();
 
     auto primitive_set_msg = ai.getPrimitives(world_with_updated_game_state);
     double duration_ms     = ::TestUtil::millisecondsSince(start_tick_time);
     registerTickTime(duration_ms);
-    auto vision_msg = createVision(world_with_updated_game_state);
     simulator_to_update->setYellowRobotPrimitiveSet(*primitive_set_msg,
-                                                    std::move(vision_msg));
+                                                    std::move(world_proto));
 }
 
 std::optional<PlayInfo> SimulatedErForceSimPlayTestFixture::getPlayInfo()
