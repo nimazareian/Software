@@ -116,12 +116,11 @@ class Agent
      * @param uncertaintyOffset  The uncertainty offset of this agent.
      * @param maxAccel           The maximum acceleration of this agent.
      * @param velocity           The initial velocity of this agent.
-     * @param orientation        The initial orientation (in radians) of this agent.
      */
     Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo,
           float neighborDist, std::size_t maxNeighbors, float radius,
           const Vector2 &velocity, float maxAccel, float goalRadius, float prefSpeed,
-          float maxSpeed, float orientation, float uncertaintyOffset);
+          float maxSpeed, float uncertaintyOffset);
 
     /**
      * Computes the neighbors of this agent.
@@ -168,7 +167,6 @@ class Agent
     float maxAccel_;
     float maxSpeed_;
     float neighborDist_;
-    float orientation_;
     float prefSpeed_;
     float radius_;
     float uncertaintyOffset_;

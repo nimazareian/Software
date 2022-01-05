@@ -43,7 +43,7 @@ class HRVOTest : public ::testing::Test
             {
                 const Vector2 position(x, y);
                 simulator.addAgent(position, simulator.addGoal(position), 1.f, 1, 0.25f,
-                                   0.25f, 0.1f, 0.1f, 0.f, 0.1f, Vector2(), 0.f);
+                                   0.25f, 0.1f, 0.1f, 0.f, 0.1f, Vector2());
             }
         }
 
@@ -55,7 +55,7 @@ class HRVOTest : public ::testing::Test
             {
                 const Vector2 position(x, y);
                 simulator.addAgent(position, simulator.addGoal(position), 1.f, 1, 0.25f,
-                                   0.25f, 0.1f, 0.1f, 0.f, 0.1f, Vector2(), 0.f);
+                                   0.25f, 0.1f, 0.1f, 0.f, 0.1f, Vector2());
             }
         }
     }
@@ -63,7 +63,7 @@ class HRVOTest : public ::testing::Test
     void add_static_obstacle(const Vector2 position, const float radius)
     {
         simulator.addAgent(position, simulator.addGoal(position), 1.f, 1, radius, radius,
-                           0.1f, 0.1f, 0.f, 0.1f, Vector2(), 0.f);
+                           0.1f, 0.1f, 0.f, 0.1f, Vector2());
     }
 
     void run_simulator()

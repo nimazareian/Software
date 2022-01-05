@@ -48,7 +48,6 @@ Agent::Agent(Simulator *simulator)
       maxAccel_(0.0f),
       maxSpeed_(0.0f),
       neighborDist_(0.0f),
-      orientation_(0.0f),
       prefSpeed_(0.0f),
       radius_(0.0f),
       uncertaintyOffset_(0.0f),
@@ -67,7 +66,6 @@ Agent::Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo)
       maxAccel_(simulator_->defaults_->maxAccel_),
       maxSpeed_(simulator_->defaults_->maxSpeed_),
       neighborDist_(simulator_->defaults_->neighborDist_),
-      orientation_(simulator_->defaults_->orientation_),
       prefSpeed_(simulator_->defaults_->prefSpeed_),
       radius_(simulator_->defaults_->radius_),
       uncertaintyOffset_(simulator_->defaults_->uncertaintyOffset_),
@@ -78,7 +76,7 @@ Agent::Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo)
 Agent::Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo,
              float neighborDist, std::size_t maxNeighbors, float radius,
              const Vector2 &velocity, float maxAccel, float goalRadius, float prefSpeed,
-             float maxSpeed, float orientation, float uncertaintyOffset)
+             float maxSpeed, float uncertaintyOffset)
     : simulator_(simulator),
       newVelocity_(velocity),
       position_(position),
@@ -89,7 +87,6 @@ Agent::Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo,
       maxAccel_(maxAccel),
       maxSpeed_(maxSpeed),
       neighborDist_(neighborDist),
-      orientation_(orientation),
       prefSpeed_(prefSpeed),
       radius_(radius),
       uncertaintyOffset_(uncertaintyOffset),
@@ -555,10 +552,5 @@ void Agent::update()
     {
         reachedGoal_              = false;
         simulator_->reachedGoals_ = false;
-    }
-
-    if (!reachedGoal_)
-    {
-        orientation_ = atan(prefVelocity_);
     }
 }

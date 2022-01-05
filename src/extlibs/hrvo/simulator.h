@@ -69,15 +69,13 @@ class Simulator
      * @param uncertaintyOffset  The uncertainty offset of this agent.
      * @param maxAccel           The maximum acceleration of this agent.
      * @param velocity           The initial velocity of this agent.
-     * @param orientation        The initial orientation (in radians) of this agent.
      * @return    The number of the agent.
      */
     std::size_t addAgent(const Vector2 &position, std::size_t goalNo, float neighborDist,
                          std::size_t maxNeighbors, float radius, float goalRadius,
                          float prefSpeed, float maxSpeed, float uncertaintyOffset = 0.0f,
                          float maxAccel          = std::numeric_limits<float>::infinity(),
-                         const Vector2 &velocity = Vector2(0.0f, 0.0f),
-                         float orientation       = 0.0f);
+                         const Vector2 &velocity = Vector2(0.0f, 0.0f));
 
     /**
      *      Adds a new goal to the simulation.
@@ -93,7 +91,7 @@ class Simulator
                                  const std::vector<float> &speedAtPosition);
 
     /**
-     *  Performs a simulation step; updates the orientation, position, and velocity
+     *  Performs a simulation step; updates the position and velocity
      * of each agent, and the progress of each towards its goal.
      */
     void doStep();
@@ -148,14 +146,6 @@ class Simulator
      * @return    The present maximum neighbor distance of the agent.
      */
     float getAgentNeighborDist(std::size_t agentNo) const;
-
-    /**
-     *      Returns the orientation of a specified agent.
-     *
-     * @param agentNo  The number of the agent whose orientation is to be retrieved.
-     * @return    The present orientation (in radians) of the agent.
-     */
-    float getAgentOrientation(std::size_t agentNo) const;
 
     /**
      *      Returns the position of a specified agent.
@@ -287,14 +277,13 @@ class Simulator
      * @param uncertaintyOffset  The default uncertainty offset of a new agent.
      * @param maxAccel           The default maximum acceleration of a new agent.
      * @param velocity           The default initial velocity of a new agent.
-     * @param orientation        The default initial orientation (in radians) of a new
      * agent.
      */
     void setAgentDefaults(float neighborDist, std::size_t maxNeighbors, float radius,
                           float goalRadius, float prefSpeed, float maxSpeed,
                           float uncertaintyOffset = 0.0f,
                           float maxAccel = std::numeric_limits<float>::infinity(),
-                          const Vector2 &velocity = Vector2(), float orientation = 0.0f);
+                          const Vector2 &velocity = Vector2());
 
     /**
      *      Sets the goal number of a specified agent.
@@ -347,14 +336,6 @@ class Simulator
      * @param neighborDist  The replacement maximum neighbor distance.
      */
     void setAgentNeighborDist(std::size_t agentNo, float neighborDist);
-
-    /**
-     *      Sets the orientation of a specified agent.
-     *
-     * @param agentNo      The number of the agent whose orientation is to be modified.
-     * @param orientation  The replacement orientation (in radians).
-     */
-    void setAgentOrientation(std::size_t agentNo, float orientation);
 
     /**
      *      Sets the position of a specified agent.

@@ -88,11 +88,11 @@ std::size_t Simulator::addAgent(const Vector2 &position, std::size_t goalNo,
                                 float neighborDist, std::size_t maxNeighbors,
                                 float radius, float goalRadius, float prefSpeed,
                                 float maxSpeed, float uncertaintyOffset, float maxAccel,
-                                const Vector2 &velocity, float orientation)
+                                const Vector2 &velocity)
 {
     Agent *const agent = new Agent(this, position, goalNo, neighborDist, maxNeighbors,
                                    radius, velocity, maxAccel, goalRadius, prefSpeed,
-                                   maxSpeed, orientation, uncertaintyOffset);
+                                   maxSpeed, uncertaintyOffset);
     agents_.push_back(agent);
 
     return agents_.size() - 1;
@@ -187,11 +187,6 @@ float Simulator::getAgentNeighborDist(std::size_t agentNo) const
     return agents_[agentNo]->neighborDist_;
 }
 
-float Simulator::getAgentOrientation(std::size_t agentNo) const
-{
-    return agents_[agentNo]->orientation_;
-}
-
 Vector2 Simulator::getAgentPosition(std::size_t agentNo) const
 {
     return agents_[agentNo]->position_;
@@ -230,7 +225,7 @@ Vector2 Simulator::getGoalPosition(std::size_t goalNo) const
 void Simulator::setAgentDefaults(float neighborDist, std::size_t maxNeighbors,
                                  float radius, float goalRadius, float prefSpeed,
                                  float maxSpeed, float uncertaintyOffset, float maxAccel,
-                                 const Vector2 &velocity, float orientation)
+                                 const Vector2 &velocity)
 {
     if (defaults_ == NULL)
     {
@@ -244,7 +239,6 @@ void Simulator::setAgentDefaults(float neighborDist, std::size_t maxNeighbors,
     defaults_->neighborDist_      = neighborDist;
     defaults_->newVelocity_       = velocity;
     defaults_->uncertaintyOffset_ = uncertaintyOffset;
-    defaults_->orientation_       = orientation;
     defaults_->prefSpeed_         = prefSpeed;
     defaults_->radius_            = radius;
     defaults_->velocity_          = velocity;
@@ -283,11 +277,6 @@ void Simulator::setAgentMaxSpeed(std::size_t agentNo, float maxSpeed)
 void Simulator::setAgentNeighborDist(std::size_t agentNo, float neighborDist)
 {
     agents_[agentNo]->neighborDist_ = neighborDist;
-}
-
-void Simulator::setAgentOrientation(std::size_t agentNo, float orientation)
-{
-    agents_[agentNo]->orientation_ = orientation;
 }
 
 void Simulator::setAgentPosition(std::size_t agentNo, const Vector2 &position)
