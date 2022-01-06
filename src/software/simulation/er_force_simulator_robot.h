@@ -19,29 +19,21 @@ class ErForceSimulatorRobot
 {
    public:
     /**
-     * Create a new ErForceSimulatorRobot given robot id and state
+     * Create a new ErForceSimulatorRobot given robot id
      *
-     * @param robot_state the robot state with id
+     * @param robot_id The robot id
      * @param robot_constants The robot constants
      * @param wheel_constants The wheel constants
      */
-    explicit ErForceSimulatorRobot(const RobotStateWithId& robot_state_with_id,
-                                   RobotConstants_t robot_constants,
-                                   WheelConstants_t wheel_constants);
+    explicit ErForceSimulatorRobot(unsigned int robot_id, WheelConstants_t wheel_constants,
+                                   RobotConstants_t robot_constants);
 
     /**
      * Returns the ID of this robot
      *
      * @return the ID of this robot
      */
-    unsigned int getRobotId();
-
-    /**
-     * Sets the robot state
-     *
-     * @return the robot state
-     */
-    void setRobotState(const RobotState& robot_state);
+    unsigned int getRobotId() const;
 
     /**
      * Returns the current robot command
@@ -96,7 +88,7 @@ class ErForceSimulatorRobot
     /**
      * Runs the current primitive
      */
-    void runCurrentPrimitive();
+    void runCurrentPrimitive(const World &world);
 
    private:
     // Feedback set at the end of each simulator tick after receiving feedback

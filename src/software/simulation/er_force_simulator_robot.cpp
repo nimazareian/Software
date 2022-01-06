@@ -5,25 +5,18 @@
 #include "shared/robot_constants.h"
 #include "software/logger/logger.h"
 
-ErForceSimulatorRobot::ErForceSimulatorRobot(const RobotStateWithId& robot_state_with_id,
-                                             RobotConstants_t robot_constants,
-                                             WheelConstants_t wheel_constants)
+ErForceSimulatorRobot::ErForceSimulatorRobot(unsigned int robot_id, WheelConstants_t wheel_constants,
+                                             RobotConstants_t robot_constants)
     : dribbler_ball_contact(false),
-      id(robot_state_with_id.id),
-      robot_state(robot_state_with_id.robot_state),
+      id(robot_id),
       robot_constants(robot_constants),
       wheel_constants(wheel_constants)
 {
 }
 
-unsigned int ErForceSimulatorRobot::getRobotId()
+unsigned int ErForceSimulatorRobot::getRobotId() const
 {
     return id;
-}
-
-void ErForceSimulatorRobot::setRobotState(const RobotState& robot_state)
-{
-    this->robot_state = robot_state;
 }
 
 std::unique_ptr<SSLSimulationProto::RobotCommand> ErForceSimulatorRobot::getRobotCommand()
@@ -117,7 +110,7 @@ void ErForceSimulatorRobot::startNewPrimitive(const TbotsProto::Primitive& primi
     primitive_executor.startPrimitive(robot_constants, primitive);
 }
 
-void ErForceSimulatorRobot::runCurrentPrimitive()
+void ErForceSimulatorRobot::runCurrentPrimitive(const World &world)
 {
-    direct_control = primitive_executor.stepPrimitive(robot_state);
+    direct_control = primitive_executor.stepPrimitive(world, id);
 }

@@ -54,7 +54,7 @@ void Thunderloop::run(unsigned run_at_hz)
 
         // Execute latest primitive
         primitive_executor_.startPrimitive(robot_constants_, primitive_);
-        direct_control_ = *primitive_executor_.stepPrimitive(*current_robot_state_);
+        direct_control_ = *primitive_executor_.stepPrimitive(<#initializer#>, 0);
 
         // Poll motor service with wheel velocities and dribbler rpm
         // TODO (#2332) properly implement, this is just a placeholder

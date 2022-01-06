@@ -14,62 +14,34 @@ void PrimitiveExecutor::startPrimitive(const RobotConstants_t& robot_constants,
 }
 
 Vector PrimitiveExecutor::getTargetLinearVelocity(
-    const TbotsProto::MovePrimitive& move_primitive, const RobotState& robot_state)
+        const TbotsProto::MovePrimitive& move_primitive, unsigned int robot_id) const
 {
-    const float LOCAL_EPSILON = 1e-6f;  // Avoid dividing by zero
+    // TODO: Get current robot velocity from HRVO sim using the robot_id
 
-    // Unpack current move primitive
-    const float dest_linear_speed = move_primitive.final_speed_m_per_s();
-    const float max_speed_m_per_s = move_primitive.max_speed_m_per_s();
-    const Point final_position    = Point(move_primitive.destination().x_meters(),
-                                       move_primitive.destination().y_meters());
-    std::clamp(max_speed_m_per_s, 0.0f, robot_constants_.robot_max_speed_m_per_s);
-
-    const float max_target_linear_speed = fmaxf(max_speed_m_per_s, dest_linear_speed);
-
-    // Compute distance to destination
-    const float norm_dist_delta =
-        static_cast<float>((robot_state.position() - final_position).length());
-
-    // Compute at what linear distance we should start decelerating
-    // d = (Vf^2 - Vi^2) / (2a + LOCAL_EPSILON)
-    const float start_linear_deceleration_distance =
-        (max_target_linear_speed * max_target_linear_speed -
-         dest_linear_speed * dest_linear_speed) /
-        (2 * robot_constants_.robot_max_acceleration_m_per_s_2 + LOCAL_EPSILON);
-
-    // When we are close enough to start decelerating, we reduce the max speed
-    // by 60%. Once we get closer than 0.6 meters, we start to linearly decrease
-    // speed proportional to the distance to the destination. 0.6 was determined
-    // experimentally.
-    float target_linear_speed = max_target_linear_speed;
-    if (norm_dist_delta < start_linear_deceleration_distance)
-    {
-        target_linear_speed = max_target_linear_speed * fminf(norm_dist_delta, 0.6f);
-    }
-
-    Vector target_global_velocity = final_position - robot_state.position();
+    Vector target_global_velocity = Vector();
 
     double local_x_velocity =
-        robot_state.orientation().cos() * target_global_velocity.x() +
-        robot_state.orientation().sin() * target_global_velocity.y();
+            robot_id.orientation().cos() * target_global_velocity.x() +
+            robot_id.orientation().sin() * target_global_velocity.y();
 
     double local_y_velocity =
-        -robot_state.orientation().sin() * target_global_velocity.x() +
-        robot_state.orientation().cos() * target_global_velocity.y();
+            -robot_id.orientation().sin() * target_global_velocity.x() +
+            robot_id.orientation().cos() * target_global_velocity.y();
 
     return Vector(local_x_velocity, local_y_velocity).normalize(target_linear_speed);
 }
 
 AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
-    const TbotsProto::MovePrimitive& move_primitive, const RobotState& robot_state)
+        const TbotsProto::MovePrimitive& move_primitive, unsigned int robot_id)
 {
+    // TODO: replace float with double
     const float LOCAL_EPSILON = 1e-6f;  // Avoid dividing by zero
+
 
     const float dest_orientation =
         static_cast<float>(move_primitive.final_angle().radians());
     const float delta_orientation =
-        dest_orientation - static_cast<float>(robot_state.orientation().toRadians());
+        dest_orientation - static_cast<float>(robot_id.orientation().toRadians());
     const float max_target_angular_speed = robot_constants_.robot_max_ang_speed_rad_per_s;
 
     // Compute at what angular distance we should start decelerating angularly
@@ -89,8 +61,8 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 }
 
 
-std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive(
-    const RobotState& robot_state)
+std::unique_ptr<TbotsProto::DirectControlPrimitive>
+PrimitiveExecutor::stepPrimitive(const World &world, unsigned int robot_id)
 {
     switch (current_primitive_.primitive_case())
     {
@@ -122,11 +94,17 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         }
         case TbotsProto::Primitive::kMove:
         {
+            const std::vector<Robot>& friendly_robots = world.friendlyTeam().getAllRobots();
+            auto robot_iter =
+                    std::find_if(friendly_robots.begin(), friendly_robots.end(),
+                                 [simulator_robot](const Robot& robot) { return robot.id() == simulator_robot->getRobotId(); });
+            if (robot_iter != friendly_robots.end())
+            {
             // Compute the target velocities
             Vector target_velocity =
-                getTargetLinearVelocity(current_primitive_.move(), robot_state);
+                getTargetLinearVelocity(current_primitive_.move(), robot_id);
             AngularVelocity target_angular_velocity =
-                getTargetAngularVelocity(current_primitive_.move(), robot_state);
+                getTargetAngularVelocity(current_primitive_.move(), robot_id);
 
             auto output = createDirectControlPrimitive(
                 target_velocity, target_angular_velocity,

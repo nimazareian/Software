@@ -74,16 +74,8 @@ ErForceSimulator::ErForceSimulator(
     // implemented
     for (unsigned int i = 0; i < 11; i++)
     {
-        auto blue_simulator_robot = std::make_shared<ErForceSimulatorRobot>(
-            RobotStateWithId{.id          = i,
-                             .robot_state = RobotState(Point(), Vector(), Angle::zero(),
-                                                       AngularVelocity::zero())},
-            robot_constants, wheel_constants);
-        auto yellow_simulator_robot = std::make_shared<ErForceSimulatorRobot>(
-            RobotStateWithId{.id          = i,
-                             .robot_state = RobotState(Point(), Vector(), Angle::zero(),
-                                                       AngularVelocity::zero())},
-            robot_constants, wheel_constants);
+        auto blue_simulator_robot = std::make_shared<ErForceSimulatorRobot>(i, robot_constants, wheel_constants);
+        auto yellow_simulator_robot = std::make_shared<ErForceSimulatorRobot>(i, robot_constants, wheel_constants);
 
         blue_simulator_robots.emplace_back(blue_simulator_robot);
         yellow_simulator_robots.emplace_back(yellow_simulator_robot);
@@ -174,6 +166,7 @@ void ErForceSimulator::setRobotPrimitive(
         if (robot_iter != friendly_robots.end())
         {
             simulator_robot->setRobotState(RobotState(robot_iter->current_state()));
+            simulator_robot->setWorld();
             simulator_robot->startNewPrimitive(primitive_msg);
         }
         else
@@ -192,20 +185,19 @@ SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
         const TbotsProto::World& world_msg)
 {
     SSLSimulationProto::RobotControl robot_control;
+    const World world(world_msg);
 
     for (auto& simulator_robot : simulator_robots)
     {
-        const auto& friendly_robots = world_msg.friendly_team().team_robots();
+        const std::vector<Robot>& friendly_robots = world.friendlyTeam().getAllRobots();
         auto robot_iter =
                 std::find_if(friendly_robots.begin(), friendly_robots.end(),
-                             [simulator_robot](const auto& robot) { return robot.id() == simulator_robot->getRobotId(); });
+                             [simulator_robot](const Robot& robot) { return robot.id() == simulator_robot->getRobotId(); });
         if (robot_iter != friendly_robots.end())
         {
-            simulator_robot->setRobotState(
-                RobotState(robot_iter->current_state()));
             // Set to NEG_X because the vision msg in this simulator is
             // normalized correctly
-            simulator_robot->runCurrentPrimitive();
+            simulator_robot->runCurrentPrimitive(world);
             auto command = *simulator_robot->getRobotCommand();
             *(robot_control.mutable_robot_commands()->Add()) = command;
         }

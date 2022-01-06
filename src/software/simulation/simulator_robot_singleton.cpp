@@ -31,7 +31,7 @@ void SimulatorRobotSingleton::runPrimitiveOnCurrentSimulatorRobot(
     std::shared_ptr<FirmwareWorld_t> firmware_world)
 {
     checkValidAndExecute<void>(
-        [firmware_world](auto robot) { robot->runCurrentPrimitive(firmware_world); });
+        [firmware_world](auto robot) { robot->runCurrentPrimitive(<#initializer#>); });
 }
 
 void SimulatorRobotSingleton::handleBlueRobotLogProto(TbotsProto_RobotLog log)
