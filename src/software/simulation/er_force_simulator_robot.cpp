@@ -108,7 +108,7 @@ void ErForceSimulatorRobot::chip(float distance_m)
 
 void ErForceSimulatorRobot::startNewPrimitive(const TbotsProto::Primitive& primitive)
 {
-    primitive_executor.startPrimitive(primitive);
+    primitive_executor.startPrimitive(world_msg, primitive);
 }
 
 void ErForceSimulatorRobot::runCurrentPrimitive(const World &world)

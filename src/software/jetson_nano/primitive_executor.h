@@ -19,7 +19,7 @@ class PrimitiveExecutor
      * @param robot_constants The robot constants
      * @param world_msg The primitive to start
      */
-    void startPrimitive(const TbotsProto::World &world_msg);
+    void startPrimitive(const TbotsProto::World &world_msg, const TbotsProto::Primitive &primitive);
 
     /**
      * Steps the current primitive and returns a direct control primitive with the
@@ -66,6 +66,9 @@ class PrimitiveExecutor
                             TbotsProto::DirectControlPrimitive* dest);
 
     unsigned int robot_id_;
-    TbotsProto::Primitive current_primitive_;
     RobotConstants_t robot_constants_;
+
+    TbotsProto::Primitive current_primitive_;
+    World current_world_;
+    Simulator ;
 };

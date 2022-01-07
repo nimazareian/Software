@@ -12,9 +12,81 @@ PrimitiveExecutor::PrimitiveExecutor(unsigned int robot_id, RobotConstants_t & r
 {
 }
 
-void PrimitiveExecutor::startPrimitive(const TbotsProto::World &world_msg)
+void PrimitiveExecutor::startPrimitive(const TbotsProto::World &world_msg, const TbotsProto::Primitive &primitive)
 {
     current_primitive_ = primitive;
+    current_world_ = World(world_msg);
+}
+
+std::unique_ptr<TbotsProto::DirectControlPrimitive>
+PrimitiveExecutor::stepPrimitive(const TbotsProto::World &world_msg, const TbotsProto::Primitive &primitive)
+{
+    switch (current_primitive_.primitive_case())
+    {
+        case TbotsProto::Primitive::kEstop:
+        {
+            // Protobuf guarantees that the default values in a proto are all zero (bools
+            // are false)
+            //
+            // https://developers.google.com/protocol-buffers/docs/proto3#default
+            auto output = std::make_unique<TbotsProto::DirectControlPrimitive>();
+
+            // Discharge the capacitors
+            output->set_charge_mode(
+                    TbotsProto::DirectControlPrimitive_ChargeMode_DISCHARGE);
+
+            return output;
+        }
+        case TbotsProto::Primitive::kStop:
+        {
+            auto prim   = createDirectControlPrimitive(Vector(), AngularVelocity(), 0.0);
+            auto output = std::make_unique<TbotsProto::DirectControlPrimitive>(
+                    prim->direct_control());
+            return output;
+        }
+        case TbotsProto::Primitive::kDirectControl:
+        {
+            return std::make_unique<TbotsProto::DirectControlPrimitive>(
+                    current_primitive_.direct_control());
+        }
+        case TbotsProto::Primitive::kMove:
+        {
+            const auto& friendly_robots = world_msg.friendly_team().team_robots();
+            auto robot_iter =
+                    std::find_if(friendly_robots.begin(), friendly_robots.end(),
+                                 [this](const auto& robot) { return robot.id() == robot_id_; });
+            if (robot_iter != friendly_robots.end())
+            {
+                RobotState robot_state(robot_iter->current_state());
+                // Compute the target velocities
+                Vector target_velocity =
+                        getTargetLinearVelocity(current_primitive_.move(), robot_state);
+                AngularVelocity target_angular_velocity =
+                        getTargetAngularVelocity(current_primitive_.move(), robot_state);
+
+                auto output = createDirectControlPrimitive(
+                        target_velocity, target_angular_velocity,
+                        current_primitive_.move().dribbler_speed_rpm());
+
+                // Copy the AutoKickOrChip settings over
+                copyAutoChipOrKick(current_primitive_.move(),
+                                   output->mutable_direct_control());
+
+                return std::make_unique<TbotsProto::DirectControlPrimitive>(
+                        output->direct_control());
+            }
+            break;
+        }
+        case TbotsProto::Primitive::PRIMITIVE_NOT_SET:
+        {
+            // TODO (#2283) Once we can add/remove robots, this log should
+            // be re-enabled. Right now it just gets spammed because we command
+            // 6 robots for Div B when there are 11 on the field.
+            //
+            // LOG(DEBUG) << "No primitive set!";
+        }
+    }
+    return std::make_unique<TbotsProto::DirectControlPrimitive>();
 }
 
 Vector
