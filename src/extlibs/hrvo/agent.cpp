@@ -107,11 +107,9 @@ void Agent::computeNewVelocity()
 
     VelocityObstacle velocityObstacle;
 
-    for (std::set<std::pair<float, std::size_t>>::const_iterator iter =
-             neighbors_.begin();
-         iter != neighbors_.end(); ++iter)
+    for (const std::pair<float, std::size_t>& neighbor : neighbors_)
     {
-        const Agent *const other = simulator_->agents_[iter->second];
+        const Agent *const other = simulator_->agents_[neighbor.second];
 
         if (absSq(other->position_ - position_) > std::pow(other->radius_ + radius_, 2))
         {
@@ -403,10 +401,9 @@ void Agent::computeNewVelocity()
 
     int optimal = -1;
 
-    for (std::multimap<float, Candidate>::const_iterator iter = candidates_.begin();
-         iter != candidates_.end(); ++iter)
+    for (auto & iter : candidates_)
     {
-        candidate  = iter->second;
+        candidate  = iter.second;
         bool valid = true;
 
         for (int j = 0; j < static_cast<int>(velocityObstacles_.size()); ++j)

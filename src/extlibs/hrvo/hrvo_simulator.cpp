@@ -183,7 +183,7 @@ void HRVOSimulator::doStep()
     // Update robots position s given previous velocities and the time step since last
     // frame NOTE: Vel at first iteration will always be zero. Do we want to skip update
     // if globalTime == 0?
-    for (auto &agent : agents_)
+    for (Agent* agent : agents_)
     {
         agent->update();
     }
@@ -194,7 +194,7 @@ void HRVOSimulator::doStep()
     // Find next robots velocities
     // NOTE: We do not update the robot positions here as we do not know how long the
     //       next time step will be.
-    for (auto &agent : agents_)
+    for (Agent* agent : agents_)
     {
         agent->computePreferredVelocity();
         agent->computeNeighbors();
