@@ -39,41 +39,86 @@
 #include "extlibs/hrvo/kd_tree.h"
 
 HRVOSimulator::HRVOSimulator()
-    : defaults_(NULL),
-      kdTree_(NULL),
-      globalTime_(0.0f),
-      timeStep_(0.0f),
+    : defaults_(nullptr),
+      kdTree_(nullptr),
+      globalTime_(0.0),
+      timeStep_(0.0),
       reachedGoals_(false)
 {
     kdTree_ = new KdTree(this);
 }
 
+HRVOSimulator::HRVOSimulator(const World &world, double time_step)
+    : timeStep_(time_step),
+    globalTime_(0.0),
+    reachedGoals_(false),
+    kdTree_(nullptr)
+{
+    // Set current robot states
+    const std::vector<Robot>& friendly_robots = world.friendlyTeam().getAllRobots();
+    const std::vector<Robot>& enemy_robots = world.enemyTeam().getAllRobots();
+    for (const Robot& robot : friendly_robots)
+    {
+        Vector2 position(robot.position().x(), robot.position().y());
+        Vector2 velocity(robot.velocity().x(), robot.velocity().y());
+        addAgent(robot.id(),
+                 position,
+                 addGoal(position),
+                 robot.robotConstants().robot_max_speed_m_per_s,
+                 friendly_robots.size(),
+                 ROBOT_MAX_RADIUS_METERS,
+                 0.03f,
+                 robot.robotConstants().robot_max_speed_m_per_s,
+                 robot.robotConstants().robot_max_speed_m_per_s,
+                 0.0f,
+                 robot.robotConstants().robot_max_acceleration_m_per_s_2,
+                 velocity);
+    }
+
+    for (const Robot& robot : enemy_robots)
+    {
+        // TODO: determine the behavior of the enemy team
+        Vector2 position(robot.position().x(), robot.position().y());
+        Vector2 velocity(robot.velocity().x(), robot.velocity().y());
+        addAgent(robot.id() + friendly_robots.size() ,
+                 position,
+                 addGoal(position),
+                 robot.robotConstants().robot_max_speed_m_per_s,
+                 friendly_robots.size(),
+                 ROBOT_MAX_RADIUS_METERS,
+                 0.03f,
+                 robot.robotConstants().robot_max_speed_m_per_s,
+                 robot.robotConstants().robot_max_speed_m_per_s,
+                 0.0f,
+                 robot.robotConstants().robot_max_acceleration_m_per_s_2,
+                 velocity);
+    }
+}
+
 HRVOSimulator::~HRVOSimulator()
 {
     delete defaults_;
-    defaults_ = NULL;
+    defaults_ = nullptr;
 
     delete kdTree_;
-    kdTree_ = NULL;
+    kdTree_ = nullptr;
 
-    for (std::vector<Agent *>::iterator iter = agents_.begin(); iter != agents_.end();
-         ++iter)
+    for (Agent* agent : agents_)
     {
-        delete *iter;
-        *iter = NULL;
+        delete agent;
+        agent = nullptr;
     }
 
-    for (std::vector<Goal *>::iterator iter = goals_.begin(); iter != goals_.end();
-         ++iter)
+    for (Goal* goal : goals_)
     {
-        delete *iter;
-        *iter = NULL;
+        delete goal;
+        goal = nullptr;
     }
 }
 
 std::size_t HRVOSimulator::addAgent(const Vector2 &position, std::size_t goalNo)
 {
-    if (defaults_ == NULL)
+    if (defaults_ == nullptr)
     {
         throw std::runtime_error("Agent defaults not set when adding agent.");
     }
@@ -84,13 +129,12 @@ std::size_t HRVOSimulator::addAgent(const Vector2 &position, std::size_t goalNo)
     return agents_.size() - 1;
 }
 
-std::size_t HRVOSimulator::addAgent(const Vector2 &position, std::size_t goalNo,
-                                float neighborDist, std::size_t maxNeighbors,
-                                float radius, float goalRadius, float prefSpeed,
-                                float maxSpeed, float uncertaintyOffset, float maxAccel,
-                                const Vector2 &velocity)
+std::size_t
+HRVOSimulator::addAgent(unsigned int robot_id, const Vector2 &position, std::size_t goalNo, float neighborDist,
+                        std::size_t maxNeighbors, float radius, float goalRadius, float prefSpeed, float maxSpeed,
+                        float uncertaintyOffset, float maxAccel, const Vector2 &velocity)
 {
-    Agent *const agent = new Agent(this, position, goalNo, neighborDist, maxNeighbors,
+    Agent *const agent = new Agent(this, robot_id, position, goalNo, neighborDist, maxNeighbors,
                                    radius, velocity, maxAccel, goalRadius, prefSpeed,
                                    maxSpeed, uncertaintyOffset);
     agents_.push_back(agent);
@@ -125,7 +169,7 @@ std::size_t HRVOSimulator::addGoalPositions(const std::vector<Vector2> &position
 
 void HRVOSimulator::doStep()
 {
-    if (kdTree_ == NULL)
+    if (kdTree_ == nullptr)
     {
         throw std::runtime_error(
                 "HRVO Simulation not initialized when attempting to do step.");
@@ -228,7 +272,7 @@ void HRVOSimulator::setAgentDefaults(float neighborDist, std::size_t maxNeighbor
                                  float maxSpeed, float uncertaintyOffset, float maxAccel,
                                  const Vector2 &velocity)
 {
-    if (defaults_ == NULL)
+    if (defaults_ == nullptr)
     {
         defaults_ = new Agent(this);
     }

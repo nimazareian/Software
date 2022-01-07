@@ -105,6 +105,7 @@ class Agent
      * Constructor
      *
      * @param simulator          The simulation.
+     * @param robot_id           The robot id.
      * @param position           The starting position of this agent.
      * @param goalNo             The goal number of this agent.
      * @param neighborDist       The maximum neighbor distance of this agent.
@@ -117,10 +118,9 @@ class Agent
      * @param maxAccel           The maximum acceleration of this agent.
      * @param velocity           The initial velocity of this agent.
      */
-    Agent(HRVOSimulator *simulator, const Vector2 &position, std::size_t goalNo,
-          float neighborDist, std::size_t maxNeighbors, float radius,
-          const Vector2 &velocity, float maxAccel, float goalRadius, float prefSpeed,
-          float maxSpeed, float uncertaintyOffset);
+    Agent(HRVOSimulator *simulator, unsigned int robot_id, const Vector2 &position, std::size_t goalNo,
+          float neighborDist, std::size_t maxNeighbors, float radius, const Vector2 &velocity, float maxAccel,
+          float goalRadius, float prefSpeed, float maxSpeed, float uncertaintyOffset);
 
     /**
      * Computes the neighbors of this agent.
@@ -156,6 +156,7 @@ class Agent
     void update();
 
    public:  // A
+    unsigned int robot_id;
     HRVOSimulator *const simulator_;
     Vector2 newVelocity_;
     Vector2 position_;

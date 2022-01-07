@@ -73,11 +73,11 @@ Agent::Agent(HRVOSimulator *simulator, const Vector2 &position, std::size_t goal
 {
 }
 
-Agent::Agent(HRVOSimulator *simulator, const Vector2 &position, std::size_t goalNo,
-             float neighborDist, std::size_t maxNeighbors, float radius,
-             const Vector2 &velocity, float maxAccel, float goalRadius, float prefSpeed,
-             float maxSpeed, float uncertaintyOffset)
+Agent::Agent(HRVOSimulator *simulator, unsigned int robot_id, const Vector2 &position, std::size_t goalNo,
+             float neighborDist, std::size_t maxNeighbors, float radius, const Vector2 &velocity, float maxAccel,
+             float goalRadius, float prefSpeed, float maxSpeed, float uncertaintyOffset)
     : simulator_(simulator),
+      robot_id(robot_id),
       newVelocity_(velocity),
       position_(position),
       velocity_(velocity),

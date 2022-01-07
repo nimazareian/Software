@@ -39,13 +39,20 @@
 #include "extlibs/hrvo/goal.h"
 #include "extlibs/hrvo/kd_tree.h"
 #include "extlibs/hrvo/vector2.h"
+#include "software/world/world.h"
 
 class HRVOSimulator
 {
    public:
     HRVOSimulator();
-//    HRVOSimulator(const TbotsProto::World& world_msg);
     ~HRVOSimulator();
+
+    /**
+     * Constructor
+     *
+     * @param world The current World
+     */
+    HRVOSimulator(const World &world, double time_step);
 
     /**
      *      Adds a new agent with default properties to the simulation.
@@ -72,10 +79,9 @@ class HRVOSimulator
      * @param velocity           The initial velocity of this agent.
      * @return    The number of the agent.
      */
-    std::size_t addAgent(const Vector2 &position, std::size_t goalNo, float neighborDist,
-                         std::size_t maxNeighbors, float radius, float goalRadius,
-                         float prefSpeed, float maxSpeed, float uncertaintyOffset = 0.0f,
-                         float maxAccel          = std::numeric_limits<float>::infinity(),
+    std::size_t addAgent(unsigned int robot_id, const Vector2 &position, std::size_t goalNo, float neighborDist,
+                         std::size_t maxNeighbors, float radius, float goalRadius, float prefSpeed, float maxSpeed,
+                         float uncertaintyOffset = 0.0f, float maxAccel = std::numeric_limits<float>::infinity(),
                          const Vector2 &velocity = Vector2(0.0f, 0.0f));
 
     /**
