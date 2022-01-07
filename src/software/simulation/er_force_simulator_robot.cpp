@@ -10,7 +10,8 @@ ErForceSimulatorRobot::ErForceSimulatorRobot(unsigned int robot_id, WheelConstan
     : dribbler_ball_contact(false),
       id(robot_id),
       robot_constants(robot_constants),
-      wheel_constants(wheel_constants)
+      wheel_constants(wheel_constants),
+      primitive_executor(PrimitiveExecutor(robot_id, robot_constants))
 {
 }
 
@@ -107,7 +108,7 @@ void ErForceSimulatorRobot::chip(float distance_m)
 
 void ErForceSimulatorRobot::startNewPrimitive(const TbotsProto::Primitive& primitive)
 {
-    primitive_executor.startPrimitive(robot_constants, primitive);
+    primitive_executor.startPrimitive(primitive);
 }
 
 void ErForceSimulatorRobot::runCurrentPrimitive(const World &world)

@@ -7,13 +7,19 @@ class PrimitiveExecutor
 {
    public:
     /**
+     * Constructor
+     *
+     * @param robot_constants Current robots' constants
+     */
+    PrimitiveExecutor(unsigned int robot_id, RobotConstants_t& robot_constants);
+
+    /**
      * Start running a primitive
      *
      * @param robot_constants The robot constants
-     * @param primitive The primitive to start
+     * @param world_msg The primitive to start
      */
-    void startPrimitive(const RobotConstants_t& robot_constants,
-                        const TbotsProto::Primitive& primitive);
+    void startPrimitive(const TbotsProto::World &world_msg);
 
     /**
      * Steps the current primitive and returns a direct control primitive with the
@@ -34,8 +40,7 @@ class PrimitiveExecutor
      * primitive for
      * @returns Vector The target linear velocity
      */
-    Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive& move_primitive,
-                                   unsigned int robot_id) const;
+    Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive, const RobotState& robot_state) const;
 
     /*
      * Compute the next target angular velocity the robot should be at
@@ -46,8 +51,7 @@ class PrimitiveExecutor
      * primitive for
      * @returns AngularVelocity The target angular velocity
      */
-    AngularVelocity getTargetAngularVelocity(const TbotsProto::MovePrimitive& move_primitive,
-                                             unsigned int robot_id);
+    AngularVelocity getTargetAngularVelocity(const TbotsProto::MovePrimitive &move_primitive, const RobotState& robot_state) const;
 
     /*
      * The AutoKickOrChip settings from the move primitive need to get copied over
@@ -61,6 +65,7 @@ class PrimitiveExecutor
     void copyAutoChipOrKick(const TbotsProto::MovePrimitive& src,
                             TbotsProto::DirectControlPrimitive* dest);
 
+    unsigned int robot_id_;
     TbotsProto::Primitive current_primitive_;
     RobotConstants_t robot_constants_;
 };

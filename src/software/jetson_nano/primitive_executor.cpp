@@ -6,33 +6,37 @@
 #include "software/math/math_functions.h"
 
 
-void PrimitiveExecutor::startPrimitive(const RobotConstants_t& robot_constants,
-                                       const TbotsProto::Primitive& primitive)
+PrimitiveExecutor::PrimitiveExecutor(unsigned int robot_id, RobotConstants_t & robot_constants)
+    : robot_id_(robot_id),
+      robot_constants_(robot_constants)
 {
-    robot_constants_   = robot_constants;
+}
+
+void PrimitiveExecutor::startPrimitive(const TbotsProto::World &world_msg)
+{
     current_primitive_ = primitive;
 }
 
-Vector PrimitiveExecutor::getTargetLinearVelocity(
-        const TbotsProto::MovePrimitive& move_primitive, unsigned int robot_id) const
+Vector
+PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive, const RobotState& robot_state) const
 {
     // TODO: Get current robot velocity from HRVO sim using the robot_id
 
     Vector target_global_velocity = Vector();
 
     double local_x_velocity =
-            robot_id.orientation().cos() * target_global_velocity.x() +
-            robot_id.orientation().sin() * target_global_velocity.y();
+            robot_state.orientation().cos() * target_global_velocity.x() +
+                    robot_state.orientation().sin() * target_global_velocity.y();
 
     double local_y_velocity =
-            -robot_id.orientation().sin() * target_global_velocity.x() +
-            robot_id.orientation().cos() * target_global_velocity.y();
+            -robot_state.orientation().sin() * target_global_velocity.x() +
+                    robot_state.orientation().cos() * target_global_velocity.y();
 
     return Vector(local_x_velocity, local_y_velocity).normalize(target_linear_speed);
 }
 
-AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
-        const TbotsProto::MovePrimitive& move_primitive, unsigned int robot_id)
+AngularVelocity
+PrimitiveExecutor::getTargetAngularVelocity(const TbotsProto::MovePrimitive &move_primitive, const RobotState& robot_state) const
 {
     // TODO: replace float with double
     const float LOCAL_EPSILON = 1e-6f;  // Avoid dividing by zero
@@ -41,7 +45,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const float dest_orientation =
         static_cast<float>(move_primitive.final_angle().radians());
     const float delta_orientation =
-        dest_orientation - static_cast<float>(robot_id.orientation().toRadians());
+        dest_orientation - static_cast<float>(robot_state.orientation().toRadians());
     const float max_target_angular_speed = robot_constants_.robot_max_ang_speed_rad_per_s;
 
     // Compute at what angular distance we should start decelerating angularly
@@ -94,28 +98,31 @@ PrimitiveExecutor::stepPrimitive(const World &world, unsigned int robot_id)
         }
         case TbotsProto::Primitive::kMove:
         {
-            const std::vector<Robot>& friendly_robots = world.friendlyTeam().getAllRobots();
+            const auto& friendly_robots = world.friendly_team().team_robots();
             auto robot_iter =
                     std::find_if(friendly_robots.begin(), friendly_robots.end(),
-                                 [simulator_robot](const Robot& robot) { return robot.id() == simulator_robot->getRobotId(); });
+                                 [this](const auto& robot) { return robot.id() == robot_id_; });
             if (robot_iter != friendly_robots.end())
             {
-            // Compute the target velocities
-            Vector target_velocity =
-                getTargetLinearVelocity(current_primitive_.move(), robot_id);
-            AngularVelocity target_angular_velocity =
-                getTargetAngularVelocity(current_primitive_.move(), robot_id);
+                RobotState robot_state(robot_iter->current_state());
+                // Compute the target velocities
+                Vector target_velocity =
+                        getTargetLinearVelocity(current_primitive_.move(), robot_state);
+                AngularVelocity target_angular_velocity =
+                        getTargetAngularVelocity(current_primitive_.move(), robot_state);
 
-            auto output = createDirectControlPrimitive(
-                target_velocity, target_angular_velocity,
-                current_primitive_.move().dribbler_speed_rpm());
+                auto output = createDirectControlPrimitive(
+                        target_velocity, target_angular_velocity,
+                        current_primitive_.move().dribbler_speed_rpm());
 
-            // Copy the AutoKickOrChip settings over
-            copyAutoChipOrKick(current_primitive_.move(),
-                               output->mutable_direct_control());
+                // Copy the AutoKickOrChip settings over
+                copyAutoChipOrKick(current_primitive_.move(),
+                                   output->mutable_direct_control());
 
-            return std::make_unique<TbotsProto::DirectControlPrimitive>(
-                output->direct_control());
+                return std::make_unique<TbotsProto::DirectControlPrimitive>(
+                        output->direct_control());
+            }
+            break;
         }
         case TbotsProto::Primitive::PRIMITIVE_NOT_SET:
         {
