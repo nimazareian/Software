@@ -40,7 +40,7 @@
 #include "goal.h"
 #include "kd_tree.h"
 
-Agent::Agent(Simulator *simulator)
+Agent::Agent(HRVOSimulator *simulator)
     : simulator_(simulator),
       goalNo_(0),
       maxNeighbors_(0),
@@ -55,7 +55,7 @@ Agent::Agent(Simulator *simulator)
 {
 }
 
-Agent::Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo)
+Agent::Agent(HRVOSimulator *simulator, const Vector2 &position, std::size_t goalNo)
     : simulator_(simulator),
       newVelocity_(simulator_->defaults_->velocity_),
       position_(position),
@@ -73,7 +73,7 @@ Agent::Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo)
 {
 }
 
-Agent::Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo,
+Agent::Agent(HRVOSimulator *simulator, const Vector2 &position, std::size_t goalNo,
              float neighborDist, std::size_t maxNeighbors, float radius,
              const Vector2 &velocity, float maxAccel, float goalRadius, float prefSpeed,
              float maxSpeed, float uncertaintyOffset)

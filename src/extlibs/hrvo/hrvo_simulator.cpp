@@ -30,7 +30,7 @@
  * <https://gamma.cs.unc.edu/HRVO/>
  */
 
-#include "extlibs/hrvo/simulator.h"
+#include "extlibs/hrvo/hrvo_simulator.h"
 
 #include <stdexcept>
 
@@ -38,7 +38,7 @@
 #include "extlibs/hrvo/goal.h"
 #include "extlibs/hrvo/kd_tree.h"
 
-Simulator::Simulator()
+HRVOSimulator::HRVOSimulator()
     : defaults_(NULL),
       kdTree_(NULL),
       globalTime_(0.0f),
@@ -48,7 +48,7 @@ Simulator::Simulator()
     kdTree_ = new KdTree(this);
 }
 
-Simulator::~Simulator()
+HRVOSimulator::~HRVOSimulator()
 {
     delete defaults_;
     defaults_ = NULL;
@@ -71,7 +71,7 @@ Simulator::~Simulator()
     }
 }
 
-std::size_t Simulator::addAgent(const Vector2 &position, std::size_t goalNo)
+std::size_t HRVOSimulator::addAgent(const Vector2 &position, std::size_t goalNo)
 {
     if (defaults_ == NULL)
     {
@@ -84,7 +84,7 @@ std::size_t Simulator::addAgent(const Vector2 &position, std::size_t goalNo)
     return agents_.size() - 1;
 }
 
-std::size_t Simulator::addAgent(const Vector2 &position, std::size_t goalNo,
+std::size_t HRVOSimulator::addAgent(const Vector2 &position, std::size_t goalNo,
                                 float neighborDist, std::size_t maxNeighbors,
                                 float radius, float goalRadius, float prefSpeed,
                                 float maxSpeed, float uncertaintyOffset, float maxAccel,
@@ -98,7 +98,7 @@ std::size_t Simulator::addAgent(const Vector2 &position, std::size_t goalNo,
     return agents_.size() - 1;
 }
 
-std::size_t Simulator::addGoal(const Vector2 &position)
+std::size_t HRVOSimulator::addGoal(const Vector2 &position)
 {
     Goal *const goal = new Goal(position);
     goals_.push_back(goal);
@@ -106,7 +106,7 @@ std::size_t Simulator::addGoal(const Vector2 &position)
     return goals_.size() - 1;
 }
 
-std::size_t Simulator::addGoalPositions(const std::vector<Vector2> &positions)
+std::size_t HRVOSimulator::addGoalPositions(const std::vector<Vector2> &positions)
 {
     Goal *const goal = new Goal(positions);
     goals_.push_back(goal);
@@ -114,7 +114,7 @@ std::size_t Simulator::addGoalPositions(const std::vector<Vector2> &positions)
     return goals_.size() - 1;
 }
 
-std::size_t Simulator::addGoalPositions(const std::vector<Vector2> &positions,
+std::size_t HRVOSimulator::addGoalPositions(const std::vector<Vector2> &positions,
                                         const std::vector<float> &speedAtPosition)
 {
     Goal *const goal = new Goal(positions, speedAtPosition);
@@ -123,7 +123,7 @@ std::size_t Simulator::addGoalPositions(const std::vector<Vector2> &positions,
     return goals_.size() - 1;
 }
 
-void Simulator::doStep()
+void HRVOSimulator::doStep()
 {
     if (kdTree_ == NULL)
     {
@@ -158,72 +158,72 @@ void Simulator::doStep()
     }
 }
 
-std::size_t Simulator::getAgentGoal(std::size_t agentNo) const
+std::size_t HRVOSimulator::getAgentGoal(std::size_t agentNo) const
 {
     return agents_[agentNo]->goalNo_;
 }
 
-float Simulator::getAgentGoalRadius(std::size_t agentNo) const
+float HRVOSimulator::getAgentGoalRadius(std::size_t agentNo) const
 {
     return agents_[agentNo]->goalRadius_;
 }
 
-float Simulator::getAgentMaxAccel(std::size_t agentNo) const
+float HRVOSimulator::getAgentMaxAccel(std::size_t agentNo) const
 {
     return agents_[agentNo]->maxAccel_;
 }
 
-std::size_t Simulator::getAgentMaxNeighbors(std::size_t agentNo) const
+std::size_t HRVOSimulator::getAgentMaxNeighbors(std::size_t agentNo) const
 {
     return agents_[agentNo]->maxNeighbors_;
 }
 
-float Simulator::getAgentMaxSpeed(std::size_t agentNo) const
+float HRVOSimulator::getAgentMaxSpeed(std::size_t agentNo) const
 {
     return agents_[agentNo]->maxSpeed_;
 }
 
-float Simulator::getAgentNeighborDist(std::size_t agentNo) const
+float HRVOSimulator::getAgentNeighborDist(std::size_t agentNo) const
 {
     return agents_[agentNo]->neighborDist_;
 }
 
-Vector2 Simulator::getAgentPosition(std::size_t agentNo) const
+Vector2 HRVOSimulator::getAgentPosition(std::size_t agentNo) const
 {
     return agents_[agentNo]->position_;
 }
 
-float Simulator::getAgentPrefSpeed(std::size_t agentNo) const
+float HRVOSimulator::getAgentPrefSpeed(std::size_t agentNo) const
 {
     return agents_[agentNo]->prefSpeed_;
 }
 
-float Simulator::getAgentRadius(std::size_t agentNo) const
+float HRVOSimulator::getAgentRadius(std::size_t agentNo) const
 {
     return agents_[agentNo]->radius_;
 }
 
-bool Simulator::getAgentReachedGoal(std::size_t agentNo) const
+bool HRVOSimulator::getAgentReachedGoal(std::size_t agentNo) const
 {
     return agents_[agentNo]->reachedGoal_;
 }
 
-float Simulator::getAgentUncertaintyOffset(std::size_t agentNo) const
+float HRVOSimulator::getAgentUncertaintyOffset(std::size_t agentNo) const
 {
     return agents_[agentNo]->uncertaintyOffset_;
 }
 
-Vector2 Simulator::getAgentVelocity(std::size_t agentNo) const
+Vector2 HRVOSimulator::getAgentVelocity(std::size_t agentNo) const
 {
     return agents_[agentNo]->velocity_;
 }
 
-Vector2 Simulator::getGoalPosition(std::size_t goalNo) const
+Vector2 HRVOSimulator::getGoalPosition(std::size_t goalNo) const
 {
     return goals_[goalNo]->position_;
 }
 
-void Simulator::setAgentDefaults(float neighborDist, std::size_t maxNeighbors,
+void HRVOSimulator::setAgentDefaults(float neighborDist, std::size_t maxNeighbors,
                                  float radius, float goalRadius, float prefSpeed,
                                  float maxSpeed, float uncertaintyOffset, float maxAccel,
                                  const Vector2 &velocity)
@@ -245,67 +245,67 @@ void Simulator::setAgentDefaults(float neighborDist, std::size_t maxNeighbors,
     defaults_->velocity_          = velocity;
 }
 
-void Simulator::setAgentGoal(std::size_t agentNo, std::size_t goalNo)
+void HRVOSimulator::setAgentGoal(std::size_t agentNo, std::size_t goalNo)
 {
     agents_[agentNo]->goalNo_ = goalNo;
 }
 
-void Simulator::setAgentGoalPosition(std::size_t agentNo, Vector2 position)
+void HRVOSimulator::setAgentGoalPosition(std::size_t agentNo, Vector2 position)
 {
     goals_[agentNo]->position_ = position;
 }
 
-void Simulator::setAgentGoalRadius(std::size_t agentNo, float goalRadius)
+void HRVOSimulator::setAgentGoalRadius(std::size_t agentNo, float goalRadius)
 {
     agents_[agentNo]->goalRadius_ = goalRadius;
 }
 
-void Simulator::setAgentMaxAccel(std::size_t agentNo, float maxAccel)
+void HRVOSimulator::setAgentMaxAccel(std::size_t agentNo, float maxAccel)
 {
     agents_[agentNo]->maxAccel_ = maxAccel;
 }
 
-void Simulator::setAgentMaxNeighbors(std::size_t agentNo, std::size_t maxNeighbors)
+void HRVOSimulator::setAgentMaxNeighbors(std::size_t agentNo, std::size_t maxNeighbors)
 {
     agents_[agentNo]->maxNeighbors_ = maxNeighbors;
 }
 
-void Simulator::setAgentMaxSpeed(std::size_t agentNo, float maxSpeed)
+void HRVOSimulator::setAgentMaxSpeed(std::size_t agentNo, float maxSpeed)
 {
     agents_[agentNo]->maxSpeed_ = maxSpeed;
 }
 
-void Simulator::setAgentNeighborDist(std::size_t agentNo, float neighborDist)
+void HRVOSimulator::setAgentNeighborDist(std::size_t agentNo, float neighborDist)
 {
     agents_[agentNo]->neighborDist_ = neighborDist;
 }
 
-void Simulator::setAgentPosition(std::size_t agentNo, const Vector2 &position)
+void HRVOSimulator::setAgentPosition(std::size_t agentNo, const Vector2 &position)
 {
     agents_[agentNo]->position_ = position;
 }
 
-void Simulator::setAgentPrefSpeed(std::size_t agentNo, float prefSpeed)
+void HRVOSimulator::setAgentPrefSpeed(std::size_t agentNo, float prefSpeed)
 {
     agents_[agentNo]->prefSpeed_ = prefSpeed;
 }
 
-void Simulator::setAgentRadius(std::size_t agentNo, float radius)
+void HRVOSimulator::setAgentRadius(std::size_t agentNo, float radius)
 {
     agents_[agentNo]->radius_ = radius;
 }
 
-void Simulator::setAgentUncertaintyOffset(std::size_t agentNo, float uncertaintyOffset)
+void HRVOSimulator::setAgentUncertaintyOffset(std::size_t agentNo, float uncertaintyOffset)
 {
     agents_[agentNo]->uncertaintyOffset_ = uncertaintyOffset;
 }
 
-void Simulator::setAgentVelocity(std::size_t agentNo, const Vector2 &velocity)
+void HRVOSimulator::setAgentVelocity(std::size_t agentNo, const Vector2 &velocity)
 {
     agents_[agentNo]->velocity_ = velocity;
 }
 
-Vector2 Simulator::getAgentPrefVelocity(std::size_t agentNo) const
+Vector2 HRVOSimulator::getAgentPrefVelocity(std::size_t agentNo) const
 {
     return agents_[agentNo]->prefVelocity_;
 }

@@ -40,11 +40,12 @@
 #include "extlibs/hrvo/kd_tree.h"
 #include "extlibs/hrvo/vector2.h"
 
-class Simulator
+class HRVOSimulator
 {
    public:
-    Simulator();
-    ~Simulator();
+    HRVOSimulator();
+//    HRVOSimulator(const TbotsProto::World& world_msg);
+    ~HRVOSimulator();
 
     /**
      *      Adds a new agent with default properties to the simulation.
@@ -391,7 +392,7 @@ class Simulator
      */
     void setTimeStep(double timeStep)
     {
-        if (timeStep_ <= 0.0)
+        if (timeStep <= 0.0)
         {
             throw std::runtime_error("Invalid time step used for the HRVO simulator.");
         }
@@ -400,8 +401,8 @@ class Simulator
 
     //	private:
    public:
-    Simulator(const Simulator &other);
-    Simulator &operator=(const Simulator &other);
+    HRVOSimulator(const HRVOSimulator &other);
+    HRVOSimulator &operator=(const HRVOSimulator &other);
 
 
 

@@ -35,7 +35,7 @@
 
 #include "extlibs/hrvo/vector2.h"
 
-class Simulator;
+class HRVOSimulator;
 
 /**
  * A goal in the simulation.
@@ -76,5 +76,5 @@ class Goal
 
 
     friend class Agent;
-    friend class Simulator;
+    friend class HRVOSimulator;
 };

@@ -39,7 +39,7 @@
 #include <vector>
 
 #include "goal.h"
-#include "simulator.h"
+#include "hrvo_simulator.h"
 #include "vector2.h"
 
 /**
@@ -90,7 +90,7 @@ class Agent
      *
      * @param simulator  The simulation which the Agent is a part of
      */
-    explicit Agent(Simulator *simulator);
+    explicit Agent(HRVOSimulator *simulator);
 
     /**
      * Constructor
@@ -99,7 +99,7 @@ class Agent
      * @param position   The starting position of this agent.
      * @param goalNo     The goal number of this agent.
      */
-    Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo);
+    Agent(HRVOSimulator *simulator, const Vector2 &position, std::size_t goalNo);
 
     /**
      * Constructor
@@ -117,7 +117,7 @@ class Agent
      * @param maxAccel           The maximum acceleration of this agent.
      * @param velocity           The initial velocity of this agent.
      */
-    Agent(Simulator *simulator, const Vector2 &position, std::size_t goalNo,
+    Agent(HRVOSimulator *simulator, const Vector2 &position, std::size_t goalNo,
           float neighborDist, std::size_t maxNeighbors, float radius,
           const Vector2 &velocity, float maxAccel, float goalRadius, float prefSpeed,
           float maxSpeed, float uncertaintyOffset);
@@ -156,7 +156,7 @@ class Agent
     void update();
 
    public:  // A
-    Simulator *const simulator_;
+    HRVOSimulator *const simulator_;
     Vector2 newVelocity_;
     Vector2 position_;
     Vector2 prefVelocity_;
@@ -176,5 +176,5 @@ class Agent
     std::vector<VelocityObstacle> velocityObstacles_;
 
     friend class KdTree;
-    friend class Simulator;
+    friend class HRVOSimulator;
 };

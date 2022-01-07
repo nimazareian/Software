@@ -3,7 +3,7 @@
 #include <chrono>
 #include <fstream>
 
-#include "extlibs/hrvo/simulator.h"
+#include "extlibs/hrvo/hrvo_simulator.h"
 #include "shared/test_util/tbots_gtest_main.h"
 
 const int SIMULATOR_FRAME_RATE = 30;
@@ -14,11 +14,11 @@ const float RADIUS_SCALE       = 1.0f;
 class HRVOTest : public ::testing::Test
 {
    public:
-    Simulator simulator;
+    HRVOSimulator simulator;
 
     HRVOTest() : simulator()
     {
-        simulator.setTimeStep(1.f / SIMULATOR_FRAME_RATE);
+        simulator.setTimeStep(1.0 / SIMULATOR_FRAME_RATE);
         simulator.setAgentDefaults(/*neighborDist*/ 3.f, /*maxNeighbors*/ 30,
                                    /*radius*/ ROBOT_RADIUS * RADIUS_SCALE,
                                    /*goalRadius*/ 0.02f,

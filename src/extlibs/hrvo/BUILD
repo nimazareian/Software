@@ -16,15 +16,15 @@ cc_library(
     srcs = [
         "agent.cpp",
         "goal.cpp",
+        "hrvo_simulator.cpp",
         "kd_tree.cpp",
-        "simulator.cpp",
         "vector2.cpp",
     ],
     hdrs = [
         "agent.h",
         "goal.h",
+        "hrvo_simulator.h",
         "kd_tree.h",
-        "simulator.h",
         "vector2.h",
     ],
     visibility = ["//visibility:public"],
