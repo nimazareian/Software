@@ -124,6 +124,27 @@ class ErForceSimulator
      */
     void resetCurrentTime();
 
+    // Timing
+    double update_hrvo_total_time_ms = 0.0;
+    double step_primitive_total_time_ms = 0.0;
+
+    int update_hrvo_num_ticks = 0;
+    int step_primitive_max_num_ticks = 0;
+
+    double update_hrvo_max_time_ms = 0.0;
+    double step_primitive_max_time_ms = 0.0;
+
+
+    static double millisecondsSince(
+            std::chrono::time_point<std::chrono::system_clock> start_time)
+    {
+        const auto end_time = std::chrono::system_clock::now();
+        return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                end_time - start_time)
+                .count()) /
+               NANOSECONDS_PER_MILLISECOND;
+    }
+
    private:
     /**
      * Sets the primitive being simulated by the robot in simulation
@@ -135,7 +156,7 @@ class ErForceSimulator
      * @param world_msg The world message
      * @param local_velocity The local velocity
      */
-    static void setRobotPrimitive(
+    void setRobotPrimitive(
         RobotId id, const TbotsProto::PrimitiveSet& primitive_set_msg,
         std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>>&
             robot_primitive_executor_map,

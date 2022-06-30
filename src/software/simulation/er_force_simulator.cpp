@@ -298,9 +298,16 @@ void ErForceSimulator::setRobotPrimitive(
                          [&](const auto& robot) { return robot.id() == robot_id; });
         if (robot_proto_it != friendly_robots.end())
         {
+            auto start_tick_time = std::chrono::system_clock::now();
+
             robot_primitive_executor->updatePrimitiveSet(robot_id, primitive_set_msg);
             robot_primitive_executor->updateWorld(world_msg);
             robot_primitive_executor->updateLocalVelocity(local_velocity);
+
+            double time_ms = millisecondsSince(start_tick_time);
+            update_hrvo_total_time_ms += time_ms;
+            update_hrvo_max_time_ms = std::max(update_hrvo_max_time_ms, time_ms);
+            update_hrvo_num_ticks++;
         }
         else
         {
@@ -334,8 +341,16 @@ SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
             auto& primitive_executor = primitive_executor_with_id.second;
             // Set to NEG_X because the world msg in this simulator is
             // normalized correctly
+            auto start_tick_time = std::chrono::system_clock::now();
+
             auto direct_control = primitive_executor->stepPrimitive(
                 robot_id, RobotState(robot_proto_it->current_state()).orientation());
+
+            double time_ms = millisecondsSince(start_tick_time);
+            step_primitive_total_time_ms += time_ms;
+            step_primitive_max_time_ms = std::max(step_primitive_max_time_ms, time_ms);
+            step_primitive_max_num_ticks++;
+
 
             auto command = *getRobotCommandFromDirectControl(
                 robot_id, std::move(direct_control), robot_constants);
@@ -381,7 +396,16 @@ void ErForceSimulator::stepSimulation(const Duration& time_step)
 
     er_force_sim->stepSimulation(time_step.toSeconds());
 
-    frame_number++;
+    if (++frame_number % 120 == 0)
+    {
+        std::cout << "Frame " << frame_number << std::endl;
+        std::cout << "Max update HRVO = " << update_hrvo_max_time_ms << "ms" << std::endl;
+        std::cout << "Max step primitive = " << step_primitive_max_time_ms << "ms" << std::endl;
+
+        std::cout << "avg update HRVO = " << update_hrvo_total_time_ms / update_hrvo_num_ticks << "ms" << std::endl;
+        std::cout << "avg step primitive = " << step_primitive_total_time_ms / step_primitive_max_num_ticks << "ms" << std::endl;
+        std::cout << "=======================================" << std::endl;
+    }
 }
 
 std::vector<TbotsProto::RobotStatus> ErForceSimulator::getBlueRobotStatuses() const
