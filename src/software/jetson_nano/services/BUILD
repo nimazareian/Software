@@ -16,6 +16,16 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "motor_test",
+    srcs = ["motor_test.cpp"],
+    deps = [
+        ":motor",
+        "//shared/test_util:tbots_gtest_main",
+        "//software/test_util",
+    ],
+)
+
 cc_library(
     name = "power",
     srcs = ["power.cpp"],

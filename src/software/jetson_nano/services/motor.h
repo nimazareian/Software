@@ -154,7 +154,7 @@ class MotorService
      * @param time_to_ramp The time allocated for acceleration in seconds
      *
      */
-    WheelSpace_t rampVelocity(const WheelSpace_t& current_wheel_velocity,
+    static WheelSpace_t rampVelocity(const WheelSpace_t& current_wheel_velocity,
                               const EuclideanSpace_t& target_euclidean_velocity,
                               const double& time_to_ramp);
     WheelSpace_t rampWheelVelocity(const WheelSpace_t& current_wheel_velocity,
