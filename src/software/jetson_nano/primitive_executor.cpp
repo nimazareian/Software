@@ -44,9 +44,16 @@ void PrimitiveExecutor::updateWorld(const TbotsProto::World& world_msg)
 void PrimitiveExecutor::updateLocalVelocity(Vector local_velocity) {}
 
 Vector PrimitiveExecutor::getTargetLinearVelocity(const unsigned int robot_id,
-                                                  const Angle& curr_orientation)
+                                                  const RobotState &robot_state)
 {
-    if (current_primitive_.has_move() && current_primitive_.move().run_hrvo())
+    Angle curr_orientation = robot_state.orientation();
+    if (!current_primitive_.has_move())
+    {
+        return Vector();
+    }
+
+    auto move_primitive = current_primitive_.move();
+    if (move_primitive.run_hrvo())
     {
         Vector target_global_velocity = hrvo_simulator_.getRobotVelocity(robot_id);
         return target_global_velocity.rotate(-curr_orientation);
@@ -57,7 +64,7 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const unsigned int robot_id,
         const float LOCAL_EPSILON = 1e-6f;  // Avoid dividing by zero
 
         // Unpack current move primitive
-        auto destination              = move_primitive.path().point().at(0);
+        auto destination              = move_primitive.motion_control().path().points().at(1);
         const float dest_linear_speed = move_primitive.final_speed_m_per_s();
         const float max_speed_m_per_s = move_primitive.max_speed_m_per_s();
         const Point final_position    = Point(destination.x_meters(), destination.y_meters());
@@ -267,7 +274,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             // Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(),
             // robot_state);
             Vector target_velocity =
-                getTargetLinearVelocity(robot_id, robot_state.orientation());
+                getTargetLinearVelocity(robot_id, robot_state);
 
             double target_linear_speed =
                 getTargetLinearSpeed(current_primitive_.move(), robot_state);
