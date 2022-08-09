@@ -1,0 +1,12 @@
+UseColor: true
+
+Checks: >
+    clang-analyzer-*,
+    -cppcoreguidelines-avoid-magic-numbers,
+#    bugprone-*,
+#    google-*,
+#    performance-*,
+
+HeaderFilterRegex: ".*"
+
+WarningsAsErrors: "*"

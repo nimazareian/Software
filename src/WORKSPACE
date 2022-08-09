@@ -394,3 +394,44 @@ git_repository(
 load("@hedron_compile_commands//:workspace_setup.bzl", "hedron_compile_commands_setup")
 
 hedron_compile_commands_setup()
+
+
+#http_archive(
+#    name = "rules_cc",
+#    sha256 = "4aeb102efbcfad509857d7cb9c5456731e8ce566bfbf2960286a2ec236796cc3",
+#    strip_prefix = "rules_cc-2f8c04c04462ab83c545ab14c0da68c3b4c96191",
+#    urls = [
+#        "https://mirror.bazel.build/github.com/bazelbuild/rules_cc/archive/2f8c04c04462ab83c545ab14c0da68c3b4c96191.tar.gz",
+#        "https://github.com/bazelbuild/rules_cc/archive/2f8c04c04462ab83c545ab14c0da68c3b4c96191.tar.gz",
+#    ],
+#)
+
+git_repository(
+       name = "bazel_clang_tidy",
+       commit = "69aa13e6d7cf102df70921c66be15d4592251e56",
+       remote = "https://github.com/erenon/bazel_clang_tidy.git",
+)
+
+## Set up host hermetic host toolchain.
+#git_repository(
+#    name = "rules_cc_toolchain",
+#    commit = "80b51ba81f14eebe06684efa25261f6dc46e9b29", #"dd9265e3ce0daa444911040430bd716076869b34",
+#    remote = "https://github.com/silvergasp/rules_cc_toolchain.git",
+#)
+#
+#load("@rules_cc_toolchain//:rules_cc_toolchain_deps.bzl", "rules_cc_toolchain_deps")
+#
+#rules_cc_toolchain_deps()
+#
+#load("@rules_cc_toolchain//cc_toolchain:cc_toolchain.bzl", "register_cc_toolchains")
+#
+#register_cc_toolchains()
+
+# Sets up Bazels documentation generator.
+# Required by: rules_cc_toolchain.
+# Required by modules: All
+#git_repository(
+#    name = "io_bazel_stardoc",
+#    commit = "2b801dc9b93f73812948ee4e505805511b0f55dc",
+#    remote = "https://github.com/bazelbuild/stardoc.git",
+#)
