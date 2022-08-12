@@ -1,5 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
+load("@simulated_tests_deps//:requirements.bzl", "requirement")
+
 cc_library(
     name = "get_behind_ball_tactic",
     srcs = [
@@ -26,5 +28,17 @@ cc_test(
         ":get_behind_ball_tactic",
         "//shared/test_util:tbots_gtest_main",
         "//software/test_util",
+    ],
+)
+
+py_test(
+    name = "get_behind_ball_tactic_test",
+    srcs = [
+        "get_behind_ball_tactic_test.py",
+    ],
+    deps = [
+        "//software/simulated_tests:simulated_test_fixture",
+        "//software/simulated_tests:validation",
+        requirement("pytest"),
     ],
 )
