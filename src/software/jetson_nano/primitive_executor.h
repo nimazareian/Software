@@ -5,6 +5,7 @@
 #include "proto/tbots_software_msgs.pb.h"
 #include "software/geom/vector.h"
 #include "software/world/world.h"
+#include "software/physics/euclidean_to_wheel.h"
 
 class PrimitiveExecutor
 {
@@ -68,6 +69,10 @@ class PrimitiveExecutor
     Vector getTargetLinearVelocity(const unsigned int robot_id,
                                    const Angle& curr_orientation);
 
+
+    WheelSpace_t rampWheelVelocity(const WheelSpace_t &current_wheel_velocity, const EuclideanSpace_t &target_euclidean_velocity,
+                      double max_allowable_wheel_velocity, double allowed_acceleration, const double &time_to_ramp);
+
     /*
      * Compute the next target angular velocity the robot should be at
      * assuming max acceleration.
@@ -80,7 +85,12 @@ class PrimitiveExecutor
     AngularVelocity getTargetAngularVelocity(
         const TbotsProto::MovePrimitive& move_primitive, const Angle& curr_orientation);
 
+    const double time_step_;
+
     TbotsProto::Primitive current_primitive_;
     RobotConstants_t robot_constants_;
     HRVOSimulator hrvo_simulator_;
+    EuclideanToWheel euclidean_to_four_wheel_;
+    WheelSpace_t prev_linear_wheel_velocities;
+    WheelSpace_t prev_angular_wheel_velocities;
 };
