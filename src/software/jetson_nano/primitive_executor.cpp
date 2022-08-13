@@ -116,44 +116,45 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
                 getTargetAngularVelocity(current_primitive_.move(), curr_orientation);
 
             // TODO: Create a struct for WheelSpace_t and EuclideanSpace_t
-//            EuclideanSpace_t target_euclidean_velocity = {-target_linear_velocity.y(),
-//                                                          target_linear_velocity.x(),
-//                                                          target_angular_velocity.toRadians()};
-//
-//            WheelSpace_t target_linear_wheel_velocities = rampWheelVelocity(
-//                    prev_linear_wheel_velocities, {target_euclidean_velocity[0], target_euclidean_velocity[1], 0.0},
-//                    static_cast<double>(robot_constants_.robot_max_speed_m_per_s),
-//                    static_cast<double>(robot_constants_.robot_max_acceleration_m_per_s_2),
-//                    time_step_);
-//            prev_linear_wheel_velocities = target_linear_wheel_velocities;
-//
-//            WheelSpace_t target_angular_wheel_velocities = rampWheelVelocity(
-//                    prev_angular_wheel_velocities, {0.0, 0.0, target_euclidean_velocity[2]},
-//                    static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s),
-//                    static_cast<double>(robot_constants_.robot_max_ang_acceleration_rad_per_s_2),
-//                    time_step_);
-//            prev_angular_wheel_velocities = target_angular_wheel_velocities;
-//
-//            WheelSpace_t target_total_wheel_velocities =
-//                    prev_linear_wheel_velocities + prev_angular_wheel_velocities;
-//
-//            // convert euclidean to wheel velocity
-//            EuclideanSpace_t ramped_euclidean_velocity =
-//                    euclidean_to_four_wheel_.getEuclideanVelocity(target_total_wheel_velocities);
+            EuclideanSpace_t target_euclidean_velocity = {target_linear_velocity.x(),
+                                                          target_linear_velocity.y(),
+                                                          target_angular_velocity.toRadians()};
+
+            WheelSpace_t target_linear_wheel_velocities = rampWheelVelocity(
+                    prev_linear_wheel_velocities, {target_euclidean_velocity[0], target_euclidean_velocity[1], 0.0},
+                    static_cast<double>(robot_constants_.robot_max_speed_m_per_s),
+                    static_cast<double>(robot_constants_.robot_max_acceleration_m_per_s_2),
+                    time_step_);
+            prev_linear_wheel_velocities = target_linear_wheel_velocities;
+
+            WheelSpace_t target_angular_wheel_velocities = rampWheelVelocity(
+                    prev_angular_wheel_velocities, {0.0, 0.0, target_euclidean_velocity[2]},
+                    static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s),
+                    static_cast<double>(robot_constants_.robot_max_ang_acceleration_rad_per_s_2),
+                    time_step_);
+            prev_angular_wheel_velocities = target_angular_wheel_velocities;
+
+            WheelSpace_t target_total_wheel_velocities =
+                    prev_linear_wheel_velocities + prev_angular_wheel_velocities;
+
+            // convert euclidean to wheel velocity
+            EuclideanSpace_t ramped_euclidean_velocity =
+                    euclidean_to_four_wheel_.getEuclideanVelocity(target_total_wheel_velocities);
 //
 
 
             // TODO: Create a struct for WheelSpace_t and EuclideanSpace_t
-            EuclideanSpace_t target_euclidean_velocity = {-target_linear_velocity.y(),
-                                                          target_linear_velocity.x(),
-                                                          target_angular_velocity.toRadians()};
-            // convert euclidean to wheel velocity
-            WheelSpace_t target_wheel_velocity =
-                    euclidean_to_four_wheel_.getWheelVelocity(target_euclidean_velocity);
-            EuclideanSpace_t ramped_euclidean_velocity = euclidean_to_four_wheel_.getEuclideanVelocity(target_wheel_velocity);
-
-//            // TODO: Might have to have the x y  order different
-            Vector ramped_linear_velocity = Vector(-ramped_euclidean_velocity[1], ramped_euclidean_velocity[0]);
+//            EuclideanSpace_t target_euclidean_velocity = {target_linear_velocity.x(),
+//                                                          target_linear_velocity.y(),
+//
+//                                                          target_angular_velocity.toRadians()};
+//            // convert euclidean to wheel velocity
+//            WheelSpace_t target_wheel_velocity =
+//                    euclidean_to_four_wheel_.getWheelVelocity(target_euclidean_velocity);
+//            EuclideanSpace_t ramped_euclidean_velocity = euclidean_to_four_wheel_.getEuclideanVelocity(target_wheel_velocity);
+//
+////            // TODO: Might have to have the x y  order different
+            Vector ramped_linear_velocity = Vector(ramped_euclidean_velocity[0], ramped_euclidean_velocity[1]);
             AngularVelocity ramped_angular_velocity = AngularVelocity::fromRadians(ramped_euclidean_velocity[2]);
 
             auto output = createDirectControlPrimitive(

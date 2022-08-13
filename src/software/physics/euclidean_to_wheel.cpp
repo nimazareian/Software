@@ -24,17 +24,17 @@ EuclideanToWheel::EuclideanToWheel(const RobotConstants_t &robot_constants)
 
     auto i =
         1 / (2 * sin(front_wheel_angle_phi_rad_) + 2 * sin(rear_wheel_angle_theta_rad_));
-    auto j =
-        cos(front_wheel_angle_phi_rad_) / (2 * pow(cos(front_wheel_angle_phi_rad_), 2) +
-                                            2 * pow(cos(rear_wheel_angle_theta_rad_), 2));
-    auto k = sin(rear_wheel_angle_theta_rad_) /
-             (2 * sin(front_wheel_angle_phi_rad_) + 2 * sin(rear_wheel_angle_theta_rad_));
+//    auto j =
+//        cos(front_wheel_angle_phi_rad_) / (2 * pow(cos(front_wheel_angle_phi_rad_), 2) +
+//                                            2 * pow(cos(rear_wheel_angle_theta_rad_), 2));
+//    auto k = sin(rear_wheel_angle_theta_rad_) /
+//             (2 * sin(front_wheel_angle_phi_rad_) + 2 * sin(rear_wheel_angle_theta_rad_));
 
     auto t = rear_wheel_angle_theta_rad_;
     auto v = front_wheel_angle_phi_rad_;
     auto j1 = cos(t)/(2*cos(t)*cos(t) + 2*cos(v)*cos(v));
     auto j2 = cos(v)/(2*cos(t)*cos(t) + 2*cos(v)*cos(v));
-    auto k1 = sin(v)/(2*sin(t) + 2*sin(v))/2;
+    auto k1 = sin(v)/(2*sin(t) + 2*sin(v));
     auto k2 = sin(t)/(2*sin(t) + 2*sin(v));
 
     //clang-format off
@@ -43,7 +43,7 @@ EuclideanToWheel::EuclideanToWheel(const RobotConstants_t &robot_constants)
     wheel_to_euclidean_velocity_D_inverse_ <<
     -i, -i, i, i,
     j1, -j1, -j2, j2,
-    k2, k2, k1, k1;
+    k1, k1, k2, k2;
     //clang-format on
 }
 

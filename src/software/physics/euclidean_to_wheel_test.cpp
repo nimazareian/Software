@@ -171,3 +171,9 @@ TEST_F(EuclideanToWheelTest, test_sanity_check_conversion_is_linear)
 
     EXPECT_TRUE(TestUtil::equalWithinTolerance(result * 100, scaled_result, 0.001));
 }
+
+TEST_F(EuclideanToWheelTest, bruh)
+{
+    std::cout << euclidean_to_four_wheel.wheel_to_euclidean_velocity_D_inverse_ * euclidean_to_four_wheel.euclidean_to_wheel_velocity_D_ << std::endl;
+
+}
