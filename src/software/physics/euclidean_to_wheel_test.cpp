@@ -73,17 +73,23 @@ TEST_F(EuclideanToWheelTest, test_target_wheel_speeds_y)
 TEST_F(EuclideanToWheelTest, test_double_conversion_y)
 {
     // test +/forwards
-    double vel_magnitude = -5.3;
+    double vel_magnitude = 1;
     target_euclidean_velocity = {0, vel_magnitude, 0};
     auto wheel_vel = euclidean_to_four_wheel.getWheelVelocity(target_euclidean_velocity);
     auto euclidean_vel = euclidean_to_four_wheel.getEuclideanVelocity(wheel_vel);
-    euclidean_vel[1] *= -1;
-    euclidean_vel[1] -= vel_magnitude * (2/std::sqrt(2));
+//    euclidean_vel[1] *= -1;
+//    euclidean_vel[1] -= vel_magnitude * (2/std::sqrt(2));
 
     EXPECT_TRUE(TestUtil::equalWithinTolerance(
         target_euclidean_velocity,
         euclidean_vel,
         0.001));
+}
+
+TEST_F(EuclideanToWheelTest, double_conversion)
+{
+    // test +/forwards
+    std::cout << euclidean_to_four_wheel.wheel_to_euclidean_velocity_D_inverse_ * euclidean_to_four_wheel.euclidean_to_wheel_velocity_D_ << std::endl;
 }
 
 TEST_F(EuclideanToWheelTest, test_double_conversion_x)

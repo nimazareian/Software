@@ -51,7 +51,7 @@ class EuclideanToWheel
      */
     EuclideanSpace_t getEuclideanVelocity(const WheelSpace_t &wheel_velocity);
 
-   private:
+//   private:
     /**
      * The angle between the hemisphere line of the robot and the front wheel axles
      * [rads].
