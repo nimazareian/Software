@@ -40,14 +40,21 @@ class PathLayer(FieldLayer):
         ]
 
         requested_destinations = [
-            (primitive.move.motion_control.requested_destination,
-             primitive.move.final_angle)
+            (
+                primitive.move.motion_control.requested_destination,
+                primitive.move.final_angle,
+            )
             for primitive in primitive_set
             if primitive.HasField("move")
         ]
 
         painter.setPen(
-            pg.mkPen(Colors.NAVIGATOR_PATH_COLOR, width=constants.LINE_WIDTH, style=QtCore.Qt.PenStyle.CustomDashLine, dash=[1, 2])
+            pg.mkPen(
+                Colors.NAVIGATOR_PATH_COLOR,
+                width=constants.LINE_WIDTH,
+                style=QtCore.Qt.PenStyle.CustomDashLine,
+                dash=[1, 2],
+            )
         )
 
         for path in paths:
@@ -61,8 +68,6 @@ class PathLayer(FieldLayer):
             poly = QtGui.QPolygon(polygon_points)
             painter.drawPolyline(poly)
 
-        offset_1 = 30
-        offset_2 = 60
         for dest, final_angle in requested_destinations:
             x_mm = int(MILLIMETERS_PER_METER * dest.x_meters)
             y_mm = int(MILLIMETERS_PER_METER * dest.y_meters)
@@ -86,14 +91,17 @@ class PathLayer(FieldLayer):
             # painter.setBrush(pg.mkBrush(Colors.NAVIGATOR_PATH_COLOR))
             # painter.drawPolygon(poly)
 
-
             convert_degree = -16
             painter.setBrush(pg.mkBrush(Colors.TRANSPARENT))
-            painter_pen = pg.mkPen(Colors.DESIRED_ROBOT_LOCATION_OUTLINE, width=constants.LINE_WIDTH, style=QtCore.Qt.PenStyle.CustomDashLine, dash=[1, 2])
+            painter_pen = pg.mkPen(
+                Colors.DESIRED_ROBOT_LOCATION_OUTLINE,
+                width=constants.LINE_WIDTH,
+                style=QtCore.Qt.PenStyle.CustomDashLine,
+                dash=[1, 2],
+            )
             painter.setPen(painter_pen)
             painter.drawChord(
                 self.createCircle(x_mm, y_mm, ROBOT_MAX_RADIUS_MILLIMETERS),
-                int((math.degrees(final_angle.radians) + 45))
-                * convert_degree,
+                int((math.degrees(final_angle.radians) + 45)) * convert_degree,
                 270 * convert_degree,
             )

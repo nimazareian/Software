@@ -231,13 +231,13 @@ void ErForceSimulator::setRobots(
         if (side == gameController::Team::BLUE)
         {
             auto robot_primitive_executor = std::make_shared<PrimitiveExecutor>(
-                primitive_executor_time_step, robot_constants, TeamColour::BLUE);
+                primitive_executor_time_step, id, robot_constants, TeamColour::BLUE);
             blue_primitive_executor_map.insert({id, robot_primitive_executor});
         }
         else
         {
             auto robot_primitive_executor = std::make_shared<PrimitiveExecutor>(
-                primitive_executor_time_step, robot_constants, TeamColour::YELLOW);
+                primitive_executor_time_step, id, robot_constants, TeamColour::YELLOW);
             yellow_primitive_executor_map.insert({id, robot_primitive_executor});
         }
     }
@@ -271,8 +271,13 @@ void ErForceSimulator::setBlueRobotPrimitiveSet(
 
     for (auto& [robot_id, primitive] : primitive_set_msg.robot_primitives())
     {
+        Vector local_vel;
+        if (robot_to_local_velocity.find(robot_id) != robot_to_local_velocity.end())
+        {
+            local_vel = robot_to_local_velocity.at(robot_id);
+        }
         setRobotPrimitive(robot_id, primitive_set_msg, blue_primitive_executor_map,
-                          *blue_team_world_msg, robot_to_local_velocity.at(robot_id));
+                          *blue_team_world_msg, local_vel);
     }
     blue_team_world_msg = std::move(world_msg);
 }
@@ -300,7 +305,10 @@ void ErForceSimulator::setRobotPrimitive(
         {
             robot_primitive_executor->updatePrimitiveSet(robot_id, primitive_set_msg);
             robot_primitive_executor->updateWorld(world_msg);
-            robot_primitive_executor->updateLocalVelocity(local_velocity);
+            std::cout << "local velocity (after updateWorld): " << local_velocity.length() << std::endl;
+//            robot_primitive_executor->updateLocalVelocity(
+//                local_velocity,
+//                createAngle(robot_proto_it->current_state().global_orientation()));
         }
         else
         {
@@ -322,20 +330,27 @@ SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
 {
     SSLSimulationProto::RobotControl robot_control;
 
-    for (auto& primitive_executor_with_id : robot_primitive_executor_map)
+    auto id_to_vel_map = getRobotIdToLocalVelocityMap(getSimulatorState().blue_robots());
+
+    for (auto& [robot_id, primitive_executor] : robot_primitive_executor_map)
     {
-        unsigned int robot_id       = primitive_executor_with_id.first;
         const auto& friendly_robots = world_msg.friendly_team().team_robots();
         const auto& robot_proto_it =
             std::find_if(friendly_robots.begin(), friendly_robots.end(),
-                         [&](const auto& robot) { return robot.id() == robot_id; });
+                         [robot_id](const auto& robot) { return robot.id() == robot_id; });
         if (robot_proto_it != friendly_robots.end())
         {
-            auto& primitive_executor = primitive_executor_with_id.second;
+            if (id_to_vel_map.find(robot_id) != id_to_vel_map.end())
+            {
+                primitive_executor->updateLocalVelocity(
+                        id_to_vel_map.at(robot_id),
+                        createAngle(robot_proto_it->current_state().global_orientation()));
+                std::cout << "local velocity (before stepPrimitive): " << id_to_vel_map.at(robot_id).length() << std::endl;
+            }
             // Set to NEG_X because the world msg in this simulator is
             // normalized correctly
             auto direct_control = primitive_executor->stepPrimitive(
-                robot_id, RobotState(robot_proto_it->current_state()).orientation());
+                    robot_id, RobotState(robot_proto_it->current_state()).orientation());
 
             auto command = *getRobotCommandFromDirectControl(
                 robot_id, std::move(direct_control), robot_constants);

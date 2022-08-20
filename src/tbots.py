@@ -27,7 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("-h", "--help", action="store_true")
     parser.add_argument("-p", "--print_command", action="store_true")
     parser.add_argument("-d", "--debug_build", action="store_true")
-    parser.add_argument("-ds", "--select_debug_binaries", action="store")
+    parser.add_argument("-ds", "--select_debug_binaries", action="store", choices=["sim", "blue", "yellow"])
     parser.add_argument("-i", "--interactive", action="store_true")
 
     # These are shortcut args for commonly used arguments on our tests

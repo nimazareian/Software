@@ -327,6 +327,12 @@ gdb --args bazel-bin/{simulator_command}
                 self.simulator_runtime_dir, *arg
             )
 
+        blue_full_system_proto_unix_io.attach_unix_receiver(
+            runtime_dir=self.simulator_runtime_dir,
+            proto_class=NamedValue,
+            from_log_visualize=True,
+        )
+
         # setup yellow full system unix io
         for arg in [
             (YELLOW_WORLD_PATH, World),

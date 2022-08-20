@@ -582,10 +582,22 @@ world::SimulatorState Simulator::getSimulatorState()
             robotProto->set_p_x(newRobotPos.x() / 1000);
             robotProto->set_p_y(newRobotPos.y() / 1000);
 
+//            auto v_x = robotProto->v_x();
+//            auto v_y = robotProto->v_y();
+
             // Convert velocity
-            coordinates::toVisionVelocity(*robotProto, *robotProto);
-            robotProto->set_v_x(robotProto->v_x() / 1000);
-            robotProto->set_v_y(robotProto->v_y() / 1000);
+            // TODO: NOTES
+            // Commenting this out will make ALL robots move slowly, rather than just some (in AI vs AI)
+            // Though robots do not seem to move in a straight line towards their destination
+            // Turning is very fast though... What is the difference?!
+//            coordinates::toVisionVelocity(*robotProto, *robotProto);
+//            robotProto->set_v_x(robotProto->v_x() / 1000);
+//            robotProto->set_v_y(robotProto->v_y() / 1000);
+
+//            if (v_x != robotProto->v_x() || v_y != robotProto->v_y())
+//            {
+//                std::cout << "Converted velocity:"<< std::endl;
+//            }
         }
     }
 

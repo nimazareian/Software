@@ -18,34 +18,38 @@ from proto.ssl_gc_common_pb2 import Team
 
 
 @pytest.mark.parametrize(
-    "robot_initial_position,robot_initial_orientation",
+    "robot_initial_position,robot_initial_orientation,robot_final_position,robot_final_orientation",
     [
         # ball moving down and out goal from defense area
         (
-            tbots.Point(0, 2.5),
-            tbots.Angle.fromDegrees(0)
+            tbots.Point(3, 0),
+            tbots.Angle.fromDegrees(0),
+            tbots.Point(-3, 0),
+            tbots.Angle.fromDegrees(180),
         ),
-        (
-            tbots.Point(0, -2.5),
-            tbots.Angle.fromDegrees(0)
-        ),
-        (
-            tbots.Point(-4, 0),
-            tbots.Angle.fromDegrees(0)
-        ),
-        (
-            tbots.Point(4, 0),
-            tbots.Angle.fromDegrees(0)
-        ),
-        (
-            tbots.Point(2, 2),
-            tbots.Angle.fromDegrees(0)
-        ),
+        # (
+        #     tbots.Point(0, -2.5),
+        #     tbots.Angle.fromDegrees(0)
+        # ),
+        # (
+        #     tbots.Point(-4, 0),
+        #     tbots.Angle.fromDegrees(0)
+        # ),
+        # (
+        #     tbots.Point(4, 0),
+        #     tbots.Angle.fromDegrees(0)
+        # ),
+        # (
+        #     tbots.Point(2, 2),
+        #     tbots.Angle.fromDegrees(0)
+        # ),
     ],
 )
 def test_robot_moves_behind_ball(
     robot_initial_position,
     robot_initial_orientation,
+    robot_final_position,
+    robot_final_orientation,
     simulated_test_runner,
 ):
     # Setup Robot
@@ -74,14 +78,16 @@ def test_robot_moves_behind_ball(
     # Setup Tactic
     params = AssignedTacticPlayControlParams()
     params.assigned_tactics[0].move.CopyFrom(
-        MoveTactic(destination=Point(x_meters=0, y_meters=0),
-                   final_orientation=Angle(radians=tbots.Angle.fromDegrees(0).toRadians()),
-                   final_speed=0.0,
-                   dribbler_mode=DribblerMode.OFF,
-                   ball_collision_type=BallCollisionType.ALLOW,
-                   auto_chip_or_kick=AutoChipOrKick(autokick_speed_m_per_s=0),
-                   max_allowed_speed_mode=MaxAllowedSpeedMode.PHYSICAL_LIMIT,
-                   target_spin_rev_per_s=0.0)
+        MoveTactic(
+            destination=tbots.createPointProto(robot_final_position),
+            final_orientation=tbots.createAngleProto(robot_final_orientation),
+            final_speed=0.0,
+            dribbler_mode=DribblerMode.OFF,
+            ball_collision_type=BallCollisionType.ALLOW,
+            auto_chip_or_kick=AutoChipOrKick(autokick_speed_m_per_s=0),
+            max_allowed_speed_mode=MaxAllowedSpeedMode.PHYSICAL_LIMIT,
+            target_spin_rev_per_s=0.0,
+        )
     )
     simulated_test_runner.blue_full_system_proto_unix_io.send_proto(
         AssignedTacticPlayControlParams, params
@@ -97,12 +103,19 @@ def test_robot_moves_behind_ball(
     always_validation_sequence_set = []
 
     # Eventually Validation
-    eventually_validation_sequence_set = []
+    eventually_validation_sequence_set = [
+        [
+            # Goalie should be in the defense area
+            RobotEventuallyEntersRegion(
+                regions=[tbots.Circle(robot_final_position, 0.05)],
+            ),
+        ]
+    ]
 
     simulated_test_runner.run_test(
         eventually_validation_sequence_set=eventually_validation_sequence_set,
         always_validation_sequence_set=always_validation_sequence_set,
-        test_timeout_s=6  # TODO: Decrease
+        test_timeout_s=5,  # TODO: Decrease
     )
 
 

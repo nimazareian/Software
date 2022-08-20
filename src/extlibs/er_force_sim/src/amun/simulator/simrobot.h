@@ -103,10 +103,12 @@ class camun::simulator::SimRobot : public QObject
                                const btVector3 linVel, float omega);
     void dribble(SimBall *ball, float speed);
 
+    btVector3 prev_set_vel = btVector3(0, 0, 0);
+
     RNG *m_rng;
     robot::Specs m_specs;
     btDiscreteDynamicsWorld *m_world;
-    btRigidBody *m_body;
+    btRigidBody *m_body; // TODO: Look into changing this to kinematic object to avoid setLinearVelocity. Read: https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=11255
     btRigidBody *m_dribblerBody;
     btHingeConstraint *m_dribblerConstraint;
     QList<btCollisionShape *> m_shapes;

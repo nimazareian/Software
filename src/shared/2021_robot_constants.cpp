@@ -10,12 +10,13 @@ RobotConstants_t create2021RobotConstants(void)
         .robot_radius_m  = ROBOT_MAX_RADIUS_METERS,
         // TODO (#2112): update this
         .jerk_limit_kg_m_per_s_3 = 40.0f,
-        .front_wheel_angle_deg   = 45.f, //57.95f,
-        .back_wheel_angle_deg    = 135.f, //136.04f,
+        .front_wheel_angle_deg   = 57.95f,
+        .back_wheel_angle_deg    = 136.04f,
         // TODO (#2112): update this
         .front_of_robot_width_meters = 0.11f,
         // TODO (#2112): update this
         .dribbler_width_meters                  = 0.088f,
+        // TODO: Calculate this based on the actual wheel speed limitations, and have a separate constants for wheel speed limits
         .robot_max_speed_m_per_s                = 4.000f,
         .robot_max_ang_speed_rad_per_s          = 56.76f,
         .robot_max_acceleration_m_per_s_2       = 3.28f,

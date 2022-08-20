@@ -19,10 +19,11 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
                            __const struct timespec* __req, struct timespec* __rem);
 
 Thunderloop::Thunderloop(const RobotConstants_t& robot_constants, const int loop_hz)
-    // TODO (#2495): Set the friendly team colour once we receive World proto
-    : primitive_executor_(loop_hz, robot_constants, TeamColour::YELLOW)
+
+    : robot_id_(MAX_ROBOT_IDS + 1), // Initialize to a robot ID that is not valid
+      // TODO (#2495): Set the friendly team colour once we receive World proto
+      primitive_executor_(loop_hz, robot_id_, robot_constants, TeamColour::YELLOW)
 {
-    robot_id_        = MAX_ROBOT_IDS + 1;  // Initialize to a robot ID that is not valid
     channel_id_      = 0;
     loop_hz_         = loop_hz;
     robot_constants_ = robot_constants;
@@ -106,6 +107,8 @@ void Thunderloop::runLoop()
                     std::string(ROBOT_MULTICAST_CHANNELS.at(channel_id_)) + "%" +
                         network_interface_,
                     VISION_PORT, PRIMITIVE_PORT, ROBOT_STATUS_PORT, true);
+
+                primitive_executor_.setRobotId(robot_id_);
             }
 
             // Network Service: receive newest world, primitives and set out the last

@@ -347,6 +347,7 @@ void SimRobot::begin(SimBall *ball, double time)
                     btVector3(0, 0, 1),
                     coordinates::fromVisionRotation(m_move.orientation()) - M_PI_2);
                 m_body->setWorldTransform(btTransform(rot, pos * SIMULATOR_SCALE));
+                // Only gets called in initialization
             }
             else
             {
@@ -358,7 +359,10 @@ void SimRobot::begin(SimBall *ball, double time)
             {
                 coordinates::fromVisionVelocity(m_move, linVel);
                 linVel.setZ(0.0f);
+                std::cout << m_body->getLinearVelocity().length() / SIMULATOR_SCALE << " => 6" << std::endl;
                 m_body->setLinearVelocity(linVel * SIMULATOR_SCALE);
+                std::cout << m_body->getLinearVelocity().length() / SIMULATOR_SCALE << " => 7" << std::endl;
+                // Only gets called in initialization
             }
             else
             {
@@ -466,6 +470,10 @@ void SimRobot::begin(SimBall *ball, double time)
 
     btVector3 v_local(t.inverse() * m_body->getLinearVelocity());
     btVector3 v_d_local(boundSpeed(output_v_s), boundSpeed(output_v_f), 0);
+    std::cout << m_body->getLinearVelocity().length() / SIMULATOR_SCALE << " => vel before setting vel" << std::endl;
+    std::cout << btVector3(output_v_f, output_v_s, 0).length() << " => simrobot received vel ==> " << v_d_local.length() << " : bounded vel" << std::endl;
+    std::cout << (prev_set_vel - v_local).length() / time / SIMULATOR_SCALE << " :: SIM delta velocity (prev set vel - actual current) = " << (prev_set_vel - v_local).x() << "," << (prev_set_vel - v_local).y() << " robot time step=" << 1.0 / time << std::endl;
+
 
     float v_f   = v_local.y() / SIMULATOR_SCALE;
     float v_s   = v_local.x() / SIMULATOR_SCALE;
@@ -520,8 +528,28 @@ void SimRobot::begin(SimBall *ball, double time)
     if (force.length2() > 0 || torque.length2() > 0)
     {
         m_body->activate();
-        m_body->applyCentralForce(t * force * SIMULATOR_SCALE);
-        m_body->applyTorque(torque * SIMULATOR_SCALE * SIMULATOR_SCALE);
+//        btVector3 v_d_local_transformed = -v_d_local * SIMULATOR_SCALE;
+//        m_body->setLinearVelocity(t * v_d_local * SIMULATOR_SCALE);
+//        btVector3 after_trans = t * v_d_local * SIMULATOR_SCALE;
+//        std::cout << v_d_local_transformed.x() << "," << v_d_local_transformed.y() << " : vel before transformation => " << after_trans.x() << "," << after_trans.y() << " : vel after" << std::endl;
+
+
+        m_body->setAngularVelocity(btVector3(0, 0, output_omega)); // TODO: Check if it should be z or x (on line 370, it sets x)
+        m_body->setLinearVelocity(t * v_d_local * SIMULATOR_SCALE);
+        prev_set_vel = v_d_local;
+//        static int test = 0;
+//        if (test == 0)
+//        {
+//            m_body->setAngularVelocity(btVector3(0, 0, output_omega)); // TODO: Check if it should be z or x (on line 370, it sets x)
+//            m_body->setLinearVelocity(t * btVector3(1, 0, 0.0) * SIMULATOR_SCALE); //
+//            test = 1;
+//        }
+
+
+
+//        m_body->applyCentralForce(t * force * SIMULATOR_SCALE);
+//        m_body->applyTorque(torque * SIMULATOR_SCALE * SIMULATOR_SCALE);
+        std::cout << m_body->getLinearVelocity().length() / SIMULATOR_SCALE << " => vel after setting it" << std::endl;
     }
 }
 
@@ -711,8 +739,9 @@ void SimRobot::update(world::SimRobot *robot, SimBall *ball) const
     robot->set_angle(q.getAngle());
 
     const btVector3 velocity = m_body->getLinearVelocity() / SIMULATOR_SCALE;
-    robot->set_v_x(velocity.x());
-    robot->set_v_y(velocity.y());
+    std::cout << velocity.length() << " : linear velocity for get local vel" << std::endl;
+    robot->set_v_x(velocity.y());
+    robot->set_v_y(-velocity.x());
     robot->set_v_z(velocity.z());
 
     const btVector3 angular = m_body->getAngularVelocity();
@@ -747,7 +776,9 @@ void SimRobot::restoreState(const world::SimRobot &robot)
                           robot.rotation().j(), robot.rotation().k());
     m_body->getWorldTransform().setRotation(rotation);
     btVector3 velocity(robot.v_x(), robot.v_y(), robot.v_z());
+    std::cout << m_body->getLinearVelocity().length() / SIMULATOR_SCALE << " => 4" << std::endl;
     m_body->setLinearVelocity(velocity * SIMULATOR_SCALE);
+    std::cout << m_body->getLinearVelocity().length() / SIMULATOR_SCALE << " => 5" << std::endl;
     btVector3 angular(robot.r_x(), robot.r_y(), robot.r_z());
     m_body->setAngularVelocity(angular);
 }

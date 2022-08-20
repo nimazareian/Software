@@ -67,6 +67,9 @@ typedef struct RobotConstants
     float dribbler_width_meters;
 
     // The maximum speed achievable by our robots, in metres per second [m/s]
+    float wheel_motor_max_rpm_per_s;
+
+    // The maximum speed achievable by our robots, in metres per second [m/s]
     float robot_max_speed_m_per_s;
 
     // The maximum angular speed achievable by our robots [rad/s]
