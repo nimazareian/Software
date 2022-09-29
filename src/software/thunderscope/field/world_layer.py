@@ -7,9 +7,9 @@ from pyqtgraph.Qt import QtCore, QtGui
 from pyqtgraph.Qt.QtCore import Qt
 from pyqtgraph.Qt.QtWidgets import *
 
-from proto.geometry_pb2 import Point
+from proto.geometry_pb2 import Point, Segment
 from software.py_constants import *
-from software.thunderscope.constants import LINE_WIDTH
+from software.thunderscope.constants import LINE_WIDTH, SPEED_LINE_WIDTH, SPEED_SEGMENT_SCALE
 from software.thunderscope.colors import Colors
 from software.networking.threaded_unix_listener import ThreadedUnixListener
 from software.thunderscope.field.field_layer import FieldLayer
@@ -442,31 +442,17 @@ class WorldLayer(FieldLayer):
         :param painter: The painter
 
         """
-        painter.setPen(pg.mkPen(Colors.SPEED_COLOR, width=LINE_WIDTH))
+        painter.setPen(pg.mkPen(Colors.SPEED_COLOR, width=SPEED_LINE_WIDTH))
 
         for robot in self.cached_world.friendly_team.team_robots:
-            start_x = robot.current_state.global_position.x_meters
-            start_y = robot.current_state.global_position.y_meters
-            painter.drawLine(
-                QtCore.QLine(
-                    int(start_x * MILLIMETERS_PER_METER),
-                    int(start_y * MILLIMETERS_PER_METER),
-                    int(
-                        (
-                            start_x
-                            + robot.current_state.global_velocity.x_component_meters
-                        )
-                        * MILLIMETERS_PER_METER
-                    ),
-                    int(
-                        (
-                            start_y
-                            + robot.current_state.global_velocity.y_component_meters
-                        )
-                        * MILLIMETERS_PER_METER
-                    ),
-                )
-            )
+            velocity = robot.current_state.global_velocity
+            start = robot.current_state.global_position
+            end = Point(
+                        x_meters=start.x_meters + velocity.x_component_meters * SPEED_SEGMENT_SCALE, 
+                        y_meters=start.y_meters + velocity.y_component_meters * SPEED_SEGMENT_SCALE
+                    )
+            speed_line = Segment(start=start, end=end)
+            self.drawSegment(speed_line, painter)
 
     def draw_ball_speed(self, painter):
         """Draw the ball speed
@@ -474,25 +460,17 @@ class WorldLayer(FieldLayer):
         :param painter: The painter
 
         """
-        painter.setPen(pg.mkPen(Colors.SPEED_COLOR, width=LINE_WIDTH))
+        painter.setPen(pg.mkPen(Colors.SPEED_COLOR, width=SPEED_LINE_WIDTH))
 
         ball = self.cached_world.ball
-        start_x = ball.current_state.global_position.x_meters
-        start_y = ball.current_state.global_position.y_meters
-        painter.drawLine(
-            QtCore.QLine(
-                int(start_x * MILLIMETERS_PER_METER),
-                int(start_y * MILLIMETERS_PER_METER),
-                int(
-                    (start_x + ball.current_state.global_velocity.x_component_meters)
-                    * MILLIMETERS_PER_METER
-                ),
-                int(
-                    (start_y + ball.current_state.global_velocity.y_component_meters)
-                    * MILLIMETERS_PER_METER
-                ),
-            )
-        )
+        velocity = ball.current_state.global_velocity
+        start = ball.current_state.global_position
+        end = Point(
+                    x_meters=start.x_meters + velocity.x_component_meters * SPEED_SEGMENT_SCALE, 
+                    y_meters=start.y_meters + velocity.y_component_meters * SPEED_SEGMENT_SCALE
+                )
+        speed_line = Segment(start=start, end=end)
+        self.drawSegment(speed_line, painter)
 
     def paint(self, painter, option, widget):
         """Paint this layer
