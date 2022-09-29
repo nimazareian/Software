@@ -9,13 +9,18 @@ from pyqtgraph.Qt.QtWidgets import *
 
 from proto.geometry_pb2 import Point, Segment
 from software.py_constants import *
-from software.thunderscope.constants import LINE_WIDTH, SPEED_LINE_WIDTH, SPEED_SEGMENT_SCALE
+from software.thunderscope.constants import (
+    LINE_WIDTH,
+    SPEED_LINE_WIDTH,
+    SPEED_SEGMENT_SCALE,
+)
 from software.thunderscope.colors import Colors
 from software.networking.threaded_unix_listener import ThreadedUnixListener
 from software.thunderscope.field.field_layer import FieldLayer
 from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
 
 MAX_ALLOWED_KICK_SPEED_M_PER_S = 6.5
+
 
 class WorldLayer(FieldLayer):
     def __init__(self, simulator_io, friendly_colour_yellow, buffer_size=5):
@@ -448,9 +453,11 @@ class WorldLayer(FieldLayer):
             velocity = robot.current_state.global_velocity
             start = robot.current_state.global_position
             end = Point(
-                        x_meters=start.x_meters + velocity.x_component_meters * SPEED_SEGMENT_SCALE, 
-                        y_meters=start.y_meters + velocity.y_component_meters * SPEED_SEGMENT_SCALE
-                    )
+                x_meters=start.x_meters
+                + velocity.x_component_meters * SPEED_SEGMENT_SCALE,
+                y_meters=start.y_meters
+                + velocity.y_component_meters * SPEED_SEGMENT_SCALE,
+            )
             speed_line = Segment(start=start, end=end)
             self.drawSegment(speed_line, painter)
 
@@ -466,9 +473,9 @@ class WorldLayer(FieldLayer):
         velocity = ball.current_state.global_velocity
         start = ball.current_state.global_position
         end = Point(
-                    x_meters=start.x_meters + velocity.x_component_meters * SPEED_SEGMENT_SCALE, 
-                    y_meters=start.y_meters + velocity.y_component_meters * SPEED_SEGMENT_SCALE
-                )
+            x_meters=start.x_meters + velocity.x_component_meters * SPEED_SEGMENT_SCALE,
+            y_meters=start.y_meters + velocity.y_component_meters * SPEED_SEGMENT_SCALE,
+        )
         speed_line = Segment(start=start, end=end)
         self.drawSegment(speed_line, painter)
 
