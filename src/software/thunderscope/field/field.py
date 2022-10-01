@@ -59,6 +59,8 @@ class Field(QWidget):
         # Fields
         self.layers = []
 
+        # New comment regarding my task
+
         # Setup Replay Controls if player is provided and
         # the log has some size.
         if self.player and self.player.end_time != 0.0:
