@@ -51,6 +51,7 @@ cc_binary(
     ],
     deps = [
         ":thunderloop",
+        "@tracy",
         "//shared:constants",
     ],
 )
@@ -58,4 +59,12 @@ cc_binary(
 sh_binary(
     name = "setup_nano",
     srcs = ["setup_nano.sh"],
+)
+
+sh_binary(
+    name = "run_tracy",
+    srcs = ["run_tracy.sh"],
+    data = [
+        "@tracy//:tracy_server",
+    ],
 )

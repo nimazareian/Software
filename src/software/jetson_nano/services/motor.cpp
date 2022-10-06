@@ -25,6 +25,9 @@
 #include "software/logger/logger.h"
 #include "software/util/scoped_timespec_timer/scoped_timespec_timer.h"
 
+#include "external/tracy/public/tracy/Tracy.hpp"
+
+
 extern "C"
 {
 #include "external/trinamic/tmc/ic/TMC4671/TMC4671.h"

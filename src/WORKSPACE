@@ -87,8 +87,6 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 git_repository(
     name = "com_google_protobuf",
     commit = "21027a27c4c2ec1000859ccbcfff46d83b16e1ed",
-    # We need this patch to properly add generated dependencies to the protoc
-    # compiler. It also fixes an issue with the python imports.
     remote = "https://github.com/protocolbuffers/protobuf",
     shallow_since = "1650589240 +0000",
 )
@@ -130,6 +128,13 @@ new_git_repository(
     commit = "937c3d73cbf55b6edc658decf7931b90ede1daef",
     remote = "https://chromium.googlesource.com/external/gitlab.com/libeigen/eigen.git",
     shallow_since = "1642460459 -0600",
+)
+
+new_git_repository(
+    name = "tracy",
+    build_file = "@//extlibs:tracy.BUILD",
+    commit = "5d7cf137cf71ddb977a7497aed6d0c3d0398e350",
+    remote = "https://github.com/wolfpld/tracy.git",
 )
 
 # nanopb: lightweight protobuf library used on the STM32. The build file in the
