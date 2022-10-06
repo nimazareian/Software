@@ -5,8 +5,6 @@ cc_library(
         "public/tracy/common/*.cpp",
         "common/*.cpp",
         "public/tracy/client/*.cpp",
-        "server/*.cpp",
-        "profiler/*.cpp",
         "public/tracy/libbacktrace/*.cpp",
         "imgui/*.cpp",
     ]),
@@ -17,8 +15,6 @@ cc_library(
         "profiler/**/*.hpp",
         "profiler/**/*.h",
         "zstd/**/*.h",
-        "server/*.hpp",
-        "server/*.h",
         "imgui/**/*.hpp",
         "imgui/**/*.h",
         "public/common/**/*.h",
@@ -40,38 +36,11 @@ cc_library(
         "/usr/include/libpng16",
         "/usr/include/capstone",
     ],
-    linkopts = ["-pthread -ldl -lglfw -lfreetype -lcapstone"],
+    linkopts = ["-pthread -ldl"],
     linkstatic = True,
     alwayslink = True,
     defines = [
         "TRACY_ENABLED",
     ],
-    visibility = ["//visibility:public"],
-)
-
-cc_binary(
-    name = "tracy_server",
-    srcs = glob([
-        "profiler/**/*.cpp",
-    ]),
-    deps = [
-        ":tracy",
-    ],
-    includes = [
-        "public/common",
-        "public/tracy",
-        "profiler/src",
-        "profiler/src/imgui",
-        "imgui",
-        "public",
-        "client",
-        "common",
-        "libbacktrace",
-        "/usr/include/freetype2",
-        "/usr/include/libpng16",
-        "/usr/include/capstone",
-    ],
-    linkstatic = True,
-    linkopts = ["-pthread -ldl -lglfw -lfreetype -lcapstone"],
     visibility = ["//visibility:public"],
 )
