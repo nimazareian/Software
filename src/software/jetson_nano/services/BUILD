@@ -28,6 +28,7 @@ cc_library(
         "//software/uart:boost_uart_communication",
         "@tracy",
         "@boost//:asio",
+        "@tracy",
     ],
 )
 
@@ -43,5 +44,6 @@ cc_library(
         "//software/networking:threaded_proto_udp_sender",
         "@tracy",
         "@boost//:asio",
+        "@tracy",
     ],
 )

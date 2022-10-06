@@ -12,6 +12,8 @@
 #include "software/world/robot_state.h"
 #include "software/world/team.h"
 
+#include "external/tracy/public/tracy/Tracy.hpp"
+
 /**
  * https://rt.wiki.kernel.org/index.php/Squarewave-example
  * using clock_nanosleep of librt
@@ -73,6 +75,8 @@ void Thunderloop::runLoop()
 
     for (;;)
     {
+        FrameMarkNamed("Thunderloop");
+
         {
             // Wait until next shot
             //
