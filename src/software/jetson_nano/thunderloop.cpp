@@ -204,6 +204,7 @@ Thunderloop::~Thunderloop() {}
                     EuclideanSpace_t euclidean_vel = motor_service_->getCurrentEuclideanVelocity();
                     Vector curr_local_vel = Vector(euclidean_vel[0], euclidean_vel[1]);
                     primitive_executor_.updateLocalVelocity(curr_local_vel, robot.value().orientation());
+                    primitive_executor_.updateAngularVelocity(AngularVelocity::fromRadians(euclidean_vel[2]));
 
                     // TODO-JON needs to use world in primitive executor
                     // TODO: Nima, current state changes between world receives, if this is not up to date world we should update it based on robot velocities...

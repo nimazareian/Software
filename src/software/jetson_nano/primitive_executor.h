@@ -50,6 +50,7 @@ class PrimitiveExecutor
      * @param curr_orientation
      */
     void updateLocalVelocity(const Vector &local_velocity, const Angle &curr_orientation);
+    void updateAngularVelocity(AngularVelocity angular_velocity);
 
     /**
      * Steps the current primitive and returns a direct control primitive with the
@@ -105,5 +106,7 @@ class PrimitiveExecutor
     TbotsProto::World current_world_;
     HRVOSimulator hrvo_simulator_;
     Angle curr_orientation_;
+    AngularVelocity curr_angular_velocity_;
     double time_step_;
+    const RobotConstants_t robot_constants_;
 };
