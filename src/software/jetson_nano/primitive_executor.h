@@ -104,4 +104,5 @@ class PrimitiveExecutor
     TbotsProto::MovePrimitive move_primitive_;
     TbotsProto::World current_world_;
     HRVOSimulator hrvo_simulator_;
+    const RobotConstants_t &robot_constants_;
 };

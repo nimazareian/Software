@@ -14,7 +14,8 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step, const RobotId robot
     : robot_id_(robot_id),
       current_primitive_(),
       hrvo_simulator_(static_cast<float>(time_step), robot_constants,
-                      friendly_team_colour)
+                      friendly_team_colour),
+      robot_constants_(robot_constants)
 {
 }
 
@@ -62,12 +63,12 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double delta_orientation =
         dest_orientation.minDiff(curr_orientation).toRadians();
 
+    // The speed which we should be decelerating at to stop at the destination,
+    // derived by solving for v_i in the equation v_f^2 = v_i^2 + 2*a*d.
     double deceleration_angular_speed = std::sqrt(
-        2 * move_primitive.robot_max_ang_acceleration_rad_per_s_2() * delta_orientation);
-
+        2 * robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * delta_orientation);
     double max_angular_speed =
-        static_cast<double>(move_primitive.robot_max_ang_speed_rad_per_s());
-
+        static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
     double next_angular_speed = std::min(max_angular_speed, deceleration_angular_speed);
 
     const double signed_delta_orientation =
