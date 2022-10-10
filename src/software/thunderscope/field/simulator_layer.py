@@ -47,8 +47,7 @@ class SimulatorLayer(FieldLayer):
         # Draw the ball from the simulator state
         painter.drawEllipse(
             self.createCircle(
-                sim_world_state.ball.p_y * MILLIMETERS_PER_METER,
-                -sim_world_state.ball.p_x * MILLIMETERS_PER_METER,
-                BALL_MAX_RADIUS_MILLIMETERS,
+                Point(x_meters=sim_world_state.ball.p_y, y_meters=-sim_world_state.ball.p_x),
+                BALL_MAX_RADIUS_METERS,
             )
         )
