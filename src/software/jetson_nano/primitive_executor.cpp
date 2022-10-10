@@ -118,6 +118,9 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
 
             auto [ramped_target_velocity, ramped_target_angular_velocity] = rampVelocity(target_velocity, target_angular_velocity);
 
+            ramped_target_velocity = target_velocity;
+            ramped_target_angular_velocity = target_angular_velocity;
+
             auto output = createDirectControlPrimitive(
                 ramped_target_velocity, ramped_target_angular_velocity,
                 current_primitive_.move().dribbler_speed_rpm(),
@@ -140,6 +143,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
 
 std::pair<Vector, AngularVelocity> PrimitiveExecutor::rampVelocity(const Vector& vector, const AngularVelocity& angle)
 {
+    // TODO: This code should be in erforcesimulator.cpp and should be shared with motor.cpp (not copied)
     // TODO #1: Make ErForce use infinite acceleration
     // Convert to euclidean
     EuclideanSpace_t target_velocity = {-vector.y(), vector.x(), angle.toRadians()};

@@ -1,3 +1,4 @@
+import math
 import pytest
 
 import software.python_bindings as tbots
@@ -24,7 +25,7 @@ from proto.ssl_gc_common_pb2 import Team
             Point(x_meters=0.0, y_meters=0.0),
             Angle(radians=0.0),
             Point(x_meters=2.0, y_meters=0.0),
-            Angle(radians=0.0),
+            Angle(radians=math.pi),
         ),
     ],
 )
@@ -46,7 +47,7 @@ def test_robot_movement(
                     global_orientation=robot_initial_orientation
                 )
             ],
-            ball_location=tbots.Point(0.0, 0.0),
+            ball_location=tbots.Point(4.5, 3.0),
             ball_velocity=tbots.Vector(0.0, 0.0),
         ),
     )
@@ -62,26 +63,6 @@ def test_robot_movement(
     simulated_test_runner.gamecontroller.send_ci_input(
         gc_command=Command.Type.FORCE_START, team=Team.BLUE
     )
-
-# message MoveTactic
-# {
-# // The point the robot is trying to move to
-# required Point destination = 1;
-# // The orientation the robot should have when it arrives at its destination
-# required Angle final_orientation = 2;
-# // The speed the robot should have when it arrives at its destination
-# required double final_speed = 3;
-# // How to run the dribbler
-# required DribblerMode dribbler_mode = 4;
-# // How to navigate around the ball
-# required BallCollisionType ball_collision_type = 5;
-# // The command to autochip or autokick
-# required AutoChipOrKick auto_chip_or_kick = 6;
-# // The maximum allowed speed mode
-# required MaxAllowedSpeedMode max_allowed_speed_mode = 7;
-# // The target spin while moving in revolutions per second
-# required double target_spin_rev_per_s = 8;
-# }
 
     # Setup Tactic
     params = AssignedTacticPlayControlParams()
