@@ -57,8 +57,8 @@ ErForceSimulator::ErForceSimulator(const TbotsProto::FieldType& field_type,
     simulator_setup_command->mutable_simulator()->set_enable(true);
 
     // start with default robots, take ER-Force specs.
-    robot::Specs ERForce;
-    robotSetDefault(&ERForce);
+    robot::Specs ERForce = createErForceRobotSpecs();
+    robotSetDefault(&ERForce); //TODO: The value ERForce is not used...
     Team friendly_team = Team();
     Team enemy_team    = Team();
     Ball ball          = Ball(Point(), Vector(), Timestamp::fromSeconds(0));
@@ -334,9 +334,10 @@ SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
             auto& primitive_executor = primitive_executor_with_id.second;
             // Set to NEG_X because the world msg in this simulator is
             // normalized correctly
+            primitive_executor->updateAngularVelocity(createAngularVelocity(robot_proto_it->current_state().global_angular_velocity()));
             auto direct_control = primitive_executor->stepPrimitive(
                 robot_id,
-                createAngle(robot_proto_it->current_state().global_orientation()));
+                createRobotState(robot_proto_it->current_state()));
 
             auto command = *getRobotCommandFromDirectControl(
                 robot_id, std::move(direct_control), robot_constants);
@@ -468,4 +469,52 @@ std::map<RobotId, Vector> ErForceSimulator::getRobotIdToLocalVelocityMap(
                 .rotate(Angle::fromRadians(sim_robot.angle()));
     }
     return robot_to_local_velocity;
+}
+//message Specs
+//        {
+//                enum GenerationType
+//                {
+//                    Regular = 1;
+//                    Ally    = 2;
+//                }
+//                required uint32 generation            = 1;
+//                required uint32 year                  = 2;
+//                required uint32 id                    = 3;
+//                optional GenerationType type          = 19;
+//                optional float radius                 = 4 [default = 0.09];
+//                optional float height                 = 5 [default = 0.15];
+//                optional float mass                   = 6;
+//                optional float angle                  = 7;
+//                optional float v_max                  = 8;
+//                optional float omega_max              = 9;
+//                optional float shot_linear_max        = 10 [default = 8.0];
+//                optional float shot_chip_max          = 11;
+//                optional float dribbler_width         = 12;
+//                optional LimitParameters acceleration = 13;
+//                optional LimitParameters strategy     = 16;
+//                // deprecated = 14;
+//                optional float ir_param        = 15;
+//                optional float shoot_radius    = 17;
+//                optional float dribbler_height = 18;
+//                reserved 20;
+//        };
+robot::Specs ErForceSimulator::createErForceRobotSpecs() const
+{
+    robot::Specs specs;
+    specs.set_generation(0);
+    specs.set_year(2021);
+    specs.set_id(0);
+
+    specs.set_v_max(1000.0);
+    specs.set_omega_max(1000.0);
+
+    robot::LimitParameters acceleration_limits;
+    acceleration_limits.set_a_speedup_f_max(1000.0);
+    acceleration_limits.set_a_speedup_s_max(1000.0);
+    acceleration_limits.set_a_speedup_phi_max(1000.0);
+    acceleration_limits.set_a_brake_f_max(1000.0);
+    acceleration_limits.set_a_brake_s_max(1000.0);
+    acceleration_limits.set_a_brake_phi_max(1000.0);
+    specs.mutable_strategy()->CopyFrom(acceleration_limits);
+    return specs;
 }

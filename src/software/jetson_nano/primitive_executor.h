@@ -48,18 +48,19 @@ class PrimitiveExecutor
      * @param local_velocity The local velocity
      */
     void updateLocalVelocity(Vector local_velocity);
+    void updateAngularVelocity(AngularVelocity angular_velocity);
 
     /**
      * Steps the current primitive and returns a direct control primitive with the
      * target wheel velocities
      *
      * @param robot_id The id of the robot which is running this Primitive Executor
-     * @param curr_orientation The current orientation of the robot which is running this
+     * @param robot_state The current orientation of the robot which is running this
      * Primitive Executor
      * @returns DirectPerWheelControl The per-wheel direct control primitive msg
      */
     std::unique_ptr<TbotsProto::DirectControlPrimitive> stepPrimitive(
-        const unsigned int robot_id, const Angle& curr_orientation);
+            const unsigned int robot_id, const RobotState &robot_state);
 
    private:
     /*
@@ -73,6 +74,8 @@ class PrimitiveExecutor
      */
     Vector getTargetLinearVelocity(const unsigned int robot_id,
                                    const Angle& curr_orientation);
+
+    Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive, const RobotState &robot_state);
 
     /*
      * Compute the next target angular velocity the robot should be at
@@ -100,4 +103,5 @@ class PrimitiveExecutor
     WheelSpace_t prev_linear_wheel_velocities;
     WheelSpace_t prev_angular_wheel_velocities;
     EuclideanToWheel euclidean_to_four_wheel;
+    AngularVelocity curr_angular_velocity_;
 };

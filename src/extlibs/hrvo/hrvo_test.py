@@ -103,6 +103,7 @@ def test_robot_movement(
     ]
 
     simulated_test_runner.run_test(
+        test_timeout_s=5,
         eventually_validation_sequence_set=eventually_validation_sequence_set,
         always_validation_sequence_set=always_validation_sequence_set,
     )
