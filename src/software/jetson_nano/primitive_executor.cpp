@@ -13,7 +13,11 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
     : current_primitive_(),
       robot_constants_(robot_constants),
       hrvo_simulator_(static_cast<float>(time_step), robot_constants,
-                      friendly_team_colour)
+                      friendly_team_colour),
+      time_step_s_(time_step),
+      prev_linear_wheel_velocities(WheelSpace_t::Zero()),
+      prev_angular_wheel_velocities(WheelSpace_t::Zero()),
+      euclidean_to_four_wheel(robot_constants)
 {
 }
 
@@ -112,8 +116,10 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             AngularVelocity target_angular_velocity =
                 getTargetAngularVelocity(current_primitive_.move(), curr_orientation);
 
+            auto [ramped_target_velocity, ramped_target_angular_velocity] = rampVelocity(target_velocity, target_angular_velocity);
+
             auto output = createDirectControlPrimitive(
-                target_velocity, target_angular_velocity,
+                ramped_target_velocity, ramped_target_angular_velocity,
                 current_primitive_.move().dribbler_speed_rpm(),
                 current_primitive_.move().auto_chip_or_kick());
 
@@ -130,4 +136,86 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         }
     }
     return std::make_unique<TbotsProto::DirectControlPrimitive>();
+}
+
+std::pair<Vector, AngularVelocity> PrimitiveExecutor::rampVelocity(const Vector& vector, const AngularVelocity& angle)
+{
+    // TODO #1: Make ErForce use infinite acceleration
+    // Convert to euclidean
+    EuclideanSpace_t target_velocity = {-vector.y(), vector.x(), angle.toRadians()};
+
+    WheelSpace_t target_linear_wheel_velocities = rampWheelVelocity(
+            prev_linear_wheel_velocities, {target_velocity[0], target_velocity[1], 0.0},
+            static_cast<double>(robot_constants_.robot_max_speed_m_per_s),
+            static_cast<double>(robot_constants_.robot_max_acceleration_m_per_s_2),
+            time_step_s_);
+
+    WheelSpace_t target_angular_wheel_velocities = rampWheelVelocity(
+            prev_angular_wheel_velocities, {0.0, 0.0, target_velocity[2]},
+            static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s / 5.0),
+            static_cast<double>(robot_constants_.robot_max_ang_acceleration_rad_per_s_2 / 5.0),
+            time_step_s_);
+
+    prev_linear_wheel_velocities  = target_linear_wheel_velocities;
+    prev_angular_wheel_velocities = target_angular_wheel_velocities;
+    WheelSpace_t target_total_wheel_velocities =
+            prev_linear_wheel_velocities + prev_angular_wheel_velocities;
+
+    EuclideanSpace_t ramped_euclidean_velocity = euclidean_to_four_wheel.getEuclideanVelocity(target_total_wheel_velocities);
+
+    // Convert back
+    Vector ramped_linear_velocity(ramped_euclidean_velocity[1], -ramped_euclidean_velocity[0]);
+    AngularVelocity ramped_angular_velocity = AngularVelocity::fromRadians(ramped_euclidean_velocity[2]);
+    return {ramped_linear_velocity, ramped_angular_velocity};
+}
+
+WheelSpace_t PrimitiveExecutor::rampWheelVelocity(
+        const WheelSpace_t& current_wheel_velocity,
+        const EuclideanSpace_t& target_euclidean_velocity,
+        double max_allowable_wheel_velocity, double allowed_acceleration,
+        const double& time_to_ramp)
+{
+    // ramp wheel velocity
+    WheelSpace_t ramp_wheel_velocity;
+
+    // calculate max allowable wheel velocity delta using dv = a*t
+    auto allowable_delta_wheel_velocity = allowed_acceleration * time_to_ramp;
+
+    // convert euclidean to wheel velocity
+    WheelSpace_t target_wheel_velocity =
+            euclidean_to_four_wheel.getWheelVelocity(target_euclidean_velocity);
+
+    // Ramp wheel velocity vector
+    // Step 1: Find absolute max velocity delta
+    auto delta_target_wheel_velocity = target_wheel_velocity - current_wheel_velocity;
+    auto max_delta_target_wheel_velocity =
+            delta_target_wheel_velocity.cwiseAbs().maxCoeff();
+
+    // Step 2: Compare max delta velocity against the calculated maximum
+    if (max_delta_target_wheel_velocity > allowable_delta_wheel_velocity)
+    {
+        // Step 3: If larger, scale down to allowable max
+        ramp_wheel_velocity =
+                (delta_target_wheel_velocity / max_delta_target_wheel_velocity) *
+                allowable_delta_wheel_velocity +
+                current_wheel_velocity;
+    }
+    else
+    {
+        // If smaller, go straight to target
+        ramp_wheel_velocity = target_wheel_velocity;
+    }
+
+    // find absolute max wheel velocity
+    auto max_ramp_wheel_velocity = ramp_wheel_velocity.cwiseAbs().maxCoeff();
+
+    // compare against max wheel velocity
+    if (max_ramp_wheel_velocity > max_allowable_wheel_velocity)
+    {
+        // if larger, scale down to max
+        ramp_wheel_velocity = (ramp_wheel_velocity / max_ramp_wheel_velocity) *
+                              max_allowable_wheel_velocity;
+    }
+
+    return ramp_wheel_velocity;
 }

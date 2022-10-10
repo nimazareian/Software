@@ -11,6 +11,7 @@ cc_library(
         "//shared:constants",
         "//software/math:math_functions",
         "//software/world",
+        "//software/physics:euclidean_to_wheel"
     ],
 )
 
