@@ -15,6 +15,7 @@ class Colors(object):
     BLUE_ROBOT_COLOR = QtGui.QColor(0, 75, 255, 255)
     TRANSPARENT = QtGui.QColor(0, 0, 0, 0)
     DESIRED_ROBOT_LOCATION_OUTLINE = QtGui.QColor(255, 0, 0, 150)
+    SPEED_VECTOR_COLOR = QtGui.QColor(255, 0, 255, 255)
 
     ROBOT_SPEED_SLOW_COLOR = "black"
     NAVIGATOR_PATH_COLOR = "green"

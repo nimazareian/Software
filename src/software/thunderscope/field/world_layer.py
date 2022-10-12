@@ -442,7 +442,7 @@ class WorldLayer(FieldLayer):
         :param painter: The painter
 
         """
-        painter.setPen(pg.mkPen(Colors.SPEED_COLOR, width=LINE_WIDTH))
+        painter.setPen(pg.mkPen(Colors.SPEED_VECTOR_COLOR, width=LINE_WIDTH))
 
         for robot in self.cached_world.friendly_team.team_robots:
             start_x = robot.current_state.global_position.x_meters
@@ -474,7 +474,7 @@ class WorldLayer(FieldLayer):
         :param painter: The painter
 
         """
-        painter.setPen(pg.mkPen(Colors.SPEED_COLOR, width=LINE_WIDTH))
+        painter.setPen(pg.mkPen(Colors.SPEED_VECTOR_COLOR, width=LINE_WIDTH))
 
         ball = self.cached_world.ball
         start_x = ball.current_state.global_position.x_meters
