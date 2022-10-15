@@ -58,7 +58,7 @@ ErForceSimulator::ErForceSimulator(const TbotsProto::FieldType& field_type,
 
     // start with default robots, take ER-Force specs.
     robot::Specs ERForce = createErForceRobotSpecs();
-    robotSetDefault(&ERForce); //TODO: The value ERForce is not used...
+    robotSetDefault(&ERForce);  // TODO: The value ERForce is not used...
     Team friendly_team = Team();
     Team enemy_team    = Team();
     Ball ball          = Ball(Point(), Vector(), Timestamp::fromSeconds(0));
@@ -334,10 +334,10 @@ SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
             auto& primitive_executor = primitive_executor_with_id.second;
             // Set to NEG_X because the world msg in this simulator is
             // normalized correctly
-            primitive_executor->updateAngularVelocity(createAngularVelocity(robot_proto_it->current_state().global_angular_velocity()));
+            primitive_executor->updateAngularVelocity(createAngularVelocity(
+                robot_proto_it->current_state().global_angular_velocity()));
             auto direct_control = primitive_executor->stepPrimitive(
-                robot_id,
-                createRobotState(robot_proto_it->current_state()));
+                robot_id, createRobotState(robot_proto_it->current_state()));
 
             auto command = *getRobotCommandFromDirectControl(
                 robot_id, std::move(direct_control), robot_constants);
@@ -470,7 +470,7 @@ std::map<RobotId, Vector> ErForceSimulator::getRobotIdToLocalVelocityMap(
     }
     return robot_to_local_velocity;
 }
-//message Specs
+// message Specs
 //        {
 //                enum GenerationType
 //                {

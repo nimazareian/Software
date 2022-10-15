@@ -496,10 +496,10 @@ void SimRobot::begin(SimBall *ball, double time)
 
     const float accelScale =
         2.f;  // let robot accelerate / brake faster than the accelerator does
-    a_f = bound(a_f, v_f, 1000.0/*accelScale * m_specs.strategy().a_speedup_f_max()*/,
-                1000.0/*accelScale * m_specs.strategy().a_brake_f_max()*/);
-    a_s = bound(a_s, v_s, 1000.0/*accelScale * m_specs.strategy().a_speedup_s_max()*/,
-                1000.0/*accelScale * m_specs.strategy().a_brake_s_max()*/);
+    a_f = bound(a_f, v_f, 1000.0 /*accelScale * m_specs.strategy().a_speedup_f_max()*/,
+                1000.0 /*accelScale * m_specs.strategy().a_brake_f_max()*/);
+    a_s = bound(a_s, v_s, 1000.0 /*accelScale * m_specs.strategy().a_speedup_s_max()*/,
+                1000.0 /*accelScale * m_specs.strategy().a_brake_s_max()*/);
     const btVector3 force(a_s * m_specs.mass(), a_f * m_specs.mass(), 0);
 
     // localInertia.z() / SIMULATOR_SCALE^2 \approx
@@ -512,9 +512,9 @@ void SimRobot::begin(SimBall *ball, double time)
     const float K_I_phi = /*0*0.2/1000; //*/ 0.f;
 
     const float a_phi = V_phi * omega + K_phi * error_omega + K_I_phi * error_sum_omega;
-    const float a_phi_bound =
-        bound(a_phi, omega, 1000.0/*accelScale * m_specs.strategy().a_speedup_phi_max()*/,
-              1000.0/*accelScale * m_specs.strategy().a_brake_phi_max()*/);
+    const float a_phi_bound = bound(
+        a_phi, omega, 1000.0 /*accelScale * m_specs.strategy().a_speedup_phi_max()*/,
+        1000.0 /*accelScale * m_specs.strategy().a_brake_phi_max()*/);
     const btVector3 torque(0, 0, a_phi_bound * 0.007884f);
 
     if (force.length2() > 0 || torque.length2() > 0)

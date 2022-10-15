@@ -10,8 +10,8 @@ cc_library(
         "//proto/primitive:primitive_msg_factory",
         "//shared:constants",
         "//software/math:math_functions",
+        "//software/physics:euclidean_to_wheel",
         "//software/world",
-        "//software/physics:euclidean_to_wheel"
     ],
 )
 

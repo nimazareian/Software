@@ -4,8 +4,8 @@
 #include "proto/robot_status_msg.pb.h"
 #include "proto/tbots_software_msgs.pb.h"
 #include "software/geom/vector.h"
-#include "software/world/world.h"
 #include "software/physics/euclidean_to_wheel.h"
+#include "software/world/world.h"
 
 class PrimitiveExecutor
 {
@@ -60,7 +60,7 @@ class PrimitiveExecutor
      * @returns DirectPerWheelControl The per-wheel direct control primitive msg
      */
     std::unique_ptr<TbotsProto::DirectControlPrimitive> stepPrimitive(
-            const unsigned int robot_id, const RobotState &robot_state);
+        const unsigned int robot_id, const RobotState& robot_state);
 
    private:
     /*
@@ -75,7 +75,8 @@ class PrimitiveExecutor
     Vector getTargetLinearVelocity(const unsigned int robot_id,
                                    const Angle& curr_orientation);
 
-    Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive, const RobotState &robot_state);
+    Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive& move_primitive,
+                                   const RobotState& robot_state);
 
     /*
      * Compute the next target angular velocity the robot should be at
@@ -89,10 +90,13 @@ class PrimitiveExecutor
     AngularVelocity getTargetAngularVelocity(
         const TbotsProto::MovePrimitive& move_primitive, const Angle& curr_orientation);
 
-    std::pair<Vector, AngularVelocity> rampVelocity(const Vector& vector, const AngularVelocity& angle);
-    WheelSpace_t
-    rampWheelVelocity(const WheelSpace_t &current_wheel_velocity, const EuclideanSpace_t &target_euclidean_velocity,
-                      double max_allowable_wheel_velocity, double allowed_acceleration, const double &time_to_ramp);
+    std::pair<Vector, AngularVelocity> rampVelocity(const Vector& vector,
+                                                    const AngularVelocity& angle);
+    WheelSpace_t rampWheelVelocity(const WheelSpace_t& current_wheel_velocity,
+                                   const EuclideanSpace_t& target_euclidean_velocity,
+                                   double max_allowable_wheel_velocity,
+                                   double allowed_acceleration,
+                                   const double& time_to_ramp);
 
     TbotsProto::Primitive current_primitive_;
     RobotConstants_t robot_constants_;
