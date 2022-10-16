@@ -5,12 +5,12 @@ cc_library(
     srcs = ["primitive_executor.cpp"],
     hdrs = ["primitive_executor.h"],
     deps = [
-        "@tracy",
         "//extlibs/hrvo",
         "//proto:tbots_cc_proto",
         "//proto/primitive:primitive_msg_factory",
         "//shared:constants",
         "//software/math:math_functions",
+        "//software/physics:euclidean_to_wheel",
         "//software/world",
     ],
 )
@@ -52,7 +52,6 @@ cc_binary(
     ],
     deps = [
         ":thunderloop",
-        "@tracy",
         "//shared:constants",
     ],
 )
@@ -60,12 +59,4 @@ cc_binary(
 sh_binary(
     name = "setup_nano",
     srcs = ["setup_nano.sh"],
-)
-
-sh_binary(
-    name = "run_tracy",
-    srcs = ["run_tracy.sh"],
-    data = [
-        "@tracy//:tracy_server",
-    ],
 )

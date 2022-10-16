@@ -100,7 +100,7 @@ class RobotCommunication(object):
         """
         while True:
             if self.fullsystem_connected_to_robots:
-
+                print("fullsystem_connected_to_robots")
                 # Send the world
                 world = self.world_buffer.get(block=True)
                 self.world_mcast_sender.send_proto(world)
@@ -136,6 +136,7 @@ class RobotCommunication(object):
                 self.sequence_number += 1
 
                 if self.estop_reader.isEstopPlay():
+                    print(f"Sending Primitive: {primitive_set}")
                     self.last_time = primitive_set.time_sent.epoch_timestamp_seconds
                     self.send_primitive_set.send_proto(primitive_set)
 
@@ -225,7 +226,7 @@ class RobotCommunication(object):
         )
 
 # <<<<<<< HEAD
-#         self.connect_fullsystem_to_robots()
+        self.connect_fullsystem_to_robots()
         #self.disconnect_fullsystem_from_robots()
 # =======
         # self.disconnect_fullsystem_from_robots()
@@ -234,7 +235,7 @@ class RobotCommunication(object):
 #         self.connect_robot_to_diagnostics(1)
 #         self.connect_robot_to_diagnostics(2)
 #         self.connect_robot_to_diagnostics(3)
-        self.connect_robot_to_diagnostics(4)  # Connect for diagnostics
+#         self.connect_robot_to_diagnostics(4)  # Connect for diagnostics
         # self.connect_robot_to_diagnostics(5)
         # self.connect_robot_to_diagnostics(6)
         # self.connect_robot_to_diagnostics(7)

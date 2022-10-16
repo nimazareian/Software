@@ -378,6 +378,8 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         static_cast<float>(current_euclidean_velocity[0]));
     motor_status.mutable_local_velocity()->set_y_component_meters(
         static_cast<float>(current_euclidean_velocity[1]));
+    motor_status.mutable_angular_velocity()->set_radians_per_second(
+            static_cast<float>(current_euclidean_velocity[2]));
 
     TracyPlot("current_y", current_euclidean_velocity[0]);
     TracyPlot("current_x", current_euclidean_velocity[1]);
@@ -451,6 +453,7 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
 
     {
         ZoneScopedN("Motor Spi Transfer");
+        std::cout << "Wheel 0: " << target_total_wheel_velocities[0]<< " Wheel 1: " << target_total_wheel_velocities[1]<< " Wheel 2: " << target_total_wheel_velocities[2]<< " Wheel 3: " << target_total_wheel_velocities[3] << std::endl;
         // Set target speeds accounting for acceleration
         tmc4671_writeInt(FRONT_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
                 static_cast<int>(target_total_wheel_velocities[0] *

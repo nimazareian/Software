@@ -93,7 +93,7 @@ class PathLayer(FieldLayer):
             painter_pen = pg.mkPen(Colors.DESIRED_ROBOT_LOCATION_OUTLINE, width=constants.LINE_WIDTH, style=QtCore.Qt.PenStyle.CustomDashLine, dash=[1, 2])
             painter.setPen(painter_pen)
             painter.drawChord(
-                self.createCircle(x_mm, y_mm, ROBOT_MAX_RADIUS_MILLIMETERS),
+                self.createCircle(dest, ROBOT_MAX_RADIUS_METERS),
                 int((math.degrees(final_angle.radians) + 45))
                 * convert_degree,
                 270 * convert_degree,

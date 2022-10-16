@@ -26,6 +26,7 @@ std::tuple<TbotsProto::PrimitiveSet, TbotsProto::World> NetworkService::poll(
     const TbotsProto::RobotStatus& robot_status)
 {
     ZoneScopedN("Network Poll");
+    std::cout << __FUNCTION__ << std::endl;
     std::scoped_lock lock{primitive_set_mutex, world_mutex};
     TbotsProto::RobotStatus new_status = robot_status;
     new_status.set_last_handled_primitive_set(primitive_set_msg.sequence_number());
@@ -36,7 +37,9 @@ std::tuple<TbotsProto::PrimitiveSet, TbotsProto::World> NetworkService::poll(
 
 void NetworkService::primitiveSetCallback(TbotsProto::PrimitiveSet input)
 {
+//    std::cout << input.DebugString() << std::endl;
     std::scoped_lock<std::mutex> lock(primitive_set_mutex);
+//    std::cout << "After lock" << std::endl;
     primitive_set_msg = input;
 
     // LOG(DEBUG) << "interpacket delay primitives: " <<

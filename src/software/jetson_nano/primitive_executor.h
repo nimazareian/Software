@@ -4,6 +4,7 @@
 #include "proto/robot_status_msg.pb.h"
 #include "proto/tbots_software_msgs.pb.h"
 #include "software/geom/vector.h"
+#include "software/physics/euclidean_to_wheel.h"
 #include "software/world/world.h"
 
 class PrimitiveExecutor
@@ -11,15 +12,13 @@ class PrimitiveExecutor
    public:
     /**
      * Constructor
-     * @param time_step Time step which this primitive executor operates in, in seconds
-     * @param robot_id The id  for the robot which uses this primitive
-     * executor
+     * @param time_step Time step which this primitive executor operates in
      * @param robot_constants The robot constants for the robot which uses this primitive
      * executor
      * @param friendly_team_colour The colour of the friendly team
      */
-    explicit PrimitiveExecutor(const double time_step, const RobotId robot_id,
-                               const RobotConstants_t &robot_constants,
+    explicit PrimitiveExecutor(const double time_step,
+                               const RobotConstants_t& robot_constants,
                                const TeamColour friendly_team_colour);
 
     /**
@@ -47,28 +46,21 @@ class PrimitiveExecutor
      * Update primitive executor with the local velocity
      *
      * @param local_velocity The local velocity
-     * @param curr_orientation
      */
-    void updateLocalVelocity(const Vector &local_velocity, const Angle &curr_orientation);
+    void updateLocalVelocity(Vector local_velocity);
+    void updateAngularVelocity(AngularVelocity angular_velocity);
 
     /**
      * Steps the current primitive and returns a direct control primitive with the
      * target wheel velocities
      *
      * @param robot_id The id of the robot which is running this Primitive Executor
-     * @param curr_orientation The current orientation of the robot which is running this
+     * @param robot_state The current orientation of the robot which is running this
      * Primitive Executor
      * @returns DirectPerWheelControl The per-wheel direct control primitive msg
      */
     std::unique_ptr<TbotsProto::DirectControlPrimitive> stepPrimitive(
         const unsigned int robot_id, const RobotState& robot_state);
-
-    /**
-     * Update the robot id of the robot which this primitive executor is running on
-     *
-     * @param robot_id New robot id
-     */
-    void setRobotId(const RobotId robot_id);
 
    private:
     /*
@@ -80,12 +72,11 @@ class PrimitiveExecutor
      * Primitive Executor
      * @returns Vector The target linear velocity
      */
-    Vector getTargetLinearVelocity(const Angle& curr_orientation);
+    Vector getTargetLinearVelocity(const unsigned int robot_id,
+                                   const Angle& curr_orientation);
+
     Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive& move_primitive,
                                    const RobotState& robot_state);
-    double getTargetLinearSpeed(const TbotsProto::MovePrimitive& move_primitive,
-                                const RobotState& robot_state);
-
 
     /*
      * Compute the next target angular velocity the robot should be at
@@ -99,11 +90,22 @@ class PrimitiveExecutor
     AngularVelocity getTargetAngularVelocity(
         const TbotsProto::MovePrimitive& move_primitive, const Angle& curr_orientation);
 
-    RobotId robot_id_;
+    std::pair<Vector, AngularVelocity> rampVelocity(const Vector& vector,
+                                                    const AngularVelocity& angle);
+    WheelSpace_t rampWheelVelocity(const WheelSpace_t& current_wheel_velocity,
+                                   const EuclideanSpace_t& target_euclidean_velocity,
+                                   double max_allowable_wheel_velocity,
+                                   double allowed_acceleration,
+                                   const double& time_to_ramp);
+
     TbotsProto::Primitive current_primitive_;
-    TbotsProto::MovePrimitive move_primitive_;
-    TbotsProto::World current_world_;
+    RobotConstants_t robot_constants_;
     HRVOSimulator hrvo_simulator_;
-    Angle curr_orientation_;
-    double time_step_;
+
+    // TODO: Added for testing
+    const double time_step_s_;
+    WheelSpace_t prev_linear_wheel_velocities;
+    WheelSpace_t prev_angular_wheel_velocities;
+    EuclideanToWheel euclidean_to_four_wheel;
+    AngularVelocity curr_angular_velocity_;
 };

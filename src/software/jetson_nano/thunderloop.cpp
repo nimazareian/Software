@@ -24,7 +24,7 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 Thunderloop::Thunderloop(const RobotConstants_t& robot_constants, const int loop_hz)
     // TODO (#2495): Set the friendly team colour once we receive World proto
     : robot_id_(MAX_ROBOT_IDS + 1),  // Initialize to a robot ID that is not valid
-      primitive_executor_(1.0 / loop_hz, robot_id_, robot_constants, TeamColour::YELLOW)
+      primitive_executor_(1.0 / loop_hz, robot_constants, TeamColour::YELLOW)
 {
     LOG(DEBUG) << "Thunderloop constructor running ";
     channel_id_      = 0;
@@ -32,9 +32,16 @@ Thunderloop::Thunderloop(const RobotConstants_t& robot_constants, const int loop
     robot_constants_ = robot_constants;
 
     redis_client_ = std::make_unique<RedisClient>(REDIS_DEFAULT_HOST, REDIS_DEFAULT_PORT);
+    robot_id_ = std::stoi(redis_client_->get("/robot_id"));
+    channel_id_ = std::stoi(redis_client_->get("/channel_id"));
+    network_interface_ = redis_client_->get("/network_interface");
 
     LoggerSingleton::initializeLogger("/home/robot/logs");
 
+    network_service_ = std::make_unique<NetworkService>(
+            std::string(ROBOT_MULTICAST_CHANNELS.at(channel_id_)) + "%" +
+            network_interface_,
+            VISION_PORT, PRIMITIVE_PORT, ROBOT_STATUS_PORT, true);
     power_service_ = std::make_unique<PowerService>();
     motor_service_ = std::make_unique<MotorService>(robot_constants, loop_hz);
 }
@@ -89,21 +96,22 @@ Thunderloop::~Thunderloop() {}
             jetson_status_.set_cpu_temperature(getCpuTemperature());
 
             // Grab the latest configs from redis
-            int robot_id = 2;
-            int channel_id = 0;
-            std::string network_interface = "wlan0";
+            int robot_id = std::stoi(redis_client_->get("/robot_id"));
+            int channel_id = std::stoi(redis_client_->get("/channel_id"));
+            std::string network_interface = redis_client_->get("/network_interface");
+
 
             {
                 ZoneScopedN("Log visualize");
-                TbotsProto::HRVOVisualization hrvo_visualization;
-                hrvo_visualization.set_robot_id(0);
-                auto vo_proto      = *createVelocityObstacleProto(VelocityObstacle(Vector(),
-                                                                                   Vector::createFromAngle(Angle::fromDegrees(45)),
-                                                                                   Vector::createFromAngle(Angle::fromDegrees(-45))));
-                auto vo_protos = {vo_proto};
-                *(hrvo_visualization.mutable_velocity_obstacles()) = {vo_protos.begin(),
-                                                                      vo_protos.end()};
-                LOG(VISUALIZE) << hrvo_visualization;
+//                TbotsProto::HRVOVisualization hrvo_visualization;
+//                hrvo_visualization.set_robot_id(0);
+//                auto vo_proto      = *createVelocityObstacleProto(VelocityObstacle(Vector(),
+//                                                                                   Vector::createFromAngle(Angle::fromDegrees(45)),
+//                                                                                   Vector::createFromAngle(Angle::fromDegrees(-45))));
+//                auto vo_protos = {vo_proto};
+//                *(hrvo_visualization.mutable_velocity_obstacles()) = {vo_protos.begin(),
+//                                                                      vo_protos.end()};
+//                LOG(VISUALIZE) << hrvo_visualization;
             }
 
             // If any of the configs have changed, update the network service to switch
@@ -125,7 +133,7 @@ Thunderloop::~Thunderloop() {}
                         network_interface_,
                     VISION_PORT, PRIMITIVE_PORT, ROBOT_STATUS_PORT, true);
 
-                primitive_executor_.setRobotId(robot_id_);
+//                primitive_executor_.setRobotId(robot_id_);
             }
             // Network Service: receive newest world, primitives and set out the last
             // robot status
@@ -134,6 +142,7 @@ Thunderloop::~Thunderloop() {}
                 robot_status_.set_robot_id(robot_id_);
                 auto result       = network_service_->poll(robot_status_);
                 new_primitive_set = std::get<0>(result);
+//                std::cout << "Polled result " << new_primitive_set.DebugString() << std::endl;
                 new_world         = std::get<1>(result);
             }
 
@@ -147,6 +156,7 @@ Thunderloop::~Thunderloop() {}
             {
                 // Save new primitive set
                 primitive_set_ = new_primitive_set;
+                std::cout << "Copied primitiveSet since epoch time is recent " << std::endl;
 
                 // Update primitive executor's primitive set
                 {
@@ -202,13 +212,16 @@ Thunderloop::~Thunderloop() {}
                     // updateLocalVelocity must be called after updateWorld and before
                     // stepPrimitive.
                     EuclideanSpace_t euclidean_vel = motor_service_->getCurrentEuclideanVelocity();
-                    Vector curr_local_vel = Vector(euclidean_vel[0], euclidean_vel[1]);
-                    primitive_executor_.updateLocalVelocity(curr_local_vel, robot.value().orientation());
+                    Vector curr_local_vel = Vector(euclidean_vel[1], -euclidean_vel[0]);
+                    primitive_executor_.updateLocalVelocity(curr_local_vel);
+                    primitive_executor_.updateAngularVelocity(
+                            AngularVelocity::fromRadians(euclidean_vel[2]));
 
                     // TODO-JON needs to use world in primitive executor
                     // TODO: Nima, current state changes between world receives, if this is not up to date world we should update it based on robot velocities...
-                    direct_control_ = *primitive_executor_.stepPrimitive(
-                        robot_id_, robot->currentState());
+
+                    direct_control_ =
+                            *primitive_executor_.stepPrimitive(robot_id_, robot->currentState());
                 }
                 else
                 {
@@ -218,6 +231,8 @@ Thunderloop::~Thunderloop() {}
                                    Angle::fromDegrees(0));
                     direct_control_ =
                         *primitive_executor_.stepPrimitive(robot_id_, robot_state);
+
+                    std::cout << "stepped primitive" << std::endl;
                 }
             }
 
