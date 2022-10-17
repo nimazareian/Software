@@ -317,7 +317,7 @@ gdb --args bazel-bin/{simulator_command}
         for arg in [
             (BLUE_SSL_WRAPPER_PATH, SSL_WrapperPacket),
             (BLUE_ROBOT_STATUS_PATH, RobotStatus),
-            (SIMULATOR_STATE_PATH, SimulatorState),
+            (SIMULATOR_STATE_PATH, SimulatorState), # TODO: Named value ??
         ] + [
             # TODO (#2655): Add/Remove HRVO layers dynamically based on the HRVOVisualization proto messages
             (BLUE_HRVO_PATH, HRVOVisualization, True)

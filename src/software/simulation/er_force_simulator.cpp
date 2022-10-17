@@ -17,6 +17,8 @@
 #include "software/logger/logger.h"
 #include "software/world/robot_state.h"
 
+#include "external/tracy/public/tracy/Tracy.hpp"
+
 ErForceSimulator::ErForceSimulator(const TbotsProto::FieldType& field_type,
                                    const RobotConstants_t& robot_constants)
     : yellow_team_world_msg(std::make_unique<TbotsProto::World>()),
@@ -348,6 +350,7 @@ SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
 
 void ErForceSimulator::stepSimulation(const Duration& time_step)
 {
+    FrameMarkNamed("Simulator");
     current_time = current_time + time_step;
 
     SSLSimulationProto::RobotControl yellow_robot_control =

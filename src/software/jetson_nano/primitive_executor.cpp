@@ -69,8 +69,6 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 
     const double signed_delta_orientation =
         (dest_orientation - curr_orientation).clamp().toRadians();
-    TracyPlot("angular_velocity", AngularVelocity::fromRadians(
-            std::copysign(next_angular_speed, signed_delta_orientation)).toRadians());
     return AngularVelocity::fromRadians(
         std::copysign(next_angular_speed, signed_delta_orientation));
 }
@@ -79,7 +77,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive(
     const unsigned int robot_id, const Angle& curr_orientation)
 {
-    ZoneScopedN("Step Primitive");
+    ZoneScopedN("stepPrimitive");
     hrvo_simulator_.doStep();
 
     // Visualize the HRVO Simulator for the current robot
@@ -116,6 +114,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             Vector target_velocity = getTargetLinearVelocity(robot_id, curr_orientation);
             AngularVelocity target_angular_velocity =
                 getTargetAngularVelocity(current_primitive_.move(), curr_orientation);
+            TracyPlot("angular_velocity", target_angular_velocity.toRadians());
 
             auto output = createDirectControlPrimitive(
                 target_velocity, target_angular_velocity,
