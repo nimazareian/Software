@@ -1,6 +1,8 @@
+# from https://vispy.org/gallery/scene/line_update.html
+import random
 import sys
 import numpy as np
-from vispy import app, scene
+from vispy import app, scene, color
 
 
 canvas = scene.SceneCanvas(keys='interactive', show=True)
@@ -20,37 +22,38 @@ y_axis.link_view(viewbox)
 
 
 # vertex positions of data to draw
-N = 1000
+N = 10
 
-# color array
-color = np.ones((N, 4), dtype=np.float32)
-color[:, 0] = np.linspace(0, 1, N)
-color[:, 1] = color[::-1, 0]
 
 pos = np.zeros((N, 2), dtype=np.float32)
 x_lim = [50., 750.]
 y_lim = [-2., 2.]
 
-NUM_LINES = 20
+NUM_LINES = 200
 lines = []
+
+# color array
+colors = []
 for i in range(NUM_LINES):
+    color = np.ones((N, 4), dtype=np.float32)
+    color[:, 0] = random.random()  # np.linspace(0, 1, N)
+    color[:, 1] = color[::-1, 0]
+    colors.append(color)
+
     pos[:, 0] = np.linspace(x_lim[0], x_lim[1], N)
     pos[:, 1] = np.random.normal(size=N)
     # add a line plot inside the viewbox
-    color = i / (2 * float(NUM_LINES)) + 0.5
-    print(f"color: {color}")
-    lines.append(scene.Line(pos, color=(color, color, color, 1), parent=viewbox.scene))
+    lines.append(scene.Line(pos, color=color, parent=viewbox.scene))
 
 # auto-scale to see the whole line.
 viewbox.camera.set_range()
 
-
 def update(ev):
-    global pos, color, lines
-    for line in lines:
+    global pos, colors, lines
+    for i, line in enumerate(lines):
         pos[:, 1] = np.random.normal(size=N)
         # color = np.roll(color, 1, axis=0)
-        line.set_data(pos=pos)
+        line.set_data(pos=pos, color=colors[i])
 
 
 timer = app.Timer()
