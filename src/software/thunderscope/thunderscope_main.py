@@ -306,6 +306,7 @@ if __name__ == "__main__":
             )
 
             # Start the simulator
+            time.sleep(1)  # TODO: Added because of race condition in C++ receiving the WorldState. Find better solution
             thread = threading.Thread(
                 target=__async_sim_ticker, args=(SIM_TICK_RATE_MS,), daemon=True,
             )
