@@ -230,7 +230,7 @@ class Thunderscope(object):
     def reset_layout(self):
         """Reset the layout to the default layout"""
 
-        if os.path.exists(SAVED_LAYOUT_PATH):
+        if os.path.exists(SAVED_LAYOUT_PATH): # TODO: Check if this is actually working
             os.remove(SAVED_LAYOUT_PATH)
             QMessageBox.information(
                 self.window,
@@ -406,6 +406,7 @@ class Thunderscope(object):
         log_dock = Dock("Logs")
         log_dock.addWidget(widgets["log_widget"])
 
+        print("performance_widget created")
         widgets["performance_widget"] = self.setup_performance_plot(
             full_system_proto_unix_io
         )

@@ -147,6 +147,9 @@ class ProtoUnixIO:
         :param from_log_visualize: If the protobuf is coming from LOG(VISUALIZE)
 
         """
+        print("Attaching unix receiver", runtime_dir + f"/{proto_class.DESCRIPTOR.full_name}"
+        if from_log_visualize and not unix_path
+        else runtime_dir + unix_path)
         listener = ThreadedUnixListener(
             runtime_dir + f"/{proto_class.DESCRIPTOR.full_name}"
             if from_log_visualize and not unix_path

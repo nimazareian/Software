@@ -6,6 +6,7 @@
 #include "proto/tbots_software_msgs.pb.h"
 #include "proto/visualization.pb.h"
 #include "software/math/math_functions.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 PrimitiveExecutor::PrimitiveExecutor(const double time_step,
                                      const RobotConstants_t& robot_constants,
@@ -129,6 +130,14 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 
     const double signed_delta_orientation =
         (dest_orientation - curr_orientation).clamp().toRadians();
+
+    LOG(VISUALIZE) << *createNamedValue(
+                "signed_delta_orientation",
+                static_cast<float>(signed_delta_orientation));
+    LOG(VISUALIZE) << *createNamedValue(
+                "next_angular_speed",
+                static_cast<float>(AngularVelocity::fromRadians(
+                        std::copysign(next_angular_speed, signed_delta_orientation)).toRadians()));
     return AngularVelocity::fromRadians(
         std::copysign(next_angular_speed, signed_delta_orientation));
 }

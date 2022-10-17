@@ -321,6 +321,7 @@ def pytest_main(file):
 
 @pytest.fixture
 def simulated_test_runner():
+    print("Starting simulated test runner")
     args = load_command_line_arguments()
     tscope = None
 
@@ -353,6 +354,7 @@ def simulated_test_runner():
             supress_logs=(not args.show_gamecontroller_logs), ci_mode=True,
         ) as gamecontroller:
 
+            print("Setting up proto unix io")
             blue_fs.setup_proto_unix_io(blue_full_system_proto_unix_io)
             yellow_fs.setup_proto_unix_io(yellow_full_system_proto_unix_io)
             simulator.setup_proto_unix_io(
