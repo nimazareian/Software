@@ -7,6 +7,8 @@
 #include "proto/visualization.pb.h"
 #include "software/math/math_functions.h"
 
+#include "external/tracy/public/tracy/Tracy.hpp"
+
 PrimitiveExecutor::PrimitiveExecutor(const double time_step,
                                      const RobotConstants_t& robot_constants,
                                      const TeamColour friendly_team_colour)
@@ -67,6 +69,8 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 
     const double signed_delta_orientation =
         (dest_orientation - curr_orientation).clamp().toRadians();
+    TracyPlot("angular_velocity", AngularVelocity::fromRadians(
+            std::copysign(next_angular_speed, signed_delta_orientation)).toRadians());
     return AngularVelocity::fromRadians(
         std::copysign(next_angular_speed, signed_delta_orientation));
 }
@@ -75,6 +79,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive(
     const unsigned int robot_id, const Angle& curr_orientation)
 {
+    ZoneScopedN("Step Primitive");
     hrvo_simulator_.doStep();
 
     // Visualize the HRVO Simulator for the current robot
