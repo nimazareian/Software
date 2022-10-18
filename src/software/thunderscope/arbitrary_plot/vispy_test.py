@@ -101,6 +101,7 @@ class Canvas(app.Canvas):
         self.show()
 
     def on_timer(self, event):
+        print("test")
         self.program['u_time'] = event.elapsed
         self.update()
 

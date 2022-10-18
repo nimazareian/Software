@@ -76,9 +76,10 @@ def update(ev):
     offset += 1
 
 
-timer = app.Timer()
-timer.connect(update)
-timer.start(0)
+# timer = app.Timer()
+# timer.connect(update)
+# timer.start(0)
 
 if __name__ == '__main__' and sys.flags.interactive == 0:
+    app.Timer(connect=update)
     app.run()
