@@ -35,6 +35,7 @@ class NamedValuePlotter(object):
         self.view.camera.set_range(x=[0, TIME_WINDOW_TO_DISPLAY_S], y=[INITIAL_Y_MIN, INITIAL_Y_MAX])
 
         # Visualizing Axis
+        # TODO: https://vispy.org/api/vispy.scene.visuals.html#vispy.scene.visuals.Axis
         self.x_axis = scene.AxisWidget(orientation="bottom")
         self.y_axis = scene.AxisWidget(orientation="left")
         self.x_axis.stretch = (1, 0.05)  # TODO: Not sure what this does
@@ -68,6 +69,13 @@ class NamedValuePlotter(object):
                 # TODO: Is it possible to have different colors for each plot?
                 self.plots[named_value.name] = np.empty((0, 2), dtype=np.float32)
 
+                # TODO: Text representing which line is being shown right now. This slows down the plots ALOT. Don't need to be redrawn every tick
+                # TODO: Check what else the scene class provides that we can utilize
+                # Can change method to 'gpu'
+                # Text doesn't have to be in the visual either... Probably better to have it with the selection drop down
+                scene.Text(next(iter(self.plots)), bold=True, font_size=8, color='w',
+                           pos=(0, 10), parent=self.view.scene, method='gpu')
+
             new_data_pair = np.empty((1, 2), dtype=np.float32)
             new_data_pair[0][0] = time.time() - self.time
             new_data_pair[0][1] = named_value.value
@@ -94,6 +102,10 @@ class NamedValuePlotter(object):
             num_points = data.shape[0]
             connections[offset + num_points - 1] = False
             offset += num_points
+
+        # TODO: Can draw infinite line for something like battery voltage (though we probably don't want that to be a named value)
+        # vert_line1 = scene.InfiniteLine(100, [1.0, 0.0, 0.0, 1.0],
+        #                                 parent=viewbox.scene)
 
         self.line.set_data(line_data, connect=connections)
 
