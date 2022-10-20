@@ -6,6 +6,7 @@
 #include "proto/tbots_software_msgs.pb.h"
 #include "proto/visualization.pb.h"
 #include "software/math/math_functions.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 PrimitiveExecutor::PrimitiveExecutor(const double time_step,
                                      const RobotConstants_t& robot_constants,
@@ -111,6 +112,8 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             Vector target_velocity = getTargetLinearVelocity(robot_id, curr_orientation);
             AngularVelocity target_angular_velocity =
                 getTargetAngularVelocity(current_primitive_.move(), curr_orientation);
+            LOG(VISUALIZE) << *createNamedValue(
+                        "signed_delta_orientation", static_cast<float>(target_velocity.length()) * 30);
 
             auto output = createDirectControlPrimitive(
                 target_velocity, target_angular_velocity,

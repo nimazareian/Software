@@ -154,6 +154,7 @@ class ProtoUnixIO:
             proto_class=proto_class,
             is_base64_encoded=from_log_visualize,
         )
+        print(f"At unix listener on {runtime_dir + proto_class.DESCRIPTOR.full_name if from_log_visualize and not unix_path else runtime_dir + unix_path}")
         key = proto_class.DESCRIPTOR.full_name
         self.unix_listeners[key] = listener
         self.send_proto_to_observer_threads[key] = Thread(
