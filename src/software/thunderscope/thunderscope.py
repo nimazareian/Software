@@ -462,10 +462,7 @@ class Thunderscope(object):
             full_system_proto_unix_io
         )
         performance_dock = Dock("Performance")
-        performance_dock.addWidget(widgets["performance_widget"].win)
-        canvas_wrapper_dock = Dock("Test")
-        canvas_wrapper = CanvasWrapper()
-        canvas_wrapper_dock.addWidget(canvas_wrapper.canvas.native)
+        performance_dock.addWidget(widgets["performance_widget"].canvas.native)
 
         widgets["parameter_widget"] = self.setup_parameter_widget(
             full_system_proto_unix_io, friendly_colour_yellow
@@ -488,7 +485,6 @@ class Thunderscope(object):
         dock_area.addDock(parameter_dock, "above", log_dock)
         dock_area.addDock(playinfo_dock, "bottom", field_dock)
         dock_area.addDock(performance_dock, "right", playinfo_dock)
-        dock_area.addDock(canvas_wrapper_dock, "bottom", field_dock)
 
     def configure_robot_diagnostics_layout(self, dock_area, proto_unix_io):
         """Configure the default layout for the robot diagnostics widget
