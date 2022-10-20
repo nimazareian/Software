@@ -69,7 +69,7 @@ from vispy import scene
 class CanvasWrapper:
     def __init__(self):
         bg_clr = (0.1, 0.1, 0.1)  # dark background color
-        self.canvas = scene.SceneCanvas(keys="interactive", show=True, bgcolor=bg_clr)
+        self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=bg_clr)
         # For allowing to have multiple plots in the same window
         self.grid = self.canvas.central_widget.add_grid()
         # Supporting panning and zooming
