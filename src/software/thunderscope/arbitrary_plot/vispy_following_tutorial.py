@@ -8,8 +8,9 @@ from vispy.app import use_app, Timer
 from vispy import scene
 
 bg_clr = (0.1, 0.1, 0.1)  # dark background color
-TIME_LENGTH = 1
+TIME_LENGTH = 15
 NUM_LINE_POINTS = TIME_LENGTH * 60
+NUM_PLOTS = 200
 
 
 # The Qt widget that will contain the vispy canvas and the side buttons
@@ -48,14 +49,20 @@ class DataSource(QtCore.QObject):
         super().__init__(parent)
         self._count = 0
 
-        self._line_data = None
-        self._connections = None
+        self._lines = np.empty((NUM_PLOTS, NUM_LINE_POINTS, 2), dtype=np.float32)
+        total_num_points = self._lines.shape[0] * self._lines.shape[1]
+        self._line_data = np.empty((total_num_points, 2), dtype=np.float32)
 
-        pos = np.empty((NUM_LINE_POINTS, 2), dtype=np.float32)
-        pos[:, 0] = np.linspace(start=0, stop=TIME_LENGTH, num=NUM_LINE_POINTS)
-        pos[:, 1] = np.zeros((NUM_LINE_POINTS,), dtype=np.float32)
-        self._line_data1 = pos
-        self._line_data2 = pos.copy()
+        self._connections = np.ones(self._line_data.shape[0], dtype=bool)
+        print(f"{self._lines.shape=}")
+        print(f"{self._line_data.shape[0]=}")
+        offset = 0
+        for i in range(NUM_PLOTS):
+            # If the last value is True, there will be a point between the last point and origin
+            # TODO: This calculation always results in the same array right now
+            num_points = self._lines.shape[1]
+            self._connections[offset + num_points - 1] = False
+            offset += num_points
 
     def run_data_creation(self, timer_event):
         """
@@ -64,36 +71,25 @@ class DataSource(QtCore.QObject):
         :return:
         """
         self._count += 1
-        self._line_data, self._connections = self._update_line_data()
+        self._line_data = self._update_line_data()
         # Create and emit a dictionary with the new data
         self.new_data.emit({"line": self._line_data, "connections": self._connections})
 
     def _update_line_data(self):
         # TODO: Using np.roll to shift the data to the left and add a new value of sin wave
         #       Only roll if we x has reached TIME_LENGTH, else add more data to the right
-        # Shift x values by 1/60
-        self._line_data1[:, 0] = np.roll(self._line_data1[:, 0], -1)
-        self._line_data1[-1, 0] = self._line_data1[-2, 0] + (1 / 60)
-        # Shift y values and add a new value
-        self._line_data1[:, 1] = np.roll(self._line_data1[:, 1], -1)
-        self._line_data1[-1, 1] = -abs(math.sin(self._count / 50 * math.pi))+1
+        for i in range(NUM_PLOTS):
+            # Shift x and y values left by 1
+            self._lines[i, :, 0] = np.roll(self._lines[i, :, 0], -1)
+            self._lines[i, :, 1] = np.roll(self._lines[i, :, 1], -1)
 
-
-        # Shift x values by 1/60
-        self._line_data2[:, 0] = np.roll(self._line_data2[:, 0], -1)
-        self._line_data2[-1, 0] = self._line_data2[-2, 0] + 1 / 60
-        # Shift y values and add a new value
-        self._line_data2[:, 1] = np.roll(self._line_data2[:, 1], -1)
-        self._line_data2[-1, 1] = abs(math.sin(self._count / 50 * math.pi))
+            # Add new data at the end
+            self._lines[i, -1, 0] = self._lines[i, -2, 0] + 1.0 / 60.0
+            self._lines[i, -1, 1] = abs(math.sin(self._count / 50 * math.pi)) + i
 
         # vstack supports connecting any number of input arrays
-        self._line_data = np.vstack((self._line_data1, self._line_data2))
-        self._connections = np.ones(self._line_data.shape[0], dtype=bool)
-        # If the last value is True, there will be a point between the last point and origin
-        self._connections[-1] = False
-        self._connections[self._line_data1.shape[0]-1] = False
-
-        return self._line_data.copy(), self._connections.copy()  # Why do we return a copy
+        self._line_data = np.vstack([self._lines[i, :, :] for i in range(NUM_PLOTS)])
+        return self._line_data.copy()  # Why do we return a copy
 
     def shift_array(self, array, place):
         new_arr = np.roll(array, place, axis=0)
@@ -139,7 +135,7 @@ class CanvasWrapper:
         # Add data to view
         line_data = _generate_random_line_positions(NUM_LINE_POINTS)
         self.line = scene.visuals.Line(line_data, parent=self.view.scene, color='white')
-        self.view.camera.set_range(x=[0, TIME_LENGTH], y=[0, 1])
+        self.view.camera.set_range(x=[0, TIME_LENGTH], y=[0, NUM_PLOTS + 1])
 
     def show(self):
         self.canvas.show()
@@ -153,7 +149,7 @@ class CanvasWrapper:
         connections = new_data_dict["connections"]
         self.line.set_data(line, connect=connections)  # TODO: Figure out connections. Could use array of bools for which adjacent points are connected
         # Update camera with 10% margin around the data
-        self.view.camera.set_range(x=[line[0, 0], line[-1, 0]], y=[0, 1], margin=0.1)  # TODO: Hard coding y range, to find min/max will have to search entire array
+        # self.view.camera.set_range(x=[line[0, 0], line[-1, 0]], y=[0, 1], margin=0.1)  # TODO: Hard coding y range, to find min/max will have to search entire array
 
 
 def _generate_random_line_positions(num_points, dtype=np.float32):
@@ -180,7 +176,7 @@ if __name__ == "__main__":
     data_source.new_data.connect(canvas_wrapper.update_data)
     # Vispy's wrapper around QTimer. It will call the run_data_creation function as fast it can
     # Timers can be problematic as its blocking the main thread
-    timer = Timer("0.1", connect=data_source.run_data_creation, start=True)
+    timer = Timer("0.016", connect=data_source.run_data_creation, start=True)
     window.show()
 
     # Steps: Using VisPy Timer to call the run_data_creation function
