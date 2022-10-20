@@ -64,7 +64,7 @@ class DataSource(QtCore.QObject):
         :return:
         """
         self._count += 1
-        self._line_data1, self._connections = self._update_line_data()
+        self._line_data, self._connections = self._update_line_data()
         # Create and emit a dictionary with the new data
         self.new_data.emit({"line": self._line_data, "connections": self._connections})
 
@@ -73,25 +73,32 @@ class DataSource(QtCore.QObject):
         #       Only roll if we x has reached TIME_LENGTH, else add more data to the right
         # Shift x values by 1/60
         self._line_data1[:, 0] = np.roll(self._line_data1[:, 0], -1)
-        self._line_data1[-1, 0] = self._line_data1[-2, 0] + 1 / 60
+        self._line_data1[-1, 0] = self._line_data1[-2, 0] + (1 / 60)
         # Shift y values and add a new value
         self._line_data1[:, 1] = np.roll(self._line_data1[:, 1], -1)
-        self._line_data1[-1, 1] = -abs(math.sin(self._count / 50 * math.pi))
+        self._line_data1[-1, 1] = -abs(math.sin(self._count / 50 * math.pi))+1
+
 
         # Shift x values by 1/60
         self._line_data2[:, 0] = np.roll(self._line_data2[:, 0], -1)
         self._line_data2[-1, 0] = self._line_data2[-2, 0] + 1 / 60
         # Shift y values and add a new value
         self._line_data2[:, 1] = np.roll(self._line_data2[:, 1], -1)
-        self._line_data2[-1, 1] = abs(math.sin(self._count / 50 * math.pi))-1
+        self._line_data2[-1, 1] = abs(math.sin(self._count / 50 * math.pi))
 
         # vstack supports connecting any number of input arrays
         self._line_data = np.vstack((self._line_data1, self._line_data2))
         self._connections = np.ones(self._line_data.shape[0], dtype=bool)
-        self._connections[self._line_data1.shape[0] - 1] = False
-        print(f"{self._line_data1.shape[0]=}", f"{self._line_data2.shape[0]=}", f"{self._line_data.shape[0]=}")
+        # If the last value is True, there will be a point between the last point and origin
+        self._connections[-1] = False
+        self._connections[self._line_data1.shape[0]-1] = False
 
         return self._line_data.copy(), self._connections.copy()  # Why do we return a copy
+
+    def shift_array(self, array, place):
+        new_arr = np.roll(array, place, axis=0)
+        new_arr[:place] = np.zeros((new_arr[:place].shape))
+        return new_arr
 
 
 # The controls for changing our vispy plot
@@ -146,7 +153,7 @@ class CanvasWrapper:
         connections = new_data_dict["connections"]
         self.line.set_data(line, connect=connections)  # TODO: Figure out connections. Could use array of bools for which adjacent points are connected
         # Update camera with 10% margin around the data
-        # self.view.camera.set_range(x=[line[0, 0], line[-1, 0]], y=[0, 1], margin=0.1)  # TODO: Hard coding y range, to find min/max will have to search entire array
+        self.view.camera.set_range(x=[line[0, 0], line[-1, 0]], y=[0, 1], margin=0.1)  # TODO: Hard coding y range, to find min/max will have to search entire array
 
 
 def _generate_random_line_positions(num_points, dtype=np.float32):

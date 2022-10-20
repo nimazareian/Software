@@ -13,7 +13,7 @@ INITIAL_Y_MIN = 0
 INITIAL_Y_MAX = 100
 TIME_WINDOW_TO_DISPLAY_S = 20
 
-
+# TODO: Add button to increase or decrease time window to display
 class NamedValuePlotter(object):
     """ Plot named values in real time with a scrolling plot """
 
