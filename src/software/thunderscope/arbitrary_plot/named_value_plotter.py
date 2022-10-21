@@ -73,6 +73,7 @@ class NamedValuePlotter(object):
                 # TODO: Check what else the scene class provides that we can utilize
                 # Can change method to 'gpu'
                 # Text doesn't have to be in the visual either... Probably better to have it with the selection drop down
+                # TODO: Add a drop down menu -overlay- to select which lines to show: https://stackoverflow.com/questions/49077083/how-to-overlay-widgets-in-pyqt5
                 scene.Text(next(iter(self.plots)), bold=True, font_size=8, color='w',
                            pos=(0, 10), parent=self.view.scene, method='gpu')
 
