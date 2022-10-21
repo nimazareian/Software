@@ -56,7 +56,7 @@ class NamedValuePlotter(object):
         """Refreshes NamedValuePlotter and updates data in the respective
         plots.
         """
-
+        now = time.time()
         # Dump the entire buffer into a deque. This operation is fast because
         # its just consuming data from the buffer and appending it to a deque.
         new_data = {}
@@ -84,6 +84,9 @@ class NamedValuePlotter(object):
                 # TODO: Time should somehow be a part of the named value plot...
                 new_data[named_value.name] = new_data_pair
             else:
+                # TODO: Limit the arrays to TIME_WINDOW_TO_DISPLAY_S length, and then shift the array to the left
+                #       Time how much time this adds, if its a lot, we can do it less often. Once every 10 sec? Gotta
+                #       make sure it doesn't suddenly slow down everything though
                 new_data[named_value.name] = np.append(new_data[named_value.name], new_data_pair, axis=0)
 
         # Add new data points to the existing data points
@@ -109,6 +112,7 @@ class NamedValuePlotter(object):
         #                                 parent=viewbox.scene)
 
         self.line.set_data(line_data, connect=connections)
+        print(time.time() - now)
 
         # TODO: Update camera to follow data
         # self.view.camera.set_range(x=[line[0, 0], line[-1, 0]], y=[0, 1], margin=0.1)
