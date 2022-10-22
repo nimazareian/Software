@@ -1,10 +1,8 @@
 import random
 import time
-from collections import deque
 
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtGui
 from vispy import scene
+from vispy.color.color_array import Color
 import numpy as np
 from proto.visualization_pb2 import NamedValue
 
@@ -50,13 +48,19 @@ class NamedValuePlotter(object):
         self.named_value_buffer = ThreadSafeBuffer(buffer_size, NamedValue)
 
         self.plots = {}
+        self.plot_colors = {}
+        self.assigned_plot_colors = {}
         self.line = scene.visuals.Line(np.empty((0, 2), dtype=np.float32), parent=self.view.scene, color='white')
+
+        # Added for debugging
+        self.total_time = 0
 
     def refresh(self):
         """Refreshes NamedValuePlotter and updates data in the respective
         plots.
         """
-        now = time.time()
+        start = time.time()
+
         # Dump the entire buffer into a deque. This operation is fast because
         # its just consuming data from the buffer and appending it to a deque.
         new_data = {}
@@ -69,13 +73,16 @@ class NamedValuePlotter(object):
                 # TODO: Is it possible to have different colors for each plot?
                 self.plots[named_value.name] = np.empty((0, 2), dtype=np.float32)
 
+                # Assign this line a random color
+                new_color = Color(color=[random.uniform(0.4, 1.0) for _ in range(4)])
+                self.assigned_plot_colors[named_value.name] = new_color
+                self.plot_colors[named_value.name] = np.empty((0, 4), dtype=Color)
+
                 # TODO: Text representing which line is being shown right now. This slows down the plots ALOT. Don't need to be redrawn every tick
                 # TODO: Check what else the scene class provides that we can utilize
                 # Can change method to 'gpu'
                 # Text doesn't have to be in the visual either... Probably better to have it with the selection drop down
                 # TODO: Add a drop down menu -overlay- to select which lines to show: https://stackoverflow.com/questions/49077083/how-to-overlay-widgets-in-pyqt5
-                scene.Text(next(iter(self.plots)), bold=True, font_size=8, color='w',
-                           pos=(0, 10), parent=self.view.scene, method='gpu')
 
             new_data_pair = np.empty((1, 2), dtype=np.float32)
             new_data_pair[0][0] = time.time() - self.time
@@ -93,11 +100,16 @@ class NamedValuePlotter(object):
         for name, data in new_data.items():
             self.plots[name] = np.append(self.plots[name], data, axis=0)
 
+            color_data = np.empty((len(data), 4), dtype=Color)
+            color_data[:] = self.assigned_plot_colors[name].rgba
+            self.plot_colors[name] = np.append(self.plot_colors[name], color_data, axis=0)
+
         # VisPy plots points from a single 2D list. We can specify which adjacent points connect
         # with each other using a boolean array where True means that adjacent points should be
         # connected, and False means they should be disconnected.
         # Create a single array of all data points:
         line_data = np.vstack([self.plots[name] for name, _ in self.plots.items()])
+        color_data = np.vstack([self.plot_colors[name] for name, _ in self.plot_colors.items()])
         connections = np.ones(line_data.shape[0], dtype=bool)
         offset = 0
         for name, data in self.plots.items():
@@ -107,12 +119,7 @@ class NamedValuePlotter(object):
             connections[offset + num_points - 1] = False
             offset += num_points
 
-        # TODO: Can draw infinite line for something like battery voltage (though we probably don't want that to be a named value)
-        # vert_line1 = scene.InfiniteLine(100, [1.0, 0.0, 0.0, 1.0],
-        #                                 parent=viewbox.scene)
-
-        self.line.set_data(line_data, connect=connections)
-        print(time.time() - now)
+        self.line.set_data(line_data, connect=connections, color=color_data)
 
         # TODO: Update camera to follow data
         # self.view.camera.set_range(x=[line[0, 0], line[-1, 0]], y=[0, 1], margin=0.1)
