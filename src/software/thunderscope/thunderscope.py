@@ -28,7 +28,7 @@ from pyqtgraph.Qt.QtWidgets import *
 
 from software.py_constants import *
 from proto.import_all_protos import *
-from software.thunderscope.arbitrary_plot.named_value_plotter import NamedValuePlotter
+from software.thunderscope.arbitrary_plot.named_value_plotter import *
 from extlibs.er_force_sim.src.protobuf.world_pb2 import *
 from software.thunderscope.dock_label_style import *
 
@@ -59,58 +59,6 @@ from software.thunderscope.replay.proto_player import ProtoPlayer
 
 SAVED_LAYOUT_PATH = "/opt/tbotspython/saved_tscope_layout"
 GAME_CONTROLLER_URL = "http://localhost:8081"
-
-import numpy as np
-from vispy.app import use_app
-from vispy import scene
-
-
-# The canvas that will contain the vispy scene
-class CanvasWrapper:
-    def __init__(self):
-        bg_clr = (0.1, 0.1, 0.1)  # dark background color
-        self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=bg_clr)
-        # For allowing to have multiple plots in the same window
-        self.grid = self.canvas.central_widget.add_grid()
-        # Supporting panning and zooming
-        self.view = self.grid.add_view(row=0, col=1, camera="panzoom")
-
-        # Visualizing Axis
-        self.x_axis = scene.AxisWidget(orientation="bottom")
-        self.y_axis = scene.AxisWidget(orientation="left")
-        self.x_axis.stretch = (1, 0.05)
-        self.y_axis.stretch = (0.05, 1)
-        self.grid.add_widget(self.x_axis, row=1, col=1)
-        self.grid.add_widget(self.y_axis, row=0, col=0)
-        self.x_axis.link_view(self.view)
-        self.y_axis.link_view(self.view)
-
-        self.view.camera.set_range()
-
-        # Add data to view
-        NUM_LINE_POINTS = 100
-        line_data = _generate_random_line_positions(NUM_LINE_POINTS)
-        self.line = scene.visuals.Line(line_data, parent=self.view.scene, color='white')
-        self.view.camera.set_range(x=(0, NUM_LINE_POINTS), y=(0, 1))
-
-    def show(self):
-        self.canvas.show()
-
-
-
-
-def _generate_random_image_data(shape, dtype=np.float32):
-    rng = np.random.default_rng()
-    data = rng.random(shape, dtype=dtype)
-    return data
-
-
-def _generate_random_line_positions(num_points, dtype=np.float32):
-    rng = np.random.default_rng()
-    pos = np.empty((num_points, 2), dtype=np.float32)
-    pos[:, 0] = np.arange(num_points)
-    pos[:, 1] = rng.random((num_points,), dtype=dtype)
-    return pos
 
 
 class Thunderscope(object):
@@ -462,7 +410,7 @@ class Thunderscope(object):
             full_system_proto_unix_io
         )
         performance_dock = Dock("Performance")
-        performance_dock.addWidget(widgets["performance_widget"].canvas.native)
+        performance_dock.addWidget(widgets["performance_widget"])
 
         widgets["parameter_widget"] = self.setup_parameter_widget(
             full_system_proto_unix_io, friendly_colour_yellow
@@ -646,6 +594,7 @@ class Thunderscope(object):
         """
         # Create widget
         named_value_plotter = NamedValuePlotter()
+        main_plotter_widget = MainPlotterWidget(named_value_plotter)
 
         # Register observer
         proto_unix_io.register_observer(
@@ -653,9 +602,9 @@ class Thunderscope(object):
         )
 
         # Register refresh function
-        self.register_refresh_function(named_value_plotter.refresh)
+        self.register_refresh_function(main_plotter_widget.refresh)
 
-        return named_value_plotter
+        return main_plotter_widget
 
     def setup_play_info(self, proto_unix_io):
         """Setup the play info widget

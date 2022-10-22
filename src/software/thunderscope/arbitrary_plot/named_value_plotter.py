@@ -5,6 +5,7 @@ from vispy import scene
 from vispy.color.color_array import Color
 import numpy as np
 from proto.visualization_pb2 import NamedValue
+from pyqtgraph.Qt import QtWidgets
 
 from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
 
@@ -14,6 +15,7 @@ INITIAL_Y_MAX = 100
 TIME_WINDOW_TO_DISPLAY_S = 20
 MAX_NUM_POINTS_IN_LINE = TIME_WINDOW_TO_DISPLAY_S * 60
 BACKGROUND_COLOR = (0.1, 0.1, 0.1)
+
 
 # TODO: Add button to increase or decrease time window to display
 class NamedValuePlotter(object):
@@ -50,6 +52,7 @@ class NamedValuePlotter(object):
         self.plots = {}
         self.plot_colors = {}
         self.assigned_plot_colors = {}
+        self.disable_tracking = False
         self.line = scene.visuals.Line(np.empty((0, 2), dtype=np.float32), parent=self.view.scene, color='white')
 
         # Added for debugging
@@ -115,8 +118,66 @@ class NamedValuePlotter(object):
 
         self.line.set_data(line_data, connect=connections, color=color_data)
         # TODO: Add button for disabling camera following data
-        self.view.camera.set_range(x=[max(line_data[-1, 0]-TIME_WINDOW_TO_DISPLAY_S, 0), line_data[-1, 0]], y=[0, 100], margin=0.1)
+        if not self.disable_tracking:
+            self.view.camera.set_range(x=[max(line_data[-1, 0]-TIME_WINDOW_TO_DISPLAY_S, 0), line_data[-1, 0]], y=[0, 100], margin=0.1)
 
         self.total_time += time.time() - start
         self.num_calls += 1
-        print(self.total_time / self.num_calls)
+        if self.num_calls > 150:
+            print(self.total_time / self.num_calls)
+            self.num_calls = 0
+            self.total_time = 0
+
+    def set_line_color(self, color):
+        print(f"Changing line color to {color}")
+        for name, _ in self.assigned_plot_colors.items():
+            self.assigned_plot_colors[name] = Color(color=color)
+
+    def set_disable_tracking(self, disable_tracking):
+        print(f"Setting disable tracking to {disable_tracking}")
+        self.disable_tracking = disable_tracking
+
+
+# The Qt widget that will contain the vispy canvas and the side buttons
+class MainPlotterWidget(QtWidgets.QWidget):
+    def __init__(self, plotter, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        main_layout = QtWidgets.QHBoxLayout()
+
+        # The controls and dropdowns
+        self.plot_controls = PlotControls()
+        main_layout.addWidget(self.plot_controls)
+
+        self.plotter = plotter
+        main_layout.addWidget(self.plotter.canvas.native)
+
+        self.setLayout(main_layout)
+        self._connect_controls()
+
+    def _connect_controls(self):
+        # Use connect keyword to bind the listener for change in controls to the canvas
+        self.plot_controls.named_plot_picker.currentTextChanged.connect(self.plotter.set_line_color)
+        self.plot_controls.disable_tracking_checkbox.stateChanged.connect(self.plotter.set_disable_tracking)
+
+    def refresh(self):
+        self.plotter.refresh()
+
+
+# The controls for changing our vispy plot
+class PlotControls(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QtWidgets.QVBoxLayout()
+
+        self.line_color_label = QtWidgets.QLabel("Line color:")
+        layout.addWidget(self.line_color_label)
+        self.named_plot_picker = QtWidgets.QComboBox()
+        self.named_plot_picker.addItems(["green", "red", "blue"])
+        layout.addWidget(self.named_plot_picker)
+
+        self.disable_tracking_checkbox = QtWidgets.QCheckBox("Disable Tracking")
+        self.disable_tracking_checkbox.setChecked(False)
+        layout.addWidget(self.disable_tracking_checkbox)
+
+        layout.addStretch(1)
+        self.setLayout(layout)
