@@ -54,6 +54,7 @@ class NamedValuePlotter(object):
 
         # Added for debugging
         self.total_time = 0
+        self.num_calls = 0
 
     def refresh(self):
         """Refreshes NamedValuePlotter and updates data in the respective
@@ -70,25 +71,18 @@ class NamedValuePlotter(object):
             # If named_value is new, create a plot and for the new value and
             # add it to necessary maps
             if named_value.name not in self.plots:
-                # TODO: Is it possible to have different colors for each plot?
                 self.plots[named_value.name] = np.empty((0, 2), dtype=np.float32)
 
                 # Assign this line a random color
                 new_color = Color(color=[random.uniform(0.4, 1.0) for _ in range(4)])
                 self.assigned_plot_colors[named_value.name] = new_color
                 self.plot_colors[named_value.name] = np.empty((0, 4), dtype=Color)
-
-                # TODO: Text representing which line is being shown right now. This slows down the plots ALOT. Don't need to be redrawn every tick
-                # TODO: Check what else the scene class provides that we can utilize
-                # Can change method to 'gpu'
-                # Text doesn't have to be in the visual either... Probably better to have it with the selection drop down
                 # TODO: Add a drop down menu -overlay- to select which lines to show: https://stackoverflow.com/questions/49077083/how-to-overlay-widgets-in-pyqt5
 
             new_data_pair = np.empty((1, 2), dtype=np.float32)
             new_data_pair[0][0] = time.time() - self.time
             new_data_pair[0][1] = named_value.value
             if named_value.name not in new_data:
-                # TODO: Time should somehow be a part of the named value plot...
                 new_data[named_value.name] = new_data_pair
             else:
                 # TODO: Limit the arrays to TIME_WINDOW_TO_DISPLAY_S length, and then shift the array to the left
@@ -120,6 +114,9 @@ class NamedValuePlotter(object):
             offset += num_points
 
         self.line.set_data(line_data, connect=connections, color=color_data)
+        # TODO: Add button for disabling camera following data
+        self.view.camera.set_range(x=[max(line_data[-1, 0]-TIME_WINDOW_TO_DISPLAY_S, 0), line_data[-1, 0]], y=[0, 100], margin=0.1)
 
-        # TODO: Update camera to follow data
-        # self.view.camera.set_range(x=[line[0, 0], line[-1, 0]], y=[0, 1], margin=0.1)
+        self.total_time += time.time() - start
+        self.num_calls += 1
+        print(self.total_time / self.num_calls)
