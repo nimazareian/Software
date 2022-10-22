@@ -64,6 +64,7 @@ class NamedValuePlotter(object):
         plots.
         """
         start = time.time()
+        print(f"running refresh {self}")
 
         # Dump the entire buffer into a deque. This operation is fast because
         # its just consuming data from the buffer and appending it to a deque.
@@ -124,7 +125,7 @@ class NamedValuePlotter(object):
         self.total_time += time.time() - start
         self.num_calls += 1
         if self.num_calls > 150:
-            print(self.total_time / self.num_calls)
+            print(f"avg time {self.num_calls}: {self.total_time / self.num_calls}")
             self.num_calls = 0
             self.total_time = 0
 
