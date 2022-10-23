@@ -146,6 +146,7 @@ class Thunderscope(object):
         self.window = QtGui.QMainWindow()
         self.window.setCentralWidget(self.tabs)
         self.window.setWindowTitle("Thunderscope")
+        # TODO: Set icon for tscope
 
         # ProtoUnixIOs
         #
@@ -218,7 +219,7 @@ class Thunderscope(object):
                     
                     Mouse Shortcuts:
                     
-                    Double Click Purple Bar to pop window out
+                    Double Click Colored Bar to pop window out
                     Drag Purple Bar to rearrange docks
                     Click items in legends to select/deselect
                     Cntrl-Click and Drag: Move ball and kick
@@ -335,13 +336,14 @@ class Thunderscope(object):
                 True,
             )
 
-        if load_blue:
-            self.configure_full_system_layout(
-                self.blue_full_system_dock_area,
-                self.simulator_proto_unix_io,
-                self.blue_full_system_proto_unix_io,
-                False,
-            )
+        # TODO: Test perf on laptop with loading only one sides' layout. Could potentially add a button to switch between sides, or turns on second side
+        # if load_blue:
+        #     self.configure_full_system_layout(
+        #         self.blue_full_system_dock_area,
+        #         self.simulator_proto_unix_io,
+        #         self.blue_full_system_proto_unix_io,
+        #         False,
+        #     )
 
         if load_yellow or load_blue:
             path = layout_path if layout_path else SAVED_LAYOUT_PATH

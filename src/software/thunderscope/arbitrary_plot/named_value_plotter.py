@@ -27,6 +27,9 @@ class NamedValuePlotter(object):
         :param buffer_size: The size of the buffer to use for plotting.
 
         """
+        # TODO: Investigate (if performance is an issue, and will be better) to replace
+        #       the field widget to use vispy shapes (vispy.scene.visuals)
+        #       https://vispy.org/gallery/scene/polygon.html#sphx-glr-gallery-scene-polygon-py
         self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=BACKGROUND_COLOR)
         # For allowing to have multiple plots in the same window
         self.grid = self.canvas.central_widget.add_grid()
@@ -142,22 +145,24 @@ class NamedValuePlotter(object):
 class MainPlotterWidget(QtWidgets.QWidget):
     def __init__(self, plotter, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # TODO: Make configurable and resizable layouts
         main_layout = QtWidgets.QHBoxLayout()
 
+        # TODO: With buttons, performance seems much worse!?
         # The controls and dropdowns
-        self.plot_controls = PlotControls()
-        main_layout.addWidget(self.plot_controls)
+        # self.plot_controls = PlotControls()
+        # main_layout.addWidget(self.plot_controls)
 
         self.plotter = plotter
         main_layout.addWidget(self.plotter.canvas.native)
 
         self.setLayout(main_layout)
-        self._connect_controls()
+        # self._connect_controls()
 
-    def _connect_controls(self):
+    # def _connect_controls(self):
         # Use connect keyword to bind the listener for change in controls to the canvas
-        self.plot_controls.named_plot_picker.currentTextChanged.connect(self.plotter.set_line_color)
-        self.plot_controls.disable_tracking_checkbox.stateChanged.connect(self.plotter.set_disable_tracking)
+        # self.plot_controls.named_plot_picker.currentTextChanged.connect(self.plotter.set_line_color)
+        # self.plot_controls.disable_tracking_checkbox.stateChanged.connect(self.plotter.set_disable_tracking)
 
     def refresh(self):
         self.plotter.refresh()
