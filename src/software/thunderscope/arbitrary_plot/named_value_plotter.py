@@ -84,7 +84,7 @@ class NamedValuePlotter(QWidget):
 
                 # Assign this line a random color
                 self.assigned_line_colors[new_line_name] = new_line_color
-                self.line_color_lists[new_line_name] = np.empty((0, 4), dtype=Color)
+                self.line_color_lists[new_line_name] = np.empty((0, 4), dtype=np.float32)
                 self.new_line_signal.emit(new_line_name, new_line_color)
                 self.line_visibility[new_line_name] = True
                 # TODO: Add a drop down menu -overlay- to select which lines to show: https://stackoverflow.com/questions/49077083/how-to-overlay-widgets-in-pyqt5
@@ -100,17 +100,19 @@ class NamedValuePlotter(QWidget):
                 #       make sure it doesn't suddenly slow down everything though
                 new_data[named_value.name] = np.append(new_data[named_value.name], new_data_pair, axis=0)
 
+        # TODO: Time every section of the code and see if there are any bottlenecks
         # Add new data points to the existing data points
-        for name, data in new_data.items():
+        for name, new_data_points in new_data.items():
             line_points = self.line_point_lists[name]
 
             line_color = self.line_color_lists[name]
-            new_color_data = np.empty((len(data), 4), dtype=Color)
-            new_color_data[:] = self.assigned_line_colors[name].rgba
+            new_data_colors = np.empty((len(new_data_points), 4), dtype=np.float32)
+            new_data_colors[:] = self.assigned_line_colors[name].rgba
 
             if len(line_points) > MAX_NUM_POINTS_IN_LINE:
                 # Shift point/color values to the left
-                shift = -1 * len(data)
+                shift = -1 * len(new_data_points)
+                # TODO: See if these can be simplified to 1 line
                 line_points[:, 0] = np.roll(line_points[:, 0], shift)
                 line_points[:, 1] = np.roll(line_points[:, 1], shift)
 
@@ -120,15 +122,14 @@ class NamedValuePlotter(QWidget):
                 line_color[:, 3] = np.roll(line_color[:, 3], shift)
 
                 # Add new data at the end
-                line_points[shift:len(line_points), :] = data[:, :]
-                line_color[shift:len(line_color), :] = new_color_data[:, :]
+                line_points[shift:len(line_points), :] = new_data_points[:, :]
+                line_color[shift:len(line_color), :] = new_data_colors[:, :]
             else:
-                self.line_point_lists[name] = np.append(self.line_point_lists[name], data, axis=0)
-                self.line_color_lists[name] = np.append(line_color, new_color_data, axis=0)
-
+                self.line_point_lists[name] = np.append(self.line_point_lists[name], new_data_points, axis=0)
+                self.line_color_lists[name] = np.append(line_color, new_data_colors, axis=0)
 
         line_data = np.empty((1, 2), dtype=np.float32)
-        color_data = np.empty((1, 4), dtype=Color)
+        color_data = np.empty((1, 4), dtype=np.float32)
         connections = np.empty((1,), dtype=bool)
         if True in self.line_visibility.values():
             # VisPy plots points from a single 2D list. We can specify which adjacent points connect
@@ -138,11 +139,11 @@ class NamedValuePlotter(QWidget):
             color_data = np.vstack([self.line_color_lists[name] for name in self.line_color_lists.keys() if self.line_visibility[name]])
             connections = np.ones(line_data.shape[0], dtype=bool)
             offset = 0
-            for name, data in self.line_point_lists.items():
+            for name, new_data_points in self.line_point_lists.items():
                 if self.line_visibility[name]:
                     # The last point of each line should not be connected with the first point
                     # of the next line
-                    num_points = data.shape[0]
+                    num_points = new_data_points.shape[0]
                     connections[offset + num_points - 1] = False
                     offset += num_points
 
