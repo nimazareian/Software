@@ -19,7 +19,6 @@ MAX_NUM_POINTS_IN_LINE = TIME_WINDOW_TO_DISPLAY_S * 60
 BACKGROUND_COLOR = (0.1, 0.1, 0.1)
 
 
-# TODO: Add button to increase or decrease time window to display
 class NamedValuePlotter(QWidget):
     """ Plot named values in real time with a scrolling plot """
     new_line_signal = QtCore.pyqtSignal(str, Color)
@@ -30,9 +29,6 @@ class NamedValuePlotter(QWidget):
         :param buffer_size: The size of the buffer to use for plotting.
 
         """
-        # TODO: Investigate (if performance is an issue, and will be better) to replace
-        #       the field widget to use vispy shapes (vispy.scene.visuals)
-        #       https://vispy.org/gallery/scene/polygon.html#sphx-glr-gallery-scene-polygon-py
         super().__init__(*args, **kwargs)
         self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=BACKGROUND_COLOR)
         # For allowing to have multiple plots in the same window
@@ -42,9 +38,8 @@ class NamedValuePlotter(QWidget):
         self.view.camera.set_range(x=[0, TIME_WINDOW_TO_DISPLAY_S], y=[INITIAL_Y_MIN, INITIAL_Y_MAX])
 
         # Visualizing Axis
-        # TODO: https://vispy.org/api/vispy.scene.visuals.html#vispy.scene.visuals.Axis
         self.x_axis = scene.AxisWidget(orientation="bottom")
-        self.y_axis = scene.AxisWidget(orientation="left")
+        self.y_axis = scene.AxisWidget(orientation="right")
         self.x_axis.stretch = (1, 0.05)  # TODO: Not sure what this does
         self.y_axis.stretch = (0.05, 1)
         self.grid.add_widget(self.x_axis, row=1, col=1)
@@ -113,26 +108,33 @@ class NamedValuePlotter(QWidget):
             color_data[:] = self.assigned_line_colors[name].rgba
             self.line_color_lists[name] = np.append(self.line_color_lists[name], color_data, axis=0)
 
-        # VisPy plots points from a single 2D list. We can specify which adjacent points connect
-        # with each other using a boolean array where True means that adjacent points should be
-        # connected, and False means they should be disconnected.
-        # Create a single array of all data points:
-        line_data = np.vstack([self.line_point_lists[name] for name in self.line_point_lists.keys() if self.line_visibility[name]])
-        color_data = np.vstack([self.line_color_lists[name] for name in self.line_color_lists.keys() if self.line_visibility[name]])
-        connections = np.ones(line_data.shape[0], dtype=bool)
-        offset = 0
-        for name, data in self.line_point_lists.items():
-            if self.line_visibility[name]:
-                # The last point of each line should not be connected with the first point
-                # of the next line
-                num_points = data.shape[0]
-                connections[offset + num_points - 1] = False
-                offset += num_points
+        line_data = np.empty((1, 2), dtype=np.float32)
+        color_data = np.empty((1, 4), dtype=Color)
+        connections = np.empty((1,), dtype=bool)
+        if True in self.line_visibility.values():
+            # VisPy plots points from a single 2D list. We can specify which adjacent points connect
+            # with each other using a boolean array.
+            # Create a single array of all data points:
+            line_data = np.vstack([self.line_point_lists[name] for name in self.line_point_lists.keys() if self.line_visibility[name]])
+            color_data = np.vstack([self.line_color_lists[name] for name in self.line_color_lists.keys() if self.line_visibility[name]])
+            connections = np.ones(line_data.shape[0], dtype=bool)
+            offset = 0
+            for name, data in self.line_point_lists.items():
+                if self.line_visibility[name]:
+                    # The last point of each line should not be connected with the first point
+                    # of the next line
+                    num_points = data.shape[0]
+                    connections[offset + num_points - 1] = False
+                    offset += num_points
 
+        # Update plot
         self.line.set_data(line_data, connect=connections, color=color_data)
-        # TODO: Add button for disabling camera following data
-        if not self.disable_tracking:
-            self.view.camera.set_range(x=[max(line_data[-1, 0]-TIME_WINDOW_TO_DISPLAY_S, 0), line_data[-1, 0]], y=[0, 100], margin=0.1)
+
+        # Update camera
+        if not self.disable_tracking and len(line_data) > 0:
+            x_max = line_data[-1, 0]
+            x_min = max(x_max-TIME_WINDOW_TO_DISPLAY_S, 0)
+            self.view.camera.set_range(x=[x_min, x_max], y=[INITIAL_Y_MIN, INITIAL_Y_MAX])
 
         self.total_time += time.time() - start
         self.num_calls += 1
@@ -147,6 +149,51 @@ class NamedValuePlotter(QWidget):
     def set_disable_tracking(self, disable_tracking: bool):
         print(f"Setting disable tracking to {disable_tracking}")
         self.disable_tracking = disable_tracking
+
+
+# The controls for changing our vispy plot
+class PlotControlsWidget(QWidget):
+    disable_camera_tracking_signal = QtCore.pyqtSignal(bool)
+    line_visibility_signal = QtCore.pyqtSignal(str, bool)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QFormLayout()
+
+        self.disable_camera_tracking = False
+        self.disable_tracking_title = "Disable Tracking"
+        self.enable_tracking_title = "Enable Tracking"
+        self.camera_tracking_button = QPushButton(self.disable_tracking_title)
+        self.camera_tracking_button.clicked.connect(self.__on_camera_tracking_clicked)
+        self.layout.addWidget(self.camera_tracking_button)
+
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.HLine)
+        self.layout.addWidget(divider)
+
+        line_visibilities_label = QLabel("Line Visibilities")
+        line_visibilities_label.setStyleSheet("font-weight: bold")
+        line_visibilities_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(line_visibilities_label)
+
+        self.setLayout(self.layout)
+
+    def __on_camera_tracking_clicked(self):
+        self.disable_camera_tracking = not self.disable_camera_tracking
+        button_title = self.enable_tracking_title if self.disable_camera_tracking else self.disable_tracking_title
+        self.camera_tracking_button.setText(button_title)
+
+        self.disable_camera_tracking_signal.emit(self.disable_camera_tracking)
+
+    def __on_line_visibility_checkbox_pressed(self, checkbox: bool):
+        self.line_visibility_signal.emit(checkbox.text(), checkbox.isChecked())
+
+    def add_line_visibility_checkbox(self, line_name: str, line_color: Color):
+        checkbox = QCheckBox(line_name)
+        checkbox.setChecked(True)
+        checkbox.stateChanged.connect(lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(toggled_checkbox))
+        checkbox.setStyleSheet(f"QCheckBox::indicator {{ border: 3px solid {line_color.hex};}}")
+        self.layout.addWidget(checkbox)
 
 
 # The Qt widget that will contain the vispy canvas and the side buttons
@@ -184,42 +231,3 @@ class MainPlotterWidget(QWidget):
 
     def refresh(self):
         self.plotter.refresh()
-
-
-# The controls for changing our vispy plot
-class PlotControlsWidget(QWidget):
-    disable_camera_tracking_signal = QtCore.pyqtSignal(bool)
-    line_visibility_signal = QtCore.pyqtSignal(str, bool)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.layout = QFormLayout()
-
-        self.disable_camera_tracking = False
-        self.disable_tracking_title = "Disable Tracking"
-        self.enable_tracking_title = "Enable Tracking"
-        self.camera_tracking_button = QPushButton(self.disable_tracking_title)
-        self.camera_tracking_button.clicked.connect(self.__on_camera_tracking_clicked)
-        self.layout.addWidget(self.camera_tracking_button)
-
-        line_visibilities_label = QLabel("Line Visibilities")
-        self.layout.addWidget(line_visibilities_label)
-
-        self.setLayout(self.layout)
-
-    def __on_camera_tracking_clicked(self):
-        self.disable_camera_tracking = not self.disable_camera_tracking
-        button_title = self.enable_tracking_title if self.disable_camera_tracking else self.disable_tracking_title
-        self.camera_tracking_button.setText(button_title)
-
-        self.disable_camera_tracking_signal.emit(self.disable_camera_tracking)
-
-    def __on_line_visibility_checkbox_pressed(self, checkbox: bool):
-        self.line_visibility_signal.emit(checkbox.text(), checkbox.isChecked())
-
-    def add_line_visibility_checkbox(self, line_name: str, line_color: Color):
-        checkbox = QCheckBox(line_name)
-        checkbox.setChecked(True)
-        checkbox.stateChanged.connect(lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(toggled_checkbox))
-        checkbox.setStyleSheet(f"QCheckBox {{ background: {line_color.hex} ;}}")
-        self.layout.addWidget(checkbox)
