@@ -102,11 +102,30 @@ class NamedValuePlotter(QWidget):
 
         # Add new data points to the existing data points
         for name, data in new_data.items():
-            self.line_point_lists[name] = np.append(self.line_point_lists[name], data, axis=0)
+            line_points = self.line_point_lists[name]
 
-            color_data = np.empty((len(data), 4), dtype=Color)
-            color_data[:] = self.assigned_line_colors[name].rgba
-            self.line_color_lists[name] = np.append(self.line_color_lists[name], color_data, axis=0)
+            line_color = self.line_color_lists[name]
+            new_color_data = np.empty((len(data), 4), dtype=Color)
+            new_color_data[:] = self.assigned_line_colors[name].rgba
+
+            if len(line_points) > MAX_NUM_POINTS_IN_LINE:
+                # Shift point/color values to the left
+                shift = -1 * len(data)
+                line_points[:, 0] = np.roll(line_points[:, 0], shift)
+                line_points[:, 1] = np.roll(line_points[:, 1], shift)
+
+                line_color[:, 0] = np.roll(line_color[:, 0], shift)
+                line_color[:, 1] = np.roll(line_color[:, 1], shift)
+                line_color[:, 2] = np.roll(line_color[:, 2], shift)
+                line_color[:, 3] = np.roll(line_color[:, 3], shift)
+
+                # Add new data at the end
+                line_points[shift:len(line_points), :] = data[:, :]
+                line_color[shift:len(line_color), :] = new_color_data[:, :]
+            else:
+                self.line_point_lists[name] = np.append(self.line_point_lists[name], data, axis=0)
+                self.line_color_lists[name] = np.append(line_color, new_color_data, axis=0)
+
 
         line_data = np.empty((1, 2), dtype=np.float32)
         color_data = np.empty((1, 4), dtype=Color)
