@@ -8,5 +8,6 @@ py_library(
     deps = [
         "//software/thunderscope:thread_safe_buffer",
         requirement("pyqtgraph"),
+        requirement("vispy"),
     ],
 )
