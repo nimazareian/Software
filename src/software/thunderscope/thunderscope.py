@@ -337,13 +337,13 @@ class Thunderscope(object):
             )
 
         # TODO: Test perf on laptop with loading only one sides' layout. Could potentially add a button to switch between sides, or turns on second side
-        # if load_blue:
-        #     self.configure_full_system_layout(
-        #         self.blue_full_system_dock_area,
-        #         self.simulator_proto_unix_io,
-        #         self.blue_full_system_proto_unix_io,
-        #         False,
-        #     )
+        if load_blue:
+            self.configure_full_system_layout(
+                self.blue_full_system_dock_area,
+                self.simulator_proto_unix_io,
+                self.blue_full_system_proto_unix_io,
+                False,
+            )
 
         if load_yellow or load_blue:
             path = layout_path if layout_path else SAVED_LAYOUT_PATH

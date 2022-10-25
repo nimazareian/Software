@@ -5,7 +5,8 @@ from vispy import scene
 from vispy.color.color_array import Color
 import numpy as np
 from proto.visualization_pb2 import NamedValue
-from pyqtgraph.Qt import QtWidgets
+from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
+from pyqtgraph.dockarea import *
 
 from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
 
@@ -58,6 +59,17 @@ class NamedValuePlotter(object):
         self.disable_tracking = False
         self.line = scene.visuals.Line(np.empty((0, 2), dtype=np.float32), parent=self.view.scene, color='white')
 
+        plotter_dock = Dock("plotter")
+        plotter_dock.addWidget(self.canvas.native)
+
+        plot_controls_dock = Dock("plot controls")
+        self.plot_controls = PlotControls()
+        plot_controls_dock.addWidget(self.canvas.native)
+
+        self.dock_area = DockArea()
+        self.dock_area.addDock(plotter_dock)
+        self.dock_area.addDock(plot_controls_dock, "left", plotter_dock)
+
         # Added for debugging
         self.total_time = 0
         self.num_calls = 0
@@ -67,7 +79,6 @@ class NamedValuePlotter(object):
         plots.
         """
         start = time.time()
-        print(f"running refresh {self}")
 
         # Dump the entire buffer into a deque. This operation is fast because
         # its just consuming data from the buffer and appending it to a deque.
@@ -151,19 +162,19 @@ class MainPlotterWidget(QtWidgets.QWidget):
 
         # TODO: With buttons, performance seems much worse!?
         # The controls and dropdowns
-        # self.plot_controls = PlotControls()
-        # main_layout.addWidget(self.plot_controls)
+        self.plot_controls = PlotControls()
+        main_layout.addWidget(self.plot_controls)
 
         self.plotter = plotter
         main_layout.addWidget(self.plotter.canvas.native)
 
         self.setLayout(main_layout)
-        # self._connect_controls()
+        self._connect_controls()
 
-    # def _connect_controls(self):
+    def _connect_controls(self):
         # Use connect keyword to bind the listener for change in controls to the canvas
-        # self.plot_controls.named_plot_picker.currentTextChanged.connect(self.plotter.set_line_color)
-        # self.plot_controls.disable_tracking_checkbox.stateChanged.connect(self.plotter.set_disable_tracking)
+        self.plot_controls.named_plot_picker.currentTextChanged.connect(self.plotter.set_line_color)
+        self.plot_controls.disable_tracking_checkbox.stateChanged.connect(self.plotter.set_disable_tracking)
 
     def refresh(self):
         self.plotter.refresh()
@@ -185,5 +196,60 @@ class PlotControls(QtWidgets.QWidget):
         self.disable_tracking_checkbox.setChecked(False)
         layout.addWidget(self.disable_tracking_checkbox)
 
+        # List
+        self.listWidget = QtWidgets.QListWidget()
+        self.listWidget.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.MultiSelection
+        )
+        for i in range(10):
+            # TODO: Checkout QListWidgetItem.setHidden, setIcon
+            item = QtWidgets.QListWidgetItem("Item %i" % i)
+            self.listWidget.addItem(item)
+            item.setTextAlignment(2 ** (i % 4))  # Text alignment DOES work!
+            item.setBackground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))  # Color gets set, but not reflected in GUI
+            # Foreground = Textcolor (when not selected)
+            # Background = background color (not the item color when selected)
+
+        self.listWidget.itemClicked.connect(self.printItemText)
+        self.listWidget.setStyleSheet("""
+    QListView::item:selected {
+        border: 1px solid #400404;
+        background: #d41608;
+    }""")
+        layout.addWidget(self.listWidget)
+
+        # Group checkbox
+        self.GroupBox = QtWidgets.QGroupBox(self)
+        self.GroupBox.setLayout(QtWidgets.QVBoxLayout())
+        for i in range(6):
+            checkbox = QtWidgets.QCheckBox("{}".format(i), self.GroupBox)
+            checkbox.stateChanged.connect(lambda _, checkbox=checkbox: self.onCheckboxToggle(checkbox))
+            checkbox.setStyleSheet("""QCheckBox {
+                                        background: #d41608;
+                                   }""")
+            self.GroupBox.layout().addWidget(checkbox)
+
+        layout.addWidget(self.GroupBox)
+        self.GroupBox.toggled.connect(self.onToggled)
+        self.GroupBox.setCheckable(True)
+
         layout.addStretch(1)
         self.setLayout(layout)
+
+    def printItemText(self, item):
+        print(item.foreground().color().name())
+        items = self.listWidget.selectedItems()
+        x = []
+        for i in range(len(items)):
+            x.append(str(self.listWidget.selectedItems()[i].text()))
+
+        print(x)
+
+    def onToggled(self, on):
+        print(f"QGroupBox pressed {on}")
+        for box in self.sender().findChildren(QtWidgets.QCheckBox):
+            box.setChecked(on)
+            box.setEnabled(True)
+
+    def onCheckboxToggle(self, checkbox):
+        print(f"checkbox pressed {checkbox.text()}")
