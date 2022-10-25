@@ -5,7 +5,8 @@ from vispy import scene
 from vispy.color.color_array import Color
 import numpy as np
 from proto.visualization_pb2 import NamedValue
-from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
+from pyqtgraph.Qt import QtCore
+from pyqtgraph.Qt.QtWidgets import *
 from pyqtgraph.dockarea import *
 
 from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
@@ -19,7 +20,7 @@ BACKGROUND_COLOR = (0.1, 0.1, 0.1)
 
 
 # TODO: Add button to increase or decrease time window to display
-class NamedValuePlotter(QtWidgets.QWidget):
+class NamedValuePlotter(QWidget):
     """ Plot named values in real time with a scrolling plot """
     new_line_signal = QtCore.pyqtSignal(str, Color)
 
@@ -147,45 +148,34 @@ class NamedValuePlotter(QtWidgets.QWidget):
 
 
 # The Qt widget that will contain the vispy canvas and the side buttons
-class MainPlotterWidget(QtWidgets.QWidget):
+class MainPlotterWidget(QWidget):
     def __init__(self, plotter, *args, **kwargs):
-
-        # plotter_dock = Dock("plotter")
-        # plotter_dock.hideTitleBar()
-        # plotter_dock.addWidget(self.canvas.native)
-        #
-        # plot_controls_dock = Dock("plot controls")
-        # plot_controls_dock.setStretch(x=5)
-        # plot_controls_dock.hideTitleBar()
-        # self.plot_controls = PlotControlsWidget()
-        # plot_controls_dock.addWidget(self.plot_controls)
-        #
-        # self.dock_area = DockArea()
-        # self.dock_area.addDock(plotter_dock)
-        # self.dock_area.addDock(plot_controls_dock, "left", plotter_dock)
-        #
-        # self.main_layout = QtWidgets.QHBoxLayout()
-        # self.main_layout.addWidget(self.dock_area)
-        #
-        # self.setLayout(self.main_layout)
-
         super().__init__(*args, **kwargs)
-        # TODO: Make configurable and resizable layouts
-        main_layout = QtWidgets.QHBoxLayout()
+        self.plotter = plotter
+
+        plotter_dock = Dock("Plotter")
+        plotter_dock.hideTitleBar()
+        plotter_dock.addWidget(self.plotter.canvas.native)
 
         # TODO: With buttons, performance seems much worse!?
-        # The controls and dropdowns
+        controls_dock = Dock("Plot Controls")
+        controls_dock.hideTitleBar()
+        controls_dock.setStretch(x=5)
         self.plot_controls = PlotControlsWidget()
-        main_layout.addWidget(self.plot_controls)
+        controls_dock.addWidget(self.plot_controls)
 
-        self.plotter = plotter
-        main_layout.addWidget(self.plotter.canvas.native)
+        self.dock_area = DockArea()
+        self.dock_area.addDock(plotter_dock)
+        self.dock_area.addDock(controls_dock, "left", plotter_dock)
 
-        self.setLayout(main_layout)
+        self.main_layout = QHBoxLayout()
+        self.main_layout.addWidget(self.dock_area)
+
+        self.setLayout(self.main_layout)
         self._connect_controls()
 
     def _connect_controls(self):
-        # Use connect keyword to bind the listener for change in controls to the canvas
+        """Connect the plotter with the controls"""
         self.plot_controls.disable_camera_tracking_signal.connect(self.plotter.set_disable_tracking)
         self.plot_controls.line_visibility_signal.connect(self.plotter.set_line_visibility)
         self.plotter.new_line_signal.connect(self.plot_controls.add_line_visibility_checkbox)
@@ -195,34 +185,38 @@ class MainPlotterWidget(QtWidgets.QWidget):
 
 
 # The controls for changing our vispy plot
-class PlotControlsWidget(QtWidgets.QWidget):
+class PlotControlsWidget(QWidget):
     disable_camera_tracking_signal = QtCore.pyqtSignal(bool)
     line_visibility_signal = QtCore.pyqtSignal(str, bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.layout = QtWidgets.QVBoxLayout()
+        self.layout = QFormLayout()
 
-        self.disable_tracking_checkbox = QtWidgets.QCheckBox("Disable Tracking")
-        self.disable_tracking_checkbox.setChecked(False)
-        self.disable_tracking_checkbox.stateChanged.connect(self.__on_camera_tracking_clicked)
-        self.layout.addWidget(self.disable_tracking_checkbox)
+        self.disable_camera_tracking = False
+        self.disable_tracking_title = "Disable Tracking"
+        self.enable_tracking_title = "Enable Tracking"
+        self.camera_tracking_button = QPushButton(self.disable_tracking_title)
+        self.camera_tracking_button.clicked.connect(self.__on_camera_tracking_clicked)
+        self.layout.addWidget(self.camera_tracking_button)
 
-        line_visibilities_label = QtWidgets.QLabel("Line Visibilities")
+        line_visibilities_label = QLabel("Line Visibilities")
         self.layout.addWidget(line_visibilities_label)
 
         self.setLayout(self.layout)
 
     def __on_camera_tracking_clicked(self):
-        disable_tracking = self.disable_tracking_checkbox.isChecked()
-        self.disable_camera_tracking_signal.emit(disable_tracking)
+        self.disable_camera_tracking = not self.disable_camera_tracking
+        button_title = self.enable_tracking_title if self.disable_camera_tracking else self.disable_tracking_title
+        self.camera_tracking_button.setText(button_title)
+
+        self.disable_camera_tracking_signal.emit(self.disable_camera_tracking)
 
     def __on_line_visibility_checkbox_pressed(self, checkbox: bool):
         self.line_visibility_signal.emit(checkbox.text(), checkbox.isChecked())
 
     def add_line_visibility_checkbox(self, line_name: str, line_color: Color):
-        checkbox = QtWidgets.QCheckBox(line_name)
+        checkbox = QCheckBox(line_name)
         checkbox.stateChanged.connect(lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(toggled_checkbox))
-        print(f"{line_color.hex=}")
         checkbox.setStyleSheet(f"QCheckBox {{ background: {line_color.hex} ;}}")
         self.layout.addWidget(checkbox)
