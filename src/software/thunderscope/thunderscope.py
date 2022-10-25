@@ -598,6 +598,7 @@ class Thunderscope(object):
         """
         # Create widget
         named_value_plotter = NamedValuePlotter()
+        main_plotter_widget = MainPlotterWidget(named_value_plotter)
 
         # Register observer
         proto_unix_io.register_observer(
@@ -605,9 +606,9 @@ class Thunderscope(object):
         )
 
         # Register refresh function
-        self.register_refresh_function(named_value_plotter.refresh)
+        self.register_refresh_function(main_plotter_widget.refresh)
 
-        return named_value_plotter
+        return main_plotter_widget
 
     def setup_play_info(self, proto_unix_io):
         """Setup the play info widget

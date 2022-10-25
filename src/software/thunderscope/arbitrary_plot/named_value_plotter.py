@@ -21,6 +21,7 @@ BACKGROUND_COLOR = (0.1, 0.1, 0.1)
 # TODO: Add button to increase or decrease time window to display
 class NamedValuePlotter(QtWidgets.QWidget):
     """ Plot named values in real time with a scrolling plot """
+    new_line_signal = QtCore.pyqtSignal(str, Color)
 
     def __init__(self, buffer_size=1000, *args, **kwargs):
         """Initializes NamedValuePlotter.
@@ -54,30 +55,12 @@ class NamedValuePlotter(QtWidgets.QWidget):
         self.time = time.time()
         self.named_value_buffer = ThreadSafeBuffer(buffer_size, NamedValue)
 
-        self.plots = {}
-        self.plot_colors = {}
-        self.assigned_plot_colors = {}
+        self.line_point_lists = {}
+        self.line_color_lists = {}
+        self.line_visibility = {}
+        self.assigned_line_colors = {}
         self.disable_tracking = False
         self.line = scene.visuals.Line(np.empty((0, 2), dtype=np.float32), parent=self.view.scene, color='white')
-
-        plotter_dock = Dock("plotter")
-        plotter_dock.hideTitleBar()
-        plotter_dock.addWidget(self.canvas.native)
-
-        plot_controls_dock = Dock("plot controls")
-        plot_controls_dock.setStretch(x=5)
-        plot_controls_dock.hideTitleBar()
-        self.plot_controls = PlotControls()
-        plot_controls_dock.addWidget(self.plot_controls)
-
-        self.dock_area = DockArea()
-        self.dock_area.addDock(plotter_dock)
-        self.dock_area.addDock(plot_controls_dock, "left", plotter_dock)
-
-        self.main_layout = QtWidgets.QHBoxLayout()
-        self.main_layout.addWidget(self.dock_area)
-
-        self.setLayout(self.main_layout)
 
         # Added for debugging
         self.total_time = 0
@@ -97,13 +80,16 @@ class NamedValuePlotter(QtWidgets.QWidget):
             # TODO: Calculate the min/max x for the camera
             # If named_value is new, create a plot and for the new value and
             # add it to necessary maps
-            if named_value.name not in self.plots:
-                self.plots[named_value.name] = np.empty((0, 2), dtype=np.float32)
+            if named_value.name not in self.line_point_lists:
+                new_line_name = named_value.name
+                new_line_color = Color(color=[random.uniform(0.4, 1.0) for _ in range(4)])
+
+                self.line_point_lists[new_line_name] = np.empty((0, 2), dtype=np.float32)
 
                 # Assign this line a random color
-                new_color = Color(color=[random.uniform(0.4, 1.0) for _ in range(4)])
-                self.assigned_plot_colors[named_value.name] = new_color
-                self.plot_colors[named_value.name] = np.empty((0, 4), dtype=Color)
+                self.assigned_line_colors[new_line_name] = new_line_color
+                self.line_color_lists[new_line_name] = np.empty((0, 4), dtype=Color)
+                self.new_line_signal.emit(new_line_name, new_line_color)
                 # TODO: Add a drop down menu -overlay- to select which lines to show: https://stackoverflow.com/questions/49077083/how-to-overlay-widgets-in-pyqt5
 
             new_data_pair = np.empty((1, 2), dtype=np.float32)
@@ -119,21 +105,21 @@ class NamedValuePlotter(QtWidgets.QWidget):
 
         # Add new data points to the existing data points
         for name, data in new_data.items():
-            self.plots[name] = np.append(self.plots[name], data, axis=0)
+            self.line_point_lists[name] = np.append(self.line_point_lists[name], data, axis=0)
 
             color_data = np.empty((len(data), 4), dtype=Color)
-            color_data[:] = self.assigned_plot_colors[name].rgba
-            self.plot_colors[name] = np.append(self.plot_colors[name], color_data, axis=0)
+            color_data[:] = self.assigned_line_colors[name].rgba
+            self.line_color_lists[name] = np.append(self.line_color_lists[name], color_data, axis=0)
 
         # VisPy plots points from a single 2D list. We can specify which adjacent points connect
         # with each other using a boolean array where True means that adjacent points should be
         # connected, and False means they should be disconnected.
         # Create a single array of all data points:
-        line_data = np.vstack([self.plots[name] for name, _ in self.plots.items()])
-        color_data = np.vstack([self.plot_colors[name] for name, _ in self.plot_colors.items()])
+        line_data = np.vstack([self.line_point_lists[name] for name, _ in self.line_point_lists.items()])
+        color_data = np.vstack([self.line_color_lists[name] for name, _ in self.line_color_lists.items()])
         connections = np.ones(line_data.shape[0], dtype=bool)
         offset = 0
-        for name, data in self.plots.items():
+        for name, data in self.line_point_lists.items():
             # The last point of each line should not be connected with the first point
             # of the next line
             num_points = data.shape[0]
@@ -152,12 +138,10 @@ class NamedValuePlotter(QtWidgets.QWidget):
             self.num_calls = 0
             self.total_time = 0
 
-    def set_line_color(self, color):
-        print(f"Changing line color to {color}")
-        for name, _ in self.assigned_plot_colors.items():
-            self.assigned_plot_colors[name] = Color(color=color)
+    def set_line_visibility(self, line_name: str, line_visibility: bool):
+        self.line_visibility[line_name] = line_visibility
 
-    def set_disable_tracking(self, disable_tracking):
+    def set_disable_tracking(self, disable_tracking: bool):
         print(f"Setting disable tracking to {disable_tracking}")
         self.disable_tracking = disable_tracking
 
@@ -165,13 +149,33 @@ class NamedValuePlotter(QtWidgets.QWidget):
 # The Qt widget that will contain the vispy canvas and the side buttons
 class MainPlotterWidget(QtWidgets.QWidget):
     def __init__(self, plotter, *args, **kwargs):
+
+        # plotter_dock = Dock("plotter")
+        # plotter_dock.hideTitleBar()
+        # plotter_dock.addWidget(self.canvas.native)
+        #
+        # plot_controls_dock = Dock("plot controls")
+        # plot_controls_dock.setStretch(x=5)
+        # plot_controls_dock.hideTitleBar()
+        # self.plot_controls = PlotControlsWidget()
+        # plot_controls_dock.addWidget(self.plot_controls)
+        #
+        # self.dock_area = DockArea()
+        # self.dock_area.addDock(plotter_dock)
+        # self.dock_area.addDock(plot_controls_dock, "left", plotter_dock)
+        #
+        # self.main_layout = QtWidgets.QHBoxLayout()
+        # self.main_layout.addWidget(self.dock_area)
+        #
+        # self.setLayout(self.main_layout)
+
         super().__init__(*args, **kwargs)
         # TODO: Make configurable and resizable layouts
         main_layout = QtWidgets.QHBoxLayout()
 
         # TODO: With buttons, performance seems much worse!?
         # The controls and dropdowns
-        self.plot_controls = PlotControls()
+        self.plot_controls = PlotControlsWidget()
         main_layout.addWidget(self.plot_controls)
 
         self.plotter = plotter
@@ -182,33 +186,43 @@ class MainPlotterWidget(QtWidgets.QWidget):
 
     def _connect_controls(self):
         # Use connect keyword to bind the listener for change in controls to the canvas
-        self.plot_controls.named_plot_picker.currentTextChanged.connect(self.plotter.set_line_color)
-        self.plot_controls.disable_tracking_checkbox.stateChanged.connect(self.plotter.set_disable_tracking)
+        self.plot_controls.disable_camera_tracking_signal.connect(self.plotter.set_disable_tracking)
+        self.plot_controls.line_visibility_signal.connect(self.plotter.set_line_visibility)
+        self.plotter.new_line_signal.connect(self.plot_controls.add_line_visibility_checkbox)
 
     def refresh(self):
         self.plotter.refresh()
 
 
 # The controls for changing our vispy plot
-class PlotControls(QtWidgets.QWidget):
+class PlotControlsWidget(QtWidgets.QWidget):
+    disable_camera_tracking_signal = QtCore.pyqtSignal(bool)
+    line_visibility_signal = QtCore.pyqtSignal(str, bool)
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        layout = QtWidgets.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
 
         self.disable_tracking_checkbox = QtWidgets.QCheckBox("Disable Tracking")
         self.disable_tracking_checkbox.setChecked(False)
-        layout.addWidget(self.disable_tracking_checkbox)
+        self.disable_tracking_checkbox.stateChanged.connect(self.__on_camera_tracking_clicked)
+        self.layout.addWidget(self.disable_tracking_checkbox)
 
-        # Group checkbox
-        for i in range(6):
-            checkbox = QtWidgets.QCheckBox("{}".format(i))
-            checkbox.stateChanged.connect(lambda _, checkbox=checkbox: self.onCheckboxToggle(checkbox))
-            checkbox.setStyleSheet("""QCheckBox {
-                                        background: #d41608;
-                                   }""")
-            layout.addWidget(checkbox)
+        line_visibilities_label = QtWidgets.QLabel("Line Visibilities")
+        self.layout.addWidget(line_visibilities_label)
 
-        self.setLayout(layout)
+        self.setLayout(self.layout)
 
-    def onCheckboxToggle(self, checkbox):
-        print(f"checkbox pressed {checkbox.text()}")
+    def __on_camera_tracking_clicked(self):
+        disable_tracking = self.disable_tracking_checkbox.isChecked()
+        self.disable_camera_tracking_signal.emit(disable_tracking)
+
+    def __on_line_visibility_checkbox_pressed(self, checkbox: bool):
+        self.line_visibility_signal.emit(checkbox.text(), checkbox.isChecked())
+
+    def add_line_visibility_checkbox(self, line_name: str, line_color: Color):
+        checkbox = QtWidgets.QCheckBox(line_name)
+        checkbox.stateChanged.connect(lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(toggled_checkbox))
+        print(f"{line_color.hex=}")
+        checkbox.setStyleSheet(f"QCheckBox {{ background: {line_color.hex} ;}}")
+        self.layout.addWidget(checkbox)
