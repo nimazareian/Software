@@ -91,6 +91,7 @@ class NamedValuePlotter(QWidget):
                 self.assigned_line_colors[new_line_name] = new_line_color
                 self.line_color_lists[new_line_name] = np.empty((0, 4), dtype=Color)
                 self.new_line_signal.emit(new_line_name, new_line_color)
+                self.line_visibility[new_line_name] = True
                 # TODO: Add a drop down menu -overlay- to select which lines to show: https://stackoverflow.com/questions/49077083/how-to-overlay-widgets-in-pyqt5
 
             new_data_pair = np.empty((1, 2), dtype=np.float32)
@@ -116,16 +117,17 @@ class NamedValuePlotter(QWidget):
         # with each other using a boolean array where True means that adjacent points should be
         # connected, and False means they should be disconnected.
         # Create a single array of all data points:
-        line_data = np.vstack([self.line_point_lists[name] for name, _ in self.line_point_lists.items()])
-        color_data = np.vstack([self.line_color_lists[name] for name, _ in self.line_color_lists.items()])
+        line_data = np.vstack([self.line_point_lists[name] for name in self.line_point_lists.keys() if self.line_visibility[name]])
+        color_data = np.vstack([self.line_color_lists[name] for name in self.line_color_lists.keys() if self.line_visibility[name]])
         connections = np.ones(line_data.shape[0], dtype=bool)
         offset = 0
         for name, data in self.line_point_lists.items():
-            # The last point of each line should not be connected with the first point
-            # of the next line
-            num_points = data.shape[0]
-            connections[offset + num_points - 1] = False
-            offset += num_points
+            if self.line_visibility[name]:
+                # The last point of each line should not be connected with the first point
+                # of the next line
+                num_points = data.shape[0]
+                connections[offset + num_points - 1] = False
+                offset += num_points
 
         self.line.set_data(line_data, connect=connections, color=color_data)
         # TODO: Add button for disabling camera following data
@@ -217,6 +219,7 @@ class PlotControlsWidget(QWidget):
 
     def add_line_visibility_checkbox(self, line_name: str, line_color: Color):
         checkbox = QCheckBox(line_name)
+        checkbox.setChecked(True)
         checkbox.stateChanged.connect(lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(toggled_checkbox))
         checkbox.setStyleSheet(f"QCheckBox {{ background: {line_color.hex} ;}}")
         self.layout.addWidget(checkbox)
