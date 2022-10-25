@@ -406,6 +406,7 @@ class Thunderscope(object):
 
         widgets["log_widget"] = self.setup_log_widget(full_system_proto_unix_io)
         log_dock = Dock("Logs")
+        log_dock.setStretch(x=5)
         log_dock.addWidget(widgets["log_widget"])
 
         widgets["performance_widget"] = self.setup_performance_plot(
@@ -414,6 +415,7 @@ class Thunderscope(object):
         performance_dock = Dock("Performance")
         performance_dock.addWidget(widgets["performance_widget"])
 
+        # TODO: Duplicate??
         widgets["parameter_widget"] = self.setup_parameter_widget(
             full_system_proto_unix_io, friendly_colour_yellow
         )
@@ -596,7 +598,6 @@ class Thunderscope(object):
         """
         # Create widget
         named_value_plotter = NamedValuePlotter()
-        main_plotter_widget = MainPlotterWidget(named_value_plotter)
 
         # Register observer
         proto_unix_io.register_observer(
@@ -604,9 +605,9 @@ class Thunderscope(object):
         )
 
         # Register refresh function
-        self.register_refresh_function(main_plotter_widget.refresh)
+        self.register_refresh_function(named_value_plotter.refresh)
 
-        return main_plotter_widget
+        return named_value_plotter
 
     def setup_play_info(self, proto_unix_io):
         """Setup the play info widget

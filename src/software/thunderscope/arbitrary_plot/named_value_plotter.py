@@ -19,10 +19,10 @@ BACKGROUND_COLOR = (0.1, 0.1, 0.1)
 
 
 # TODO: Add button to increase or decrease time window to display
-class NamedValuePlotter(object):
+class NamedValuePlotter(QtWidgets.QWidget):
     """ Plot named values in real time with a scrolling plot """
 
-    def __init__(self, buffer_size=1000):
+    def __init__(self, buffer_size=1000, *args, **kwargs):
         """Initializes NamedValuePlotter.
 
         :param buffer_size: The size of the buffer to use for plotting.
@@ -31,6 +31,7 @@ class NamedValuePlotter(object):
         # TODO: Investigate (if performance is an issue, and will be better) to replace
         #       the field widget to use vispy shapes (vispy.scene.visuals)
         #       https://vispy.org/gallery/scene/polygon.html#sphx-glr-gallery-scene-polygon-py
+        super().__init__(*args, **kwargs)
         self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=BACKGROUND_COLOR)
         # For allowing to have multiple plots in the same window
         self.grid = self.canvas.central_widget.add_grid()
@@ -60,15 +61,23 @@ class NamedValuePlotter(object):
         self.line = scene.visuals.Line(np.empty((0, 2), dtype=np.float32), parent=self.view.scene, color='white')
 
         plotter_dock = Dock("plotter")
+        plotter_dock.hideTitleBar()
         plotter_dock.addWidget(self.canvas.native)
 
         plot_controls_dock = Dock("plot controls")
+        plot_controls_dock.setStretch(x=5)
+        plot_controls_dock.hideTitleBar()
         self.plot_controls = PlotControls()
-        plot_controls_dock.addWidget(self.canvas.native)
+        plot_controls_dock.addWidget(self.plot_controls)
 
         self.dock_area = DockArea()
         self.dock_area.addDock(plotter_dock)
         self.dock_area.addDock(plot_controls_dock, "left", plotter_dock)
+
+        self.main_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.addWidget(self.dock_area)
+
+        self.setLayout(self.main_layout)
 
         # Added for debugging
         self.total_time = 0
@@ -186,70 +195,20 @@ class PlotControls(QtWidgets.QWidget):
         super().__init__(parent)
         layout = QtWidgets.QVBoxLayout()
 
-        self.line_color_label = QtWidgets.QLabel("Line color:")
-        layout.addWidget(self.line_color_label)
-        self.named_plot_picker = QtWidgets.QComboBox()
-        self.named_plot_picker.addItems(["green", "red", "blue"])
-        layout.addWidget(self.named_plot_picker)
-
         self.disable_tracking_checkbox = QtWidgets.QCheckBox("Disable Tracking")
         self.disable_tracking_checkbox.setChecked(False)
         layout.addWidget(self.disable_tracking_checkbox)
 
-        # List
-        self.listWidget = QtWidgets.QListWidget()
-        self.listWidget.setSelectionMode(
-            QtWidgets.QAbstractItemView.SelectionMode.MultiSelection
-        )
-        for i in range(10):
-            # TODO: Checkout QListWidgetItem.setHidden, setIcon
-            item = QtWidgets.QListWidgetItem("Item %i" % i)
-            self.listWidget.addItem(item)
-            item.setTextAlignment(2 ** (i % 4))  # Text alignment DOES work!
-            item.setBackground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))  # Color gets set, but not reflected in GUI
-            # Foreground = Textcolor (when not selected)
-            # Background = background color (not the item color when selected)
-
-        self.listWidget.itemClicked.connect(self.printItemText)
-        self.listWidget.setStyleSheet("""
-    QListView::item:selected {
-        border: 1px solid #400404;
-        background: #d41608;
-    }""")
-        layout.addWidget(self.listWidget)
-
         # Group checkbox
-        self.GroupBox = QtWidgets.QGroupBox(self)
-        self.GroupBox.setLayout(QtWidgets.QVBoxLayout())
         for i in range(6):
-            checkbox = QtWidgets.QCheckBox("{}".format(i), self.GroupBox)
+            checkbox = QtWidgets.QCheckBox("{}".format(i))
             checkbox.stateChanged.connect(lambda _, checkbox=checkbox: self.onCheckboxToggle(checkbox))
             checkbox.setStyleSheet("""QCheckBox {
                                         background: #d41608;
                                    }""")
-            self.GroupBox.layout().addWidget(checkbox)
+            layout.addWidget(checkbox)
 
-        layout.addWidget(self.GroupBox)
-        self.GroupBox.toggled.connect(self.onToggled)
-        self.GroupBox.setCheckable(True)
-
-        layout.addStretch(1)
         self.setLayout(layout)
-
-    def printItemText(self, item):
-        print(item.foreground().color().name())
-        items = self.listWidget.selectedItems()
-        x = []
-        for i in range(len(items)):
-            x.append(str(self.listWidget.selectedItems()[i].text()))
-
-        print(x)
-
-    def onToggled(self, on):
-        print(f"QGroupBox pressed {on}")
-        for box in self.sender().findChildren(QtWidgets.QCheckBox):
-            box.setChecked(on)
-            box.setEnabled(True)
 
     def onCheckboxToggle(self, checkbox):
         print(f"checkbox pressed {checkbox.text()}")
