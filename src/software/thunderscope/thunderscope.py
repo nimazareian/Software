@@ -597,12 +597,11 @@ class Thunderscope(object):
 
         """
         # Create widget
-        named_value_plotter = NamedValuePlotter()
-        main_plotter_widget = MainPlotterWidget(named_value_plotter)
+        main_plotter_widget = MainPlotterWidget()
 
         # Register observer
         proto_unix_io.register_observer(
-            NamedValue, named_value_plotter.named_value_buffer
+            NamedValue, main_plotter_widget.plotter.named_value_buffer
         )
 
         # Register refresh function
