@@ -112,8 +112,6 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             Vector target_velocity = getTargetLinearVelocity(robot_id, curr_orientation);
             AngularVelocity target_angular_velocity =
                 getTargetAngularVelocity(current_primitive_.move(), curr_orientation);
-            LOG(VISUALIZE) << *createNamedValue(
-                        "signed_delta_orientation", static_cast<float>(target_velocity.length()) * 30);
 
             auto output = createDirectControlPrimitive(
                 target_velocity, target_angular_velocity,

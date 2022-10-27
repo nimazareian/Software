@@ -318,7 +318,7 @@ gdb --args bazel-bin/{simulator_command}
             (BLUE_SSL_WRAPPER_PATH, SSL_WrapperPacket),
             (BLUE_ROBOT_STATUS_PATH, RobotStatus),
             (SIMULATOR_STATE_PATH, SimulatorState),
-            ("", NamedValue, True),  # TODO: Need to differentiate between blue and yellow
+            ("/blue", NamedValue, True),  # TODO: Need to differentiate between blue and yellow
         ] + [
             # TODO (#2655): Add/Remove HRVO layers dynamically based on the HRVOVisualization proto messages
             (BLUE_HRVO_PATH, HRVOVisualization, True)
@@ -340,7 +340,7 @@ gdb --args bazel-bin/{simulator_command}
         for arg in [
             (YELLOW_SSL_WRAPPER_PATH, SSL_WrapperPacket),
             (YELLOW_ROBOT_STATUS_PATH, RobotStatus),
-            ("", NamedValue, True),
+            ("/yellow", NamedValue, True),
         ] + [
             # TODO (#2655): Add/Remove HRVO layers dynamically based on the HRVOVisualization proto messages
             (YELLOW_HRVO_PATH, HRVOVisualization, True)

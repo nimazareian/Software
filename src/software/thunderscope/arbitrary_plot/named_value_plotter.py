@@ -60,7 +60,15 @@ class NamedValuePlotter(QWidget):
         self.line = scene.visuals.Line(np.empty((0, 2), dtype=np.float32), parent=self.view.scene, color='white')
 
         # Added for debugging
-        self.total_time = 0
+        self.refresh_total_time = 0
+        self.new_data_total_time = 0
+        self.update_existing_datapoints_total_time = 0
+        self.roll_total_time = 0
+        self.fill_new_data_total_time = 0
+        self.create_final_array_total_time = 0
+        self.draw_line_total_time = 0
+        self.min_max_total_time = 0
+        self.set_range_total_time = 0
         self.num_calls = 0
 
     def refresh(self):
@@ -68,7 +76,7 @@ class NamedValuePlotter(QWidget):
         plots.
 
         """
-        start = time.time()
+        refresh_start = time.time()
 
         # Dump the entire buffer into a deque. This operation is fast because
         # its just consuming data from the buffer and appending it to a deque.
@@ -103,8 +111,12 @@ class NamedValuePlotter(QWidget):
                 #       make sure it doesn't suddenly slow down everything though
                 new_data[named_value.name] = np.append(new_data[named_value.name], new_data_pair, axis=0)
 
+        self.new_data_total_time += time.time() - refresh_start
+
+
         # TODO: Time every section of the code and see if there are any bottlenecks
         # Add new data points to the existing data points
+        update_existing_datapoints_start = time.time()
         for name, new_data_points in new_data.items():
             line_points = self.line_point_lists[name]
 
@@ -118,21 +130,23 @@ class NamedValuePlotter(QWidget):
                 # TODO: See if these can be simplified to 1 line
                 # TODO: How difficult is it to do this based on time instead of number of points?
                 #       If something spams a lot, then we won't see it for long durations
-                line_points[:, 0] = np.roll(line_points[:, 0], shift)
-                line_points[:, 1] = np.roll(line_points[:, 1], shift)
+                roll_start = time.time()
+                line_points[:, :] = np.roll(line_points[:, :], shift, axis=0)
+                line_color[:, :] = np.roll(line_color[:, :], shift, axis=0)
+                self.roll_total_time += time.time() - roll_start
 
-                line_color[:, 0] = np.roll(line_color[:, 0], shift)
-                line_color[:, 1] = np.roll(line_color[:, 1], shift)
-                line_color[:, 2] = np.roll(line_color[:, 2], shift)
-                line_color[:, 3] = np.roll(line_color[:, 3], shift)
-
+                fill_new_data_start = time.time()
                 # Add new data at the end
                 line_points[shift:len(line_points), :] = new_data_points[:, :]
                 line_color[shift:len(line_color), :] = new_data_colors[:, :]
+                self.fill_new_data_total_time += time.time() - fill_new_data_start
             else:
                 self.line_point_lists[name] = np.append(self.line_point_lists[name], new_data_points, axis=0)
                 self.line_color_lists[name] = np.append(line_color, new_data_colors, axis=0)
 
+        self.update_existing_datapoints_total_time += time.time() - update_existing_datapoints_start
+
+        create_final_array_start = time.time()
         line_data = np.empty((1, 2), dtype=np.float32)
         color_data = np.empty((1, 4), dtype=np.float32)
         connections = np.empty((1,), dtype=bool)
@@ -152,21 +166,52 @@ class NamedValuePlotter(QWidget):
                     connections[offset + num_points - 1] = False
                     offset += num_points
 
+        self.create_final_array_total_time += time.time() - create_final_array_start
+
+        draw_line_start = time.time()
         # Re-render plot
         self.line.set_data(line_data, connect=connections, color=color_data)
+        self.draw_line_total_time += time.time() - draw_line_start
 
+        min_max_start = time.time()
+        y_min = line_data[:, 1].min()
+        y_max = line_data[:, 1].max()
+        self.min_max_total_time += time.time() - min_max_start
+
+        set_range_start = time.time()
         # Update camera
         if not self.disable_tracking and len(line_data) > 0:
             x_max = line_data[-1, 0]
             x_min = max(x_max-TIME_WINDOW_TO_DISPLAY_S, 0)
             # TODO: set_range is the bottleneck. one option is to shift the data rather than the camera
-            self.view.camera.set_range(x=[x_min, x_max], y=[INITIAL_Y_MIN, INITIAL_Y_MAX])
+            self.view.camera.set_range(x=[x_min, x_max], y=[y_min, y_max])
 
-        self.total_time += time.time() - start
+        self.set_range_total_time += time.time() - set_range_start
+
+        self.refresh_total_time += time.time() - refresh_start
         self.num_calls += 1
         if self.num_calls > 150:
+            print(f"avg time {self.num_calls}:")
+            print(f"refresh_total_time = {self.refresh_total_time / self.num_calls}")
+            print(f"new_data_total_time = {self.new_data_total_time / self.num_calls}")
+            print(f"update_existing_datapoints_total_time = {self.update_existing_datapoints_total_time / self.num_calls}")
+            print(f"roll_total_time = {self.roll_total_time / self.num_calls}")
+            print(f"fill_new_data_total_time = {self.fill_new_data_total_time / self.num_calls}")
+            print(f"create_final_array_total_time = {self.create_final_array_total_time / self.num_calls}")
+            print(f"draw_line_total_time = {self.draw_line_total_time / self.num_calls}")
+            print(f"min_max_total_time = {self.min_max_total_time / self.num_calls}")
+            print(f"set_range_total_time = {self.set_range_total_time / self.num_calls}")
+
             self.num_calls = 0
-            self.total_time = 0
+            self.refresh_total_time = 0
+            self.new_data_total_time = 0
+            self.update_existing_datapoints_total_time = 0
+            self.roll_total_time = 0
+            self.fill_new_data_total_time = 0
+            self.create_final_array_total_time = 0
+            self.draw_line_total_time = 0
+            self.min_max_total_time = 0
+            self.set_range_total_time = 0
 
     def set_line_visibility(self, line_name: str, line_visibility: bool):
         """Update the visibility of a line. If line_visibility is True, the line will be shown. If False, the line will not be rendered in the next refresh call.
