@@ -50,7 +50,7 @@ class NamedValuePlotter(QWidget):
         self.y_axis.link_view(self.view)
 
         # Initialize data structures
-        self.time = time.time()
+        self.last_buffer_read_time = time.time()
         self.named_value_buffer = ThreadSafeBuffer(buffer_size, NamedValue)
 
         self.line_point_lists = {}
@@ -77,11 +77,12 @@ class NamedValuePlotter(QWidget):
         plots.
 
         """
+        # TODO: Make the data aggregation multi-threaded
         refresh_start = time.time()
 
-        # Dump the entire buffer into a deque. This operation is fast because
-        # its just consuming data from the buffer and appending it to a deque.
+        # Organize the entire buffer into numpy arrays for each line
         new_data = {}
+        time_since_last_read = time.time() - self.last_buffer_read_time
         for _ in range(self.named_value_buffer.queue.qsize()):
             named_value = self.named_value_buffer.get(block=False)
             # TODO: Calculate the min/max x for the camera
@@ -99,18 +100,17 @@ class NamedValuePlotter(QWidget):
                 self.line_color_lists[new_line_name] = np.empty((0, 4), dtype=np.float32)
                 self.new_line_signal.emit(new_line_name, new_line_color)
                 self.line_visibility[new_line_name] = True
-                # TODO: Add a drop down menu -overlay- to select which lines to show: https://stackoverflow.com/questions/49077083/how-to-overlay-widgets-in-pyqt5
 
-            new_data_pair = np.empty((1, 2), dtype=np.float32)
-            new_data_pair[0][0] = time.time() - self.time
-            new_data_pair[0][1] = named_value.value
+            new_data_pair = np.zeros((1, 2), dtype=np.float32)
+            new_data_pair[0, 0] = time.time() - self.last_buffer_read_time
+            new_data_pair[0, 1] = named_value.value
             if named_value.name not in new_data:
                 new_data[named_value.name] = new_data_pair
             else:
-                # TODO: Limit the arrays to TIME_WINDOW_TO_DISPLAY_S length, and then shift the array to the left
-                #       Time how much time this adds, if its a lot, we can do it less often. Once every 10 sec? Gotta
-                #       make sure it doesn't suddenly slow down everything though
-                new_data[named_value.name] = np.append(new_data[named_value.name], new_data_pair, axis=0)
+                new_data[named_value.name] = np.append(new_data_pair, new_data[named_value.name], axis=0)
+
+        # Update the time which we last read the buffer
+        self.last_buffer_read_time = time.time()
 
         self.new_data_total_time += time.time() - refresh_start
 
@@ -120,6 +120,8 @@ class NamedValuePlotter(QWidget):
         update_existing_datapoints_start = time.time()
         for name, new_data_points in new_data.items():
             line_points = self.line_point_lists[name]
+            line_points[:, 0] += time_since_last_read
+            new_data_points[:, 0] = np.arange(0, time_since_last_read, len(new_data_points))
 
             line_color = self.line_color_lists[name]
             new_data_colors = np.empty((len(new_data_points), 4), dtype=np.float32)
@@ -131,15 +133,13 @@ class NamedValuePlotter(QWidget):
                 roll_start = time.time()
                 # If the data is over the threshold, remove the oldest data points
                 threshold_boundary = len(line_points) - MAX_NUM_POINTS_IN_LINE
-                line_points = line_points[threshold_boundary:, :]
-                line_color = line_color[threshold_boundary:, :]
+                line_points = line_points[:-threshold_boundary, :]
+                line_color = line_color[:-threshold_boundary, :]
                 self.roll_total_time += time.time() - roll_start
 
             fill_new_data_start = time.time()
-            self.line_point_lists[name] = np.append(line_points, new_data_points, axis=0)
-            self.line_color_lists[name] = np.append(line_color, new_data_colors, axis=0)
-            # print(f"{self.line_point_lists[name].shape=}  {line_points.shape=}")
-            # assert self.line_point_lists[name].shape == line_points.shape
+            self.line_point_lists[name] = np.append(new_data_points, line_points, axis=0)
+            self.line_color_lists[name] = np.append(new_data_colors, line_color, axis=0)
             self.append_new_data_total_time += time.time() - fill_new_data_start
 
         self.update_existing_datapoints_total_time += time.time() - update_existing_datapoints_start
@@ -172,18 +172,18 @@ class NamedValuePlotter(QWidget):
         self.draw_line_total_time += time.time() - draw_line_start
 
         # Update camera
-        if not self.disable_tracking and len(line_data) > 0:
-            min_max_start = time.time()
-            y_min = line_data[:, 1].min()
-            y_max = line_data[:, 1].max()
-            self.min_max_total_time += time.time() - min_max_start
-
-            x_max = line_data[-1, 0]
-            x_min = max(x_max-TIME_WINDOW_TO_DISPLAY_S, 0)
-            set_range_start = time.time()
-            # TODO: set_range is the bottleneck. one option is to shift the data rather than the camera
-            self.view.camera.set_range(x=[x_min, x_max], y=[y_min, y_max])
-            self.set_range_total_time += time.time() - set_range_start
+        # if not self.disable_tracking and len(line_data) > 0:
+        #     min_max_start = time.time()
+        #     y_min = line_data[:, 1].min()
+        #     y_max = line_data[:, 1].max()
+        #     self.min_max_total_time += time.time() - min_max_start
+        #
+        #     x_max = line_data[-1, 0]
+        #     x_min = max(x_max-TIME_WINDOW_TO_DISPLAY_S, 0)
+        #     set_range_start = time.time()
+        #     # TODO: set_range is the bottleneck. one option is to shift the data rather than the camera
+        #     self.view.camera.set_range(x=[x_min, x_max], y=[y_min, y_max])
+        #     self.set_range_total_time += time.time() - set_range_start
 
         self.refresh_total_time += time.time() - refresh_start
         self.num_calls += 1
