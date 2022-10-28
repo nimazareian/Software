@@ -17,6 +17,7 @@ INITIAL_Y_MIN = 0
 INITIAL_Y_MAX = 100
 TIME_WINDOW_TO_DISPLAY_S = 20
 MAX_NUM_POINTS_IN_LINE = TIME_WINDOW_TO_DISPLAY_S * 60
+BUFFER_RESIZE_THRESHOLD = 1.2
 BACKGROUND_COLOR = (0.1, 0.1, 0.1)
 
 
@@ -24,7 +25,7 @@ class NamedValuePlotter(QWidget):
     """ Plot named values in real time with a scrolling plot """
     new_line_signal = QtCore.pyqtSignal(str, Color)
 
-    def __init__(self, buffer_size=1000, *args, **kwargs):
+    def __init__(self, buffer_size=1000, *args, **kwargs): # TODO: Potentially lower buffer size for less powerful laptops
         """Initializes NamedValuePlotter.
 
         :param buffer_size: The size of the buffer to use for plotting.
@@ -64,7 +65,7 @@ class NamedValuePlotter(QWidget):
         self.new_data_total_time = 0
         self.update_existing_datapoints_total_time = 0
         self.roll_total_time = 0
-        self.fill_new_data_total_time = 0
+        self.append_new_data_total_time = 0
         self.create_final_array_total_time = 0
         self.draw_line_total_time = 0
         self.min_max_total_time = 0
@@ -124,25 +125,22 @@ class NamedValuePlotter(QWidget):
             new_data_colors = np.empty((len(new_data_points), 4), dtype=np.float32)
             new_data_colors[:] = self.assigned_line_colors[name].rgba
 
-            if len(line_points) > MAX_NUM_POINTS_IN_LINE:
-                # Shift point/color values to the left
-                shift = -1 * len(new_data_points)
-                # TODO: See if these can be simplified to 1 line
-                # TODO: How difficult is it to do this based on time instead of number of points?
-                #       If something spams a lot, then we won't see it for long durations
+            # Allow the number of points per line to go up to over MAX_NUM_POINTS_IN_LINE
+            # by a factor of BUFFER_RESIZE_THRESHOLD
+            if len(line_points) > MAX_NUM_POINTS_IN_LINE * BUFFER_RESIZE_THRESHOLD:
                 roll_start = time.time()
-                line_points[:, :] = np.roll(line_points[:, :], shift, axis=0)
-                line_color[:, :] = np.roll(line_color[:, :], shift, axis=0)
+                # If the data is over the threshold, remove the oldest data points
+                threshold_boundary = len(line_points) - MAX_NUM_POINTS_IN_LINE
+                line_points = line_points[threshold_boundary:, :]
+                line_color = line_color[threshold_boundary:, :]
                 self.roll_total_time += time.time() - roll_start
 
-                fill_new_data_start = time.time()
-                # Add new data at the end
-                line_points[shift:len(line_points), :] = new_data_points[:, :]
-                line_color[shift:len(line_color), :] = new_data_colors[:, :]
-                self.fill_new_data_total_time += time.time() - fill_new_data_start
-            else:
-                self.line_point_lists[name] = np.append(self.line_point_lists[name], new_data_points, axis=0)
-                self.line_color_lists[name] = np.append(line_color, new_data_colors, axis=0)
+            fill_new_data_start = time.time()
+            self.line_point_lists[name] = np.append(line_points, new_data_points, axis=0)
+            self.line_color_lists[name] = np.append(line_color, new_data_colors, axis=0)
+            # print(f"{self.line_point_lists[name].shape=}  {line_points.shape=}")
+            # assert self.line_point_lists[name].shape == line_points.shape
+            self.append_new_data_total_time += time.time() - fill_new_data_start
 
         self.update_existing_datapoints_total_time += time.time() - update_existing_datapoints_start
 
@@ -173,41 +171,49 @@ class NamedValuePlotter(QWidget):
         self.line.set_data(line_data, connect=connections, color=color_data)
         self.draw_line_total_time += time.time() - draw_line_start
 
-        min_max_start = time.time()
-        y_min = line_data[:, 1].min()
-        y_max = line_data[:, 1].max()
-        self.min_max_total_time += time.time() - min_max_start
-
-        set_range_start = time.time()
         # Update camera
         if not self.disable_tracking and len(line_data) > 0:
+            min_max_start = time.time()
+            y_min = line_data[:, 1].min()
+            y_max = line_data[:, 1].max()
+            self.min_max_total_time += time.time() - min_max_start
+
             x_max = line_data[-1, 0]
             x_min = max(x_max-TIME_WINDOW_TO_DISPLAY_S, 0)
+            set_range_start = time.time()
             # TODO: set_range is the bottleneck. one option is to shift the data rather than the camera
             self.view.camera.set_range(x=[x_min, x_max], y=[y_min, y_max])
-
-        self.set_range_total_time += time.time() - set_range_start
+            self.set_range_total_time += time.time() - set_range_start
 
         self.refresh_total_time += time.time() - refresh_start
         self.num_calls += 1
-        if self.num_calls > 150:
-            print(f"avg time {self.num_calls}:")
-            print(f"refresh_total_time = {self.refresh_total_time / self.num_calls}")
-            print(f"new_data_total_time = {self.new_data_total_time / self.num_calls}")
-            print(f"update_existing_datapoints_total_time = {self.update_existing_datapoints_total_time / self.num_calls}")
-            print(f"roll_total_time = {self.roll_total_time / self.num_calls}")
-            print(f"fill_new_data_total_time = {self.fill_new_data_total_time / self.num_calls}")
-            print(f"create_final_array_total_time = {self.create_final_array_total_time / self.num_calls}")
-            print(f"draw_line_total_time = {self.draw_line_total_time / self.num_calls}")
-            print(f"min_max_total_time = {self.min_max_total_time / self.num_calls}")
-            print(f"set_range_total_time = {self.set_range_total_time / self.num_calls}")
+        if self.num_calls >= 150:
+            print(f"=== avg time for {self.num_calls} calls:")
+            avg_total_time = self.refresh_total_time / self.num_calls
+            print(f"refresh_total_time = {avg_total_time:.5f}")
+            new_data_avg = self.new_data_total_time / self.num_calls
+            print(f"new_data_total_time = {new_data_avg:.5f} => {(new_data_avg / avg_total_time)*100:.5f}%")
+            update_existing_datapoints_avg = self.update_existing_datapoints_total_time / self.num_calls
+            print(f"update_existing_datapoints_total_time = {update_existing_datapoints_avg:.5f} => {(update_existing_datapoints_avg / avg_total_time)*100:.5f}%")
+            roll_total_avg = self.roll_total_time / self.num_calls
+            print(f"    roll_total_time = {roll_total_avg:.5f} => {(roll_total_avg / avg_total_time)*100:.5f}%")
+            append_new_data_total_avg = self.append_new_data_total_time / self.num_calls
+            print(f"    append_new_data_total_time = {append_new_data_total_avg:.5f} => {(append_new_data_total_avg / avg_total_time)*100:.5f}%")
+            create_final_array_avg = self.create_final_array_total_time / self.num_calls
+            print(f"create_final_array_total_time = {create_final_array_avg:.5f} => {(create_final_array_avg / avg_total_time)*100:.5f}%")
+            draw_line_avg = self.draw_line_total_time / self.num_calls
+            print(f"draw_line_total_time = {draw_line_avg:.5f} => {(draw_line_avg / avg_total_time)*100:.5f}%")
+            min_max_avg = self.min_max_total_time / self.num_calls
+            print(f"min_max_total_time = {min_max_avg:.5f} => {(min_max_avg / avg_total_time)*100:.5f}%")
+            set_range_avg = self.set_range_total_time / self.num_calls
+            print(f"set_range_total_time = {set_range_avg:.5f} => {(set_range_avg / avg_total_time)*100:.5f}%")
 
             self.num_calls = 0
             self.refresh_total_time = 0
             self.new_data_total_time = 0
             self.update_existing_datapoints_total_time = 0
             self.roll_total_time = 0
-            self.fill_new_data_total_time = 0
+            self.append_new_data_total_time = 0
             self.create_final_array_total_time = 0
             self.draw_line_total_time = 0
             self.min_max_total_time = 0
