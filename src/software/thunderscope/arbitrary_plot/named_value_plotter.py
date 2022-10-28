@@ -85,7 +85,7 @@ class NamedValuePlotter(QWidget):
         time_since_last_read = time.time() - self.last_buffer_read_time
         for _ in range(self.named_value_buffer.queue.qsize()):
             named_value = self.named_value_buffer.get(block=False)
-            # TODO: Calculate the min/max x for the camera
+
             # If named_value is new, create a plot and for the new value and
             # add it to necessary maps
             if named_value.name not in self.line_point_lists:
@@ -101,8 +101,9 @@ class NamedValuePlotter(QWidget):
                 self.new_line_signal.emit(new_line_name, new_line_color)
                 self.line_visibility[new_line_name] = True
 
+            # TODO: Instead of appending everytime, preallocate qsize() amount, fill, delete extra space
+            #       https://betterprogramming.pub/numpy-illustrated-the-visual-guide-to-numpy-3b1d4976de1d
             new_data_pair = np.zeros((1, 2), dtype=np.float32)
-            new_data_pair[0, 0] = time.time() - self.last_buffer_read_time
             new_data_pair[0, 1] = named_value.value
             if named_value.name not in new_data:
                 new_data[named_value.name] = new_data_pair
@@ -182,6 +183,7 @@ class NamedValuePlotter(QWidget):
         #     x_min = max(x_max-TIME_WINDOW_TO_DISPLAY_S, 0)
         #     set_range_start = time.time()
         #     # TODO: set_range is the bottleneck. one option is to shift the data rather than the camera
+              # TODO: Disable tracking button ==update to==> auto_range button. auto_range when a plot is toggled
         #     self.view.camera.set_range(x=[x_min, x_max], y=[y_min, y_max])
         #     self.set_range_total_time += time.time() - set_range_start
 
