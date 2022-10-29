@@ -88,6 +88,7 @@ class NamedValuePlotter(QWidget):
 
             # If named_value is new, create a plot and for the new value and
             # add it to necessary maps
+            # TODO: O(n) operation if its not hashed
             if named_value.name not in self.line_point_lists:
                 new_line_name = named_value.name
                 new_line_color = Color(color=[random.uniform(0.4, 1.0) for _ in range(4)])
@@ -106,9 +107,9 @@ class NamedValuePlotter(QWidget):
             new_data_pair = np.zeros((1, 2), dtype=np.float32)
             new_data_pair[0, 1] = named_value.value
             if named_value.name not in new_data:
-                new_data[named_value.name] = new_data_pair
+                new_data[named_value.name] = [new_data_pair]
             else:
-                new_data[named_value.name] = np.append(new_data_pair, new_data[named_value.name], axis=0)
+                new_data[named_value.name].append(new_data_pair)  #np.append(new_data_pair, new_data[named_value.name], axis=0)
 
         # Update the time which we last read the buffer
         self.last_buffer_read_time = time.time()
@@ -122,7 +123,6 @@ class NamedValuePlotter(QWidget):
         for name, new_data_points in new_data.items():
             line_points = self.line_point_lists[name]
             line_points[:, 0] += time_since_last_read
-            new_data_points[:, 0] = np.arange(0, time_since_last_read, len(new_data_points))
 
             line_color = self.line_color_lists[name]
             new_data_colors = np.empty((len(new_data_points), 4), dtype=np.float32)
@@ -139,7 +139,11 @@ class NamedValuePlotter(QWidget):
                 self.roll_total_time += time.time() - roll_start
 
             fill_new_data_start = time.time()
-            self.line_point_lists[name] = np.append(new_data_points, line_points, axis=0)
+            # Convert the new data points to a numpy array and append a flipped view of it to the existing data points
+            flipped_np_new_data_points = np.array(new_data_points)[::-1]  # TODO: Array creation needs to be fixed
+            flipped_np_new_data_points[:, 0] = np.arange(0, time_since_last_read, len(new_data_points))
+            print(f"{flipped_np_new_data_points=}, {new_data_points=}")
+            self.line_point_lists[name] = np.append(flipped_np_new_data_points, line_points, axis=0)
             self.line_color_lists[name] = np.append(new_data_colors, line_color, axis=0)
             self.append_new_data_total_time += time.time() - fill_new_data_start
 
