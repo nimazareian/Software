@@ -104,8 +104,8 @@ class NamedValuePlotter(QWidget):
 
             # TODO: Instead of appending everytime, preallocate qsize() amount, fill, delete extra space
             #       https://betterprogramming.pub/numpy-illustrated-the-visual-guide-to-numpy-3b1d4976de1d
-            new_data_pair = np.zeros((1, 2), dtype=np.float32)
-            new_data_pair[0, 1] = named_value.value
+            new_data_pair = np.zeros((2, ), dtype=np.float32)
+            new_data_pair[1] = named_value.value
             if named_value.name not in new_data:
                 new_data[named_value.name] = [new_data_pair]
             else:
@@ -141,8 +141,9 @@ class NamedValuePlotter(QWidget):
             fill_new_data_start = time.time()
             # Convert the new data points to a numpy array and append a flipped view of it to the existing data points
             flipped_np_new_data_points = np.array(new_data_points)[::-1]  # TODO: Array creation needs to be fixed
+            # print(f"{flipped_np_new_data_points=}")
             flipped_np_new_data_points[:, 0] = np.arange(0, time_since_last_read, len(new_data_points))
-            print(f"{flipped_np_new_data_points=}, {new_data_points=}")
+            # print(f"{flipped_np_new_data_points=}, {new_data_points=}")
             self.line_point_lists[name] = np.append(flipped_np_new_data_points, line_points, axis=0)
             self.line_color_lists[name] = np.append(new_data_colors, line_color, axis=0)
             self.append_new_data_total_time += time.time() - fill_new_data_start
@@ -157,6 +158,7 @@ class NamedValuePlotter(QWidget):
             # VisPy plots points from a single 2D list. We can specify which adjacent points connect
             # with each other using a boolean array.
             # Create a single array of all data points:
+            # TODO: vstack new data here as well
             line_data = np.vstack([self.line_point_lists[name] for name in self.line_point_lists.keys() if self.line_visibility[name]])
             color_data = np.vstack([self.line_color_lists[name] for name in self.line_color_lists.keys() if self.line_visibility[name]])
             connections = np.ones(line_data.shape[0], dtype=bool)
