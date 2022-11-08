@@ -57,6 +57,7 @@ class NamedValuePlotter(QWidget):
         self.line_color_lists = {}
         self.line_visibility = {}
         self.assigned_line_colors = {}
+        self.live_plotting_enabled = True
         self.should_update_camera = False
         self.line = scene.visuals.Line(self.line_data, parent=self.view.scene, color='white')
 
@@ -143,7 +144,10 @@ class NamedValuePlotter(QWidget):
 
         self.setup_vstack_total_time += time.time() - create_final_array_start
         vstack_start = time.time()
-        self.line_data = np.vstack(vstack_array)
+        if len(vstack_array) > 0:
+            self.line_data = np.vstack(vstack_array)
+        else:
+            self.line_data = np.empty((0, 2), dtype=np.float32)
         self.vstack_total_time += time.time() - vstack_start
 
         create_color_connection_start = time.time()
@@ -173,11 +177,13 @@ class NamedValuePlotter(QWidget):
 
         draw_line_start = time.time()
         # Re-render plot
-        self.line.set_data(self.line_data, connect=connections, color=color_data)
+        if self.live_plotting_enabled:
+            self.line.set_data(self.line_data, connect=connections, color=color_data)
+
         self.draw_line_total_time += time.time() - draw_line_start
 
         # Update camera
-        if self.should_update_camera:
+        if self.should_update_camera and True in self.line_visibility.values():
             plotted_data = self.line_data[connections]
             y_min = plotted_data[:, 1].min()
             y_max = plotted_data[:, 1].max()
@@ -224,6 +230,14 @@ class NamedValuePlotter(QWidget):
         """
         self.line_visibility[line_name] = line_visibility
 
+    def set_live_plotting(self, live_plotting_enabled: bool):
+        """Update whether the plots should be updated in real-time or not.
+
+        :param live_plotting_enabled: If true, the plot will be updated in real time. If false, the plot will not be updated.
+
+        """
+        self.live_plotting_enabled = live_plotting_enabled
+
     def update_camera(self):
         """If this callback is called, the camera will be updated in the next refresh call."""
         self.should_update_camera = True
@@ -234,6 +248,7 @@ class PlotControlsWidget(QWidget):
 
     # Signals for connecting the controls to the plotter
     update_camera_signal = QtCore.pyqtSignal()
+    live_plotting_signal = QtCore.pyqtSignal(bool)
     line_visibility_signal = QtCore.pyqtSignal(str, bool)
 
     def __init__(self, parent=None):
@@ -244,6 +259,19 @@ class PlotControlsWidget(QWidget):
         super().__init__(parent)
         self.layout = QFormLayout()
 
+        # Button for enabling/disabling live plotting
+        self.plot_new_data = True
+        self.pause_plotting_title = "Pause Plotting"
+        self.resume_plotting_title = "Resume Plotting"
+        self.live_plotting_button = QPushButton(self.pause_plotting_title)
+        self.live_plotting_button.clicked.connect(self.__on_live_plotting_button_clicked)
+        self.layout.addWidget(self.live_plotting_button)
+
+        # Horizontal line dividing sections
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.HLine)
+        self.layout.addWidget(divider)
+
         # Title above the line visibility controls
         line_visibilities_label = QLabel("Line Visibilities")
         line_visibilities_label.setStyleSheet("font-weight: bold")
@@ -251,6 +279,15 @@ class PlotControlsWidget(QWidget):
         self.layout.addWidget(line_visibilities_label)
 
         self.setLayout(self.layout)
+
+    def __on_live_plotting_button_clicked(self):
+        """Callback for when the live plot button is clicked"""
+        self.plot_new_data = not self.plot_new_data
+        button_title = self.pause_plotting_title if self.plot_new_data else self.resume_plotting_title
+        self.live_plotting_button.setText(button_title)
+
+        # Emit signal to update the plotter
+        self.live_plotting_signal.emit(self.plot_new_data)
 
     def __on_line_visibility_checkbox_pressed(self, checkbox: QCheckBox):
         """
@@ -315,6 +352,7 @@ class MainPlotterWidget(QWidget):
     def _connect_controls(self):
         """Connect the plotter with the controls"""
         self.plot_controls.update_camera_signal.connect(self.plotter.update_camera)
+        self.plot_controls.live_plotting_signal.connect(self.plotter.set_live_plotting)
         self.plot_controls.line_visibility_signal.connect(self.plotter.set_line_visibility)
         self.plotter.new_line_signal.connect(self.plot_controls.add_line_visibility_checkbox)
 
