@@ -54,16 +54,19 @@ class NamedValuePlotter(QWidget):
         self.named_value_buffer = ThreadSafeBuffer(buffer_size, NamedValue)
 
         self.line_point_lists = {}
+        self.line_names = []
+        self.line_data = np.empty((0, 2), dtype=np.float32)
+        self.line_length = {}
         self.line_color_lists = {}
         self.line_visibility = {}
         self.assigned_line_colors = {}
         self.disable_tracking = False
-        self.line = scene.visuals.Line(np.empty((0, 2), dtype=np.float32), parent=self.view.scene, color='white')
+        self.line = scene.visuals.Line(self.line_data, parent=self.view.scene, color='white')
 
         # Added for debugging
         self.refresh_total_time = 0
         self.new_data_total_time = 0
-        self.update_existing_datapoints_total_time = 0
+        self.vstack_total_time = 0
         self.roll_total_time = 0
         self.append_new_data_total_time = 0
         self.create_final_array_total_time = 0
@@ -80,9 +83,12 @@ class NamedValuePlotter(QWidget):
         # TODO: Make the data aggregation multi-threaded
         refresh_start = time.time()
 
+        # Shift old data to the right by the elapsed time
+        time_since_last_read = time.time() - self.last_buffer_read_time
+        self.line_data[:, 0] += time_since_last_read
+
         # Organize the entire buffer into numpy arrays for each line
         new_data = {}
-        time_since_last_read = time.time() - self.last_buffer_read_time
         for _ in range(self.named_value_buffer.queue.qsize()):
             named_value = self.named_value_buffer.get(block=False)
 
@@ -91,9 +97,11 @@ class NamedValuePlotter(QWidget):
             # TODO: O(n) operation if its not hashed
             if named_value.name not in self.line_point_lists:
                 new_line_name = named_value.name
+                self.line_names.append(new_line_name)
                 new_line_color = Color(color=[random.uniform(0.4, 1.0) for _ in range(4)])
 
                 self.line_point_lists[new_line_name] = np.empty((0, 2), dtype=np.float32)
+                self.line_length[new_line_name] = 0
                 print(f"PLOT ADDED {new_line_name} => {len(self.line_point_lists.keys())} total plots")
 
                 # Assign this line a random color
@@ -116,65 +124,60 @@ class NamedValuePlotter(QWidget):
 
         self.new_data_total_time += time.time() - refresh_start
 
-
-        # TODO: Time every section of the code and see if there are any bottlenecks
-        # Add new data points to the existing data points
-        update_existing_datapoints_start = time.time()
-        for name, new_data_points in new_data.items():
-            line_points = self.line_point_lists[name]
-            line_points[:, 0] += time_since_last_read
-
-            line_color = self.line_color_lists[name]
-            new_data_colors = np.empty((len(new_data_points), 4), dtype=np.float32)
-            new_data_colors[:] = self.assigned_line_colors[name].rgba
-
-            # Allow the number of points per line to go up to over MAX_NUM_POINTS_IN_LINE
-            # by a factor of BUFFER_RESIZE_THRESHOLD
-            if len(line_points) > MAX_NUM_POINTS_IN_LINE * BUFFER_RESIZE_THRESHOLD:
-                roll_start = time.time()
-                # If the data is over the threshold, remove the oldest data points
-                threshold_boundary = len(line_points) - MAX_NUM_POINTS_IN_LINE
-                line_points = line_points[:-threshold_boundary, :]
-                line_color = line_color[:-threshold_boundary, :]
-                self.roll_total_time += time.time() - roll_start
-
-            fill_new_data_start = time.time()
-            # Convert the new data points to a numpy array and append a flipped view of it to the existing data points
-            flipped_np_new_data_points = np.array(new_data_points)[::-1]  # TODO: Array creation needs to be fixed
-            flipped_np_new_data_points[:, 0] = np.arange(0, time_since_last_read, len(new_data_points))
-            self.line_point_lists[name] = np.append(flipped_np_new_data_points, line_points, axis=0)
-            self.line_color_lists[name] = np.append(new_data_colors, line_color, axis=0)
-            self.append_new_data_total_time += time.time() - fill_new_data_start
-
-        self.update_existing_datapoints_total_time += time.time() - update_existing_datapoints_start
-
         create_final_array_start = time.time()
-        line_data = np.empty((1, 2), dtype=np.float32)
-        color_data = np.empty((1, 4), dtype=np.float32)
-        connections = np.empty((1,), dtype=bool)
-        if True in self.line_visibility.values():
-            # VisPy plots points from a single 2D list. We can specify which adjacent points connect
-            # with each other using a boolean array.
-            # Create a single array of all data points:
-            # TODO: vstack new data here as well (Could do this by storing the length of each line, and
-            #       stacking the partial lines on new data: line_point_lists[name][0:line_lengths[name], :], new_data[name])
-            line_data = np.vstack([self.line_point_lists[name] for name in self.line_point_lists.keys() if self.line_visibility[name]])
-            color_data = np.vstack([self.line_color_lists[name] for name in self.line_color_lists.keys() if self.line_visibility[name]])
-            connections = np.ones(line_data.shape[0], dtype=bool)
-            offset = 0
-            for name, new_data_points in self.line_point_lists.items():
-                if self.line_visibility[name]:
-                    # The last point of each line should not be connected with the first point
-                    # of the next line
-                    num_points = new_data_points.shape[0]
-                    connections[offset + num_points - 1] = False
-                    offset += num_points
+        
+        # Add new data points to the existing data points
+        vstack_array = []
+        data_start_index = 0
+        for name in self.line_names:
+            # TODO: check visibility
+            new_data_len = 0
+            if name in new_data:
+                vstack_array.append(np.array(new_data[name])[::-1])
+                new_data_len = len(new_data[name])
+
+            old_data_len = self.line_length[name]
+            old_data_end = data_start_index + min(old_data_len,
+                                                  MAX_NUM_POINTS_IN_LINE - new_data_len)
+
+            # Shift old data points to the right
+            vstack_array.append(self.line_data[data_start_index:old_data_end])
+
+            # Length of remaining old data + length of new data
+            self.line_length[name] = (old_data_end - data_start_index) + new_data_len
+
+            data_start_index += old_data_len
+        
+        vstack_start = time.time()
+        self.line_data = np.vstack(vstack_array)
+        self.vstack_total_time += time.time() - vstack_start
+
+        connections = np.ones(len(self.line_data), dtype=bool)
+        visible_colors = []
+        visible_line_lengths = []
+        offset = 0
+        for name in self.line_names:
+            num_points = self.line_length[name]
+
+            if self.line_visibility[name]:
+                # The last point of each line should not be connected with the first point
+                # of the next line
+                connections[offset + num_points - 1] = False
+            else:
+                # If the line is not visible, don't connect its points
+                connections[offset:offset + num_points] = False
+            offset += num_points
+
+            visible_colors.append(self.assigned_line_colors[name].rgba)
+            visible_line_lengths.append(num_points)
+
+        color_data = np.repeat(visible_colors, visible_line_lengths, axis=0)
 
         self.create_final_array_total_time += time.time() - create_final_array_start
 
         draw_line_start = time.time()
         # Re-render plot
-        self.line.set_data(line_data, connect=connections, color=color_data)
+        self.line.set_data(self.line_data, connect=connections, color=color_data)
         self.draw_line_total_time += time.time() - draw_line_start
 
         # Update camera
@@ -200,31 +203,21 @@ class NamedValuePlotter(QWidget):
             print(f"refresh_total_time = {avg_total_time:.5f}")
             new_data_avg = self.new_data_total_time / self.num_calls
             print(f"new_data_total_time = {new_data_avg:.5f} => {(new_data_avg / avg_total_time)*100:.5f}%")
-            update_existing_datapoints_avg = self.update_existing_datapoints_total_time / self.num_calls
-            print(f"update_existing_datapoints_total_time = {update_existing_datapoints_avg:.5f} => {(update_existing_datapoints_avg / avg_total_time)*100:.5f}%")
-            roll_total_avg = self.roll_total_time / self.num_calls
-            print(f"    roll_total_time = {roll_total_avg:.5f} => {(roll_total_avg / avg_total_time)*100:.5f}%")
-            append_new_data_total_avg = self.append_new_data_total_time / self.num_calls
-            print(f"    append_new_data_total_time = {append_new_data_total_avg:.5f} => {(append_new_data_total_avg / avg_total_time)*100:.5f}%")
             create_final_array_avg = self.create_final_array_total_time / self.num_calls
             print(f"create_final_array_total_time = {create_final_array_avg:.5f} => {(create_final_array_avg / avg_total_time)*100:.5f}%")
+            update_existing_datapoints_avg = self.vstack_total_time / self.num_calls
+            print(f"    vstack_total_time = {update_existing_datapoints_avg:.5f} => {(update_existing_datapoints_avg / avg_total_time)*100:.5f}%")
             draw_line_avg = self.draw_line_total_time / self.num_calls
             print(f"draw_line_total_time = {draw_line_avg:.5f} => {(draw_line_avg / avg_total_time)*100:.5f}%")
-            min_max_avg = self.min_max_total_time / self.num_calls
-            print(f"min_max_total_time = {min_max_avg:.5f} => {(min_max_avg / avg_total_time)*100:.5f}%")
-            set_range_avg = self.set_range_total_time / self.num_calls
-            print(f"set_range_total_time = {set_range_avg:.5f} => {(set_range_avg / avg_total_time)*100:.5f}%")
 
             self.num_calls = 0
             self.refresh_total_time = 0
             self.new_data_total_time = 0
-            self.update_existing_datapoints_total_time = 0
+            self.vstack_total_time = 0
             self.roll_total_time = 0
             self.append_new_data_total_time = 0
             self.create_final_array_total_time = 0
             self.draw_line_total_time = 0
-            self.min_max_total_time = 0
-            self.set_range_total_time = 0
 
     def set_line_visibility(self, line_name: str, line_visibility: bool):
         """Update the visibility of a line. If line_visibility is True, the line will be shown. If False, the line will not be rendered in the next refresh call.
