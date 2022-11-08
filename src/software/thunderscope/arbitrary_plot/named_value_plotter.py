@@ -1,23 +1,20 @@
 import random
 import time
+import numpy as np
 
 from vispy import scene
 from vispy.color.color_array import Color
-import numpy as np
-from proto.visualization_pb2 import NamedValue
-from pyqtgraph.Qt import QtCore, QtGui
+from pyqtgraph.Qt import QtCore
 from pyqtgraph.Qt.QtWidgets import *
 from pyqtgraph.dockarea import *
 
+from proto.visualization_pb2 import NamedValue
 from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
 
-# TODO: Move to constants
-DEQUE_SIZE = 1000
 INITIAL_Y_MIN = 0
 INITIAL_Y_MAX = 100
 TIME_WINDOW_TO_DISPLAY_S = 20
 MAX_NUM_POINTS_IN_LINE = TIME_WINDOW_TO_DISPLAY_S * 60
-BUFFER_RESIZE_THRESHOLD = 1.2
 BACKGROUND_COLOR = (0.1, 0.1, 0.1)
 
 
@@ -25,7 +22,7 @@ class NamedValuePlotter(QWidget):
     """ Plot named values in real time with a scrolling plot """
     new_line_signal = QtCore.pyqtSignal(str, Color)
 
-    def __init__(self, buffer_size=1000, *args, **kwargs): # TODO: Potentially lower buffer size for less powerful laptops
+    def __init__(self, buffer_size=200, *args, **kwargs):
         """Initializes NamedValuePlotter.
 
         :param buffer_size: The size of the buffer to use for plotting.
@@ -40,7 +37,7 @@ class NamedValuePlotter(QWidget):
         self.view.camera.set_range(x=[0, TIME_WINDOW_TO_DISPLAY_S], y=[INITIAL_Y_MIN, INITIAL_Y_MAX])
 
         # Visualizing Axis
-        self.x_axis = scene.AxisWidget(orientation="bottom")
+        self.x_axis = scene.AxisWidget(orientation="top")
         self.y_axis = scene.AxisWidget(orientation="right")
         self.x_axis.stretch = (1, 0.05)  # TODO: Not sure what this does
         self.y_axis.stretch = (0.05, 1)
@@ -60,7 +57,7 @@ class NamedValuePlotter(QWidget):
         self.line_color_lists = {}
         self.line_visibility = {}
         self.assigned_line_colors = {}
-        self.disable_tracking = False
+        self.should_update_camera = False
         self.line = scene.visuals.Line(self.line_data, parent=self.view.scene, color='white')
 
         # Added for debugging
@@ -94,7 +91,6 @@ class NamedValuePlotter(QWidget):
 
             # If named_value is new, create a plot and for the new value and
             # add it to necessary maps
-            # TODO: O(n) operation if its not hashed
             if named_value.name not in self.line_point_lists:
                 new_line_name = named_value.name
                 self.line_names.append(new_line_name)
@@ -110,8 +106,6 @@ class NamedValuePlotter(QWidget):
                 self.new_line_signal.emit(new_line_name, new_line_color)
                 self.line_visibility[new_line_name] = True
 
-            # TODO: Instead of appending everytime, preallocate qsize() amount, fill, delete extra space
-            #       https://betterprogramming.pub/numpy-illustrated-the-visual-guide-to-numpy-3b1d4976de1d
             new_data_pair = np.zeros((2, ), dtype=np.float32)
             new_data_pair[1] = named_value.value
             if named_value.name not in new_data:
@@ -130,7 +124,6 @@ class NamedValuePlotter(QWidget):
         vstack_array = []
         data_start_index = 0
         for name in self.line_names:
-            # TODO: check visibility
             new_data_len = 0
             if name in new_data:
                 vstack_array.append(np.array(new_data[name])[::-1])
@@ -184,19 +177,15 @@ class NamedValuePlotter(QWidget):
         self.draw_line_total_time += time.time() - draw_line_start
 
         # Update camera
-        # if not self.disable_tracking and len(line_data) > 0:
-        #     min_max_start = time.time()
-        #     y_min = line_data[:, 1].min()
-        #     y_max = line_data[:, 1].max()
-        #     self.min_max_total_time += time.time() - min_max_start
-        #
-        #     x_max = line_data[-1, 0]
-        #     x_min = max(x_max-TIME_WINDOW_TO_DISPLAY_S, 0)
-        #     set_range_start = time.time()
-        #     # TODO: set_range is the bottleneck. one option is to shift the data rather than the camera
-              # TODO: Disable tracking button ==update to==> auto_range button. auto_range when a plot is toggled
-        #     self.view.camera.set_range(x=[x_min, x_max], y=[y_min, y_max])
-        #     self.set_range_total_time += time.time() - set_range_start
+        if self.should_update_camera:
+            plotted_data = self.line_data[connections]
+            y_min = plotted_data[:, 1].min()
+            y_max = plotted_data[:, 1].max()
+
+            set_range_start = time.time()
+            self.view.camera.set_range(x=[0, TIME_WINDOW_TO_DISPLAY_S], y=[y_min, y_max])
+            self.should_update_camera = False
+            self.set_range_total_time += time.time() - set_range_start
 
         self.refresh_total_time += time.time() - refresh_start
         self.num_calls += 1
@@ -235,21 +224,16 @@ class NamedValuePlotter(QWidget):
         """
         self.line_visibility[line_name] = line_visibility
 
-    def set_disable_tracking(self, disable_tracking: bool):
-        """If disable_tracking is True, the camera will not automatically move to the right
-
-        :param disable_tracking: Whether to disable tracking
-
-        """
-        print(f"Setting disable tracking to {disable_tracking}")
-        self.disable_tracking = disable_tracking
+    def update_camera(self):
+        """If this callback is called, the camera will be updated in the next refresh call."""
+        self.should_update_camera = True
 
 
 class PlotControlsWidget(QWidget):
     """Widget with the controls for the plotter"""
 
     # Signals for connecting the controls to the plotter
-    disable_camera_tracking_signal = QtCore.pyqtSignal(bool)
+    update_camera_signal = QtCore.pyqtSignal()
     line_visibility_signal = QtCore.pyqtSignal(str, bool)
 
     def __init__(self, parent=None):
@@ -260,37 +244,6 @@ class PlotControlsWidget(QWidget):
         super().__init__(parent)
         self.layout = QFormLayout()
 
-        # Button for enabling/disabling camera tracking (auto-scrolling)
-        self.disable_camera_tracking = False
-        self.disable_tracking_title = "Disable Tracking"
-        self.enable_tracking_title = "Enable Tracking"
-        self.camera_tracking_button = QPushButton(self.disable_tracking_title)
-        self.camera_tracking_button.clicked.connect(self.__on_camera_tracking_clicked)
-        self.layout.addWidget(self.camera_tracking_button)
-
-        # Horizontal line dividing sections
-        divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.HLine)
-        self.layout.addWidget(divider)
-
-        # TODO: Add configurable buffer size (shouldn't hurt performance too much)
-        line_visibilities_label = QLabel("Buffer Size")
-        line_visibilities_label.setStyleSheet("font-weight: bold")
-        line_visibilities_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.layout.addWidget(line_visibilities_label)
-
-        self.buffer_size_input = QLineEdit()
-        self.buffer_size_input.setValidator(QtGui.QIntValidator(200, 3600))
-        # self.buffer_size_input.setValue(MAX_NUM_POINTS_IN_LINE)
-        self.layout.addWidget(self.buffer_size_input)
-        self.buffer_size_update_button = QPushButton("Update")
-        self.layout.addWidget(self.buffer_size_update_button)
-
-        # Horizontal line dividing sections
-        divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.HLine)
-        self.layout.addWidget(divider)
-
         # Title above the line visibility controls
         line_visibilities_label = QLabel("Line Visibilities")
         line_visibilities_label.setStyleSheet("font-weight: bold")
@@ -298,15 +251,6 @@ class PlotControlsWidget(QWidget):
         self.layout.addWidget(line_visibilities_label)
 
         self.setLayout(self.layout)
-
-    def __on_camera_tracking_clicked(self):
-        """Callback for when the camera tracking button is clicked"""
-        self.disable_camera_tracking = not self.disable_camera_tracking
-        button_title = self.enable_tracking_title if self.disable_camera_tracking else self.disable_tracking_title
-        self.camera_tracking_button.setText(button_title)
-
-        # Emit signal to update the plotter
-        self.disable_camera_tracking_signal.emit(self.disable_camera_tracking)
 
     def __on_line_visibility_checkbox_pressed(self, checkbox: QCheckBox):
         """
@@ -316,6 +260,9 @@ class PlotControlsWidget(QWidget):
 
         """
         self.line_visibility_signal.emit(checkbox.text(), checkbox.isChecked())
+
+        # Update the camera if a new line is shown/hidden
+        self.update_camera_signal.emit()
 
     def add_line_visibility_checkbox(self, line_name: str, line_color: Color):
         """
@@ -333,6 +280,9 @@ class PlotControlsWidget(QWidget):
         # Wrap the default stateChanged callback with a lambda function so we can pass the checkbox
         checkbox.stateChanged.connect(lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(toggled_checkbox))
 
+        # Update the camera when a new line is added
+        self.update_camera_signal.emit()
+
 
 class MainPlotterWidget(QWidget):
     """Widget that contains the plotter and the controls for the plotter"""
@@ -346,7 +296,6 @@ class MainPlotterWidget(QWidget):
         plotter_dock.hideTitleBar()
         plotter_dock.addWidget(self.plotter.canvas.native)
 
-        # TODO: With buttons, performance seems much worse!?
         controls_dock = Dock("Plot Controls")
         controls_dock.hideTitleBar()
         controls_dock.setStretch(x=5)
@@ -365,7 +314,7 @@ class MainPlotterWidget(QWidget):
 
     def _connect_controls(self):
         """Connect the plotter with the controls"""
-        self.plot_controls.disable_camera_tracking_signal.connect(self.plotter.set_disable_tracking)
+        self.plot_controls.update_camera_signal.connect(self.plotter.update_camera)
         self.plot_controls.line_visibility_signal.connect(self.plotter.set_line_visibility)
         self.plotter.new_line_signal.connect(self.plot_controls.add_line_visibility_checkbox)
 
