@@ -67,8 +67,8 @@ class NamedValuePlotter(QWidget):
         self.refresh_total_time = 0
         self.new_data_total_time = 0
         self.vstack_total_time = 0
-        self.roll_total_time = 0
-        self.append_new_data_total_time = 0
+        self.setup_vstack_total_time = 0
+        self.setup_color_total_time = 0
         self.create_final_array_total_time = 0
         self.draw_line_total_time = 0
         self.min_max_total_time = 0
@@ -147,11 +147,13 @@ class NamedValuePlotter(QWidget):
             self.line_length[name] = (old_data_end - data_start_index) + new_data_len
 
             data_start_index += old_data_len
-        
+
+        self.setup_vstack_total_time += time.time() - create_final_array_start
         vstack_start = time.time()
         self.line_data = np.vstack(vstack_array)
         self.vstack_total_time += time.time() - vstack_start
 
+        create_color_connection_start = time.time()
         connections = np.ones(len(self.line_data), dtype=bool)
         visible_colors = []
         visible_line_lengths = []
@@ -172,6 +174,7 @@ class NamedValuePlotter(QWidget):
             visible_line_lengths.append(num_points)
 
         color_data = np.repeat(visible_colors, visible_line_lengths, axis=0)
+        self.setup_color_total_time += time.time() - create_color_connection_start
 
         self.create_final_array_total_time += time.time() - create_final_array_start
 
@@ -205,8 +208,12 @@ class NamedValuePlotter(QWidget):
             print(f"new_data_total_time = {new_data_avg:.5f} => {(new_data_avg / avg_total_time)*100:.5f}%")
             create_final_array_avg = self.create_final_array_total_time / self.num_calls
             print(f"create_final_array_total_time = {create_final_array_avg:.5f} => {(create_final_array_avg / avg_total_time)*100:.5f}%")
+            setup_vstack_avg = self.setup_vstack_total_time / self.num_calls
+            print(f"    setup_vstack_total_time = {setup_vstack_avg:.5f} => {(setup_vstack_avg / avg_total_time)*100:.5f}%")
             update_existing_datapoints_avg = self.vstack_total_time / self.num_calls
             print(f"    vstack_total_time = {update_existing_datapoints_avg:.5f} => {(update_existing_datapoints_avg / avg_total_time)*100:.5f}%")
+            setup_color_avg = self.setup_color_total_time / self.num_calls
+            print(f"    setup_vstack_total_time = {setup_color_avg:.5f} => {(setup_color_avg / avg_total_time)*100:.5f}%")
             draw_line_avg = self.draw_line_total_time / self.num_calls
             print(f"draw_line_total_time = {draw_line_avg:.5f} => {(draw_line_avg / avg_total_time)*100:.5f}%")
 
@@ -214,8 +221,8 @@ class NamedValuePlotter(QWidget):
             self.refresh_total_time = 0
             self.new_data_total_time = 0
             self.vstack_total_time = 0
-            self.roll_total_time = 0
-            self.append_new_data_total_time = 0
+            self.setup_vstack_total_time = 0
+            self.setup_color_total_time = 0
             self.create_final_array_total_time = 0
             self.draw_line_total_time = 0
 
