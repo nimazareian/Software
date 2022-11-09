@@ -199,86 +199,89 @@ class ProtoPlotDataGenerator(QtCore.QObject):
         :param
 
         """
-        # Shift old data to the right by the elapsed time
-        self.line_data[:, 0] += time.time() - self.last_buffer_read_time
+        while True:
+            # TODO: If we x out of the window, this thread does NOT close!!
+            # Shift old data to the right by the elapsed time
+            self.line_data[:, 0] += time.time() - self.last_buffer_read_time
 
-        # Organize all buffers into numpy arrays containing new data for each line
-        new_data = {}
-        for proto_class, buffer in self.buffers.items():
-            for _ in range(buffer.queue.qsize()):
+            # Organize all buffers into numpy arrays containing new data for each line
+            new_data = {}
+            for proto_class, buffer in self.buffers.items():
+                for _ in range(buffer.queue.qsize()):
 
-                data = self.configuration[proto_class](buffer.get(block=False))
+                    data = self.configuration[proto_class](buffer.get(block=False))
 
-                for name, value in data.items():
-                    # If named_value is new, add it to the necessary maps and notify listeners
-                    if name not in self.lines:
-                        self.lines[name] = NamedLine(name=name)
-                        self.new_line_signal.emit(self.lines[name])
+                    for name, value in data.items():
+                        # If named_value is new, add it to the necessary maps and notify listeners
+                        if name not in self.lines:
+                            self.lines[name] = NamedLine(name=name)
+                            self.new_line_signal.emit(self.lines[name])
 
-                    new_data_pair = np.zeros((2,), dtype=np.float32)
-                    new_data_pair[1] = value
-                    if name not in new_data:
-                        new_data[name] = [new_data_pair]
-                    else:
-                        new_data[name].append(new_data_pair)
+                        new_data_pair = np.zeros((2,), dtype=np.float32)
+                        new_data_pair[1] = value
+                        if name not in new_data:
+                            new_data[name] = [new_data_pair]
+                        else:
+                            new_data[name].append(new_data_pair)
 
-        # Update the time which we last read the buffer
-        self.last_buffer_read_time = time.time()
+            # Update the time which we last read the buffer
+            self.last_buffer_read_time = time.time()
 
-        # Add new data points to the existing data points
-        vstack_array = []
-        data_start_index = 0
-        for name, line in self.lines.items():
-            new_data_len = 0
-            if name in new_data:
-                vstack_array.append(np.array(new_data[name])[::-1])
-                new_data_len = len(new_data[name])
+            # Add new data points to the existing data points
+            vstack_array = []
+            data_start_index = 0
+            for name, line in self.lines.items():
+                new_data_len = 0
+                if name in new_data:
+                    vstack_array.append(np.array(new_data[name])[::-1])
+                    new_data_len = len(new_data[name])
 
-            old_data_len = line.num_points
-            old_data_end = data_start_index + min(
-                old_data_len, self.max_points_per_line - new_data_len
-            )
+                old_data_len = line.num_points
+                old_data_end = data_start_index + min(
+                    old_data_len, self.max_points_per_line - new_data_len
+                )
 
-            # Shift old data points to the right
-            vstack_array.append(self.line_data[data_start_index:old_data_end])
+                # Shift old data points to the right
+                vstack_array.append(self.line_data[data_start_index:old_data_end])
 
-            # Length of remaining old data + length of new data
-            line.num_points = (old_data_end - data_start_index) + new_data_len
-            data_start_index += old_data_len
+                # Length of remaining old data + length of new data
+                line.num_points = (old_data_end - data_start_index) + new_data_len
+                data_start_index += old_data_len
 
-        if len(vstack_array) > 0:
-            self.line_data = np.vstack(vstack_array)
-        else:
-            self.line_data = np.empty((0, 2), dtype=np.float32)
-
-        # Prepare the color and connection data
-        connections = np.ones(len(self.line_data), dtype=bool)
-        line_colors = []
-        line_lengths = []
-        offset = 0
-        for name, line in self.lines.items():
-            num_points = line.num_points
-
-            if line.is_visible:
-                # The last point of each line should not be connected with the first point
-                # of the next line
-                connections[offset + num_points - 1] = False
+            if len(vstack_array) > 0:
+                self.line_data = np.vstack(vstack_array)
             else:
-                # If the line is not visible, don't connect its points
-                connections[offset : offset + num_points] = False
-            offset += num_points
+                self.line_data = np.empty((0, 2), dtype=np.float32)
 
-            line_colors.append(line.color.rgba)
-            line_lengths.append(num_points)
+            # Prepare the color and connection data
+            connections = np.ones(len(self.line_data), dtype=bool)
+            line_colors = []
+            line_lengths = []
+            offset = 0
+            for name, line in self.lines.items():
+                num_points = line.num_points
 
-        color_data = np.repeat(line_colors, line_lengths, axis=0)
+                if line.is_visible:
+                    # The last point of each line should not be connected with the first point
+                    # of the next line
+                    connections[offset + num_points - 1] = False
+                else:
+                    # If the line is not visible, don't connect its points
+                    connections[offset : offset + num_points] = False
+                offset += num_points
 
-        data_dict = {
-            "line_data": self.line_data,
-            "color_data": color_data,
-            "connections": connections,
-        }
-        self.new_data_signal.emit(data_dict)
+                line_colors.append(line.color.rgba)
+                line_lengths.append(num_points)
+
+            color_data = np.repeat(line_colors, line_lengths, axis=0)
+
+            data_dict = {
+                "line_data": self.line_data,
+                "color_data": color_data,
+                "connections": connections,
+            }
+            self.new_data_signal.emit(data_dict)
+            time.sleep(1.0)
 
     def set_line_visibility(self, line_name: str, line_visibility: bool):
         """Update the visibility of a line. If line_visibility is True, the line will be shown. If False, the line will not be rendered in the next refresh call.
@@ -386,7 +389,18 @@ class MainPlotterWidget(QWidget):
         super().__init__()
         self.plotter = plotter
         self.data_generator = data_generator
-        # timer = Timer("1.0", connect=self.data_generator.generate_line_data, start=True)
+
+        # Run the data generator in a separate thread
+        self.data_thread = QtCore.QThread(parent=self)
+        self.data_generator.moveToThread(self.data_thread)
+
+        # Start the data generator when the thread has started
+        self.data_thread.started.connect(self.data_generator.generate_line_data)
+        # When the thread has ended, delete the data source from memory
+        self.data_thread.finished.connect(self.data_generator.deleteLater)
+        self.data_thread.start()
+        # TODO: Will probably have to stop data generation somehow (win.closing.connect(data_generator.stop_data, QtCore.Qt.DirectConnection))
+
 
         # Using pyqtgraph Docks to allow for easy resizing of the plotter and its controls
         plotter_dock = Dock("Plotter")
@@ -429,7 +443,7 @@ class MainPlotterWidget(QWidget):
         """Refresh the plotter with new data"""
         widget_start = time.time()
 
-        self.data_generator.generate_line_data()
+        # self.data_generator.generate_line_data()
         self.plotter.refresh()
 
         self.widget_total_time += time.time() - widget_start
