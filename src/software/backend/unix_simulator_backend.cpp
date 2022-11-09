@@ -71,5 +71,6 @@ void UnixSimulatorBackend::onValueReceived(World world)
 
     LOG(VISUALIZE) << *createNamedValue(
         "World Hz",
-            static_cast<float>(FirstInFirstOutThreadedObserver<World>::getDataReceivedPerSecond()));
+        static_cast<float>(
+            FirstInFirstOutThreadedObserver<World>::getDataReceivedPerSecond()));
 }

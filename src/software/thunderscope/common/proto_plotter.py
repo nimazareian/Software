@@ -10,7 +10,6 @@ from pyqtgraph.Qt import QtCore
 from pyqtgraph.Qt.QtWidgets import *
 from pyqtgraph.dockarea import *
 
-from proto.visualization_pb2 import NamedValue
 from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
 
 
@@ -19,7 +18,11 @@ class NamedLine:
     name: str
     num_points: int = 0
     is_visible: bool = True
-    color: Color = field(default_factory=lambda: Color(color=[random.uniform(0.4, 1.0) for _ in range(3)]))
+    color: Color = field(
+        default_factory=lambda: Color(
+            color=[random.uniform(0.4, 1.0) for _ in range(3)]
+        )
+    )
 
 
 class ProtoPlotter(QWidget):
@@ -59,15 +62,11 @@ class ProtoPlotter(QWidget):
     }
 
     """
+
     new_line_signal = QtCore.pyqtSignal(NamedLine)
 
     def __init__(
-            self,
-            configuration,
-            min_y=0,
-            max_y=100,
-            window_secs=20,
-            buffer_size=200,
+        self, configuration, min_y=0, max_y=100, window_secs=20, buffer_size=200,
     ):
         """Initializes Plotter.
 
@@ -100,7 +99,9 @@ class ProtoPlotter(QWidget):
         # Initialize data structures
         self.lines: Dict[str, NamedLine] = {}
         self.line_data = np.empty((0, 2), dtype=np.float32)
-        self.vispy_line = scene.visuals.Line(self.line_data, parent=self.view.scene, color='white')
+        self.vispy_line = scene.visuals.Line(
+            self.line_data, parent=self.view.scene, color="white"
+        )
 
         self.configuration = configuration
         self.buffers = {
@@ -136,7 +137,7 @@ class ProtoPlotter(QWidget):
                         self.new_line_signal.emit(self.lines[name])
                         self.should_update_camera = True
 
-                    new_data_pair = np.zeros((2, ), dtype=np.float32)
+                    new_data_pair = np.zeros((2,), dtype=np.float32)
                     new_data_pair[1] = value
                     if name not in new_data:
                         new_data[name] = [new_data_pair]
@@ -156,8 +157,9 @@ class ProtoPlotter(QWidget):
                 new_data_len = len(new_data[name])
 
             old_data_len = line.num_points
-            old_data_end = data_start_index + min(old_data_len,
-                                                  self.max_points_in_line - new_data_len)
+            old_data_end = data_start_index + min(
+                old_data_len, self.max_points_in_line - new_data_len
+            )
 
             # Shift old data points to the right
             vstack_array.append(self.line_data[data_start_index:old_data_end])
@@ -188,7 +190,7 @@ class ProtoPlotter(QWidget):
                     any_visible_lines = True
             else:
                 # If the line is not visible, don't connect its points
-                connections[offset:offset + num_points] = False
+                connections[offset : offset + num_points] = False
             offset += num_points
 
             line_colors.append(line.color.rgba)
@@ -198,7 +200,9 @@ class ProtoPlotter(QWidget):
 
         # Re-render plot
         if self.live_plotting_enabled:
-            self.vispy_line.set_data(self.line_data, connect=connections, color=color_data)
+            self.vispy_line.set_data(
+                self.line_data, connect=connections, color=color_data
+            )
 
         # Update camera
         if self.should_update_camera and any_visible_lines:
@@ -253,7 +257,9 @@ class PlotControlsWidget(QWidget):
         self.pause_plotting_title = "Pause Plotting"
         self.resume_plotting_title = "Resume Plotting"
         self.live_plotting_button = QPushButton(self.pause_plotting_title)
-        self.live_plotting_button.clicked.connect(self.__on_live_plotting_button_clicked)
+        self.live_plotting_button.clicked.connect(
+            self.__on_live_plotting_button_clicked
+        )
         self.layout.addWidget(self.live_plotting_button)
 
         # Horizontal line dividing sections
@@ -272,7 +278,11 @@ class PlotControlsWidget(QWidget):
     def __on_live_plotting_button_clicked(self):
         """Callback for when the live plot button is clicked"""
         self.plot_new_data = not self.plot_new_data
-        button_title = self.pause_plotting_title if self.plot_new_data else self.resume_plotting_title
+        button_title = (
+            self.pause_plotting_title
+            if self.plot_new_data
+            else self.resume_plotting_title
+        )
         self.live_plotting_button.setText(button_title)
 
         # Emit signal to update the plotter
@@ -299,11 +309,17 @@ class PlotControlsWidget(QWidget):
         """
         checkbox = QCheckBox(new_line.name)
         checkbox.setChecked(True)
-        checkbox.setStyleSheet(f"QCheckBox::indicator {{ border: 3px solid {new_line.color.hex};}}")
+        checkbox.setStyleSheet(
+            f"QCheckBox::indicator {{ border: 3px solid {new_line.color.hex};}}"
+        )
         self.layout.addWidget(checkbox)
 
         # Wrap the default stateChanged callback with a lambda function so we can pass extra parameters
-        checkbox.stateChanged.connect(lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(toggled_checkbox))
+        checkbox.stateChanged.connect(
+            lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(
+                toggled_checkbox
+            )
+        )
 
         # Update the camera when a new line is added
         self.update_camera_signal.emit()
@@ -341,8 +357,12 @@ class MainPlotterWidget(QWidget):
         """Connect the plotter with the controls"""
         self.plot_controls.update_camera_signal.connect(self.plotter.update_camera)
         self.plot_controls.live_plotting_signal.connect(self.plotter.set_live_plotting)
-        self.plot_controls.line_visibility_signal.connect(self.plotter.set_line_visibility)
-        self.plotter.new_line_signal.connect(self.plot_controls.add_line_visibility_checkbox)
+        self.plot_controls.line_visibility_signal.connect(
+            self.plotter.set_line_visibility
+        )
+        self.plotter.new_line_signal.connect(
+            self.plot_controls.add_line_visibility_checkbox
+        )
 
     def refresh(self):
         """Refresh the plotter with new data"""

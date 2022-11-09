@@ -407,9 +407,7 @@ class Thunderscope(object):
         log_dock.setStretch(x=5)
         log_dock.addWidget(widgets["log_widget"])
 
-        widgets["plotter_widget"] = self.setup_plotter(
-            full_system_proto_unix_io
-        )
+        widgets["plotter_widget"] = self.setup_plotter(full_system_proto_unix_io)
         plotter_dock = Dock("Plotter")
         plotter_dock.addWidget(widgets["plotter_widget"])
 

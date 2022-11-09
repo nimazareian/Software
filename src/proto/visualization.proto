@@ -12,8 +12,6 @@ message PathVisualization
 
 message NamedValue
 {
-    // TODO: Add time, then everything can be based on the time of the first packet?!
-    //       May make it difficult for replay as the same data may be visualized multiple times...?!
     string name = 1;
     float value = 2;
 }
