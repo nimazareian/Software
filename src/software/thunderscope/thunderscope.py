@@ -28,7 +28,7 @@ from pyqtgraph.Qt.QtWidgets import *
 
 from software.py_constants import *
 from proto.import_all_protos import *
-from software.thunderscope.common.proto_plotter import ProtoPlotter
+from software.thunderscope.common.proto_plotter import *
 from extlibs.er_force_sim.src.protobuf.world_pb2 import *
 from software.thunderscope.dock_label_style import *
 
@@ -147,7 +147,6 @@ class Thunderscope(object):
         self.window = QtGui.QMainWindow()
         self.window.setCentralWidget(self.tabs)
         self.window.setWindowTitle("Thunderscope")
-        # TODO: Set icon for tscope
 
         # ProtoUnixIOs
         #
@@ -358,7 +357,6 @@ class Thunderscope(object):
 
         if load_diagnostics:
             self.configure_robot_diagnostics_layout(
-                self.robot_diagnostics_dock_area,
                 self.blue_full_system_proto_unix_io
                 if load_blue
                 else self.yellow_full_system_proto_unix_io,
@@ -409,11 +407,11 @@ class Thunderscope(object):
         log_dock.setStretch(x=5)
         log_dock.addWidget(widgets["log_widget"])
 
-        widgets["performance_widget"] = self.setup_performance_plot(
+        widgets["plotter_widget"] = self.setup_plotter(
             full_system_proto_unix_io
         )
-        performance_dock = Dock("Performance")
-        performance_dock.addWidget(widgets["performance_widget"])
+        plotter_dock = Dock("Plotter")
+        plotter_dock.addWidget(widgets["plotter_widget"])
 
         widgets["parameter_widget"] = self.setup_parameter_widget(
             full_system_proto_unix_io, friendly_colour_yellow
@@ -429,9 +427,9 @@ class Thunderscope(object):
         dock_area.addDock(log_dock, "left", field_dock)
         dock_area.addDock(parameter_dock, "above", log_dock)
         dock_area.addDock(playinfo_dock, "bottom", field_dock)
-        dock_area.addDock(performance_dock, "right", playinfo_dock)
+        dock_area.addDock(plotter_dock, "right", playinfo_dock)
 
-    def configure_robot_diagnostics_layout(self, dock_area, proto_unix_io):
+    def configure_robot_diagnostics_layout(self, proto_unix_io):
         """Configure the default layout for the robot diagnostics widget
 
         :param proto_unix_io: The proto unix io object for the full system
@@ -597,11 +595,11 @@ class Thunderscope(object):
 
         return logs
 
-    def setup_performance_plot(self, proto_unix_io):
-        """Setup the performance plot
+    def setup_plotter(self, proto_unix_io):
+        """Setup the proto plotter
 
         :param proto_unix_io: The proto unix io object
-        :returns: The performance plot widget
+        :returns: The plotter widget which includes the proto plotter and its controls
 
         """
 
@@ -610,17 +608,21 @@ class Thunderscope(object):
 
         # Performance Plots plot HZ so the values can't be negative
         proto_plotter = ProtoPlotter(
-            min_y=0,
-            max_y=100,
-            window_secs=15,
             configuration={NamedValue: extract_namedvalue_data},
         )
 
+        # Create widget
+        main_plotter_widget = MainPlotterWidget(proto_plotter)
+
         # Register observer
-        proto_unix_io.register_observer(NamedValue, proto_plotter.buffers[NamedValue])
+        proto_unix_io.register_observer(
+            NamedValue, main_plotter_widget.plotter.buffers[NamedValue]
+        )
+
         # Register refresh function
-        self.register_refresh_function(proto_plotter.refresh)
-        return proto_plotter
+        self.register_refresh_function(main_plotter_widget.refresh)
+
+        return main_plotter_widget
 
     def setup_play_info(self, proto_unix_io):
         """Setup the play info widget
