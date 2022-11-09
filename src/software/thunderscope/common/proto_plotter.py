@@ -27,6 +27,108 @@ class NamedLine:
 
 class ProtoPlotter(QWidget):
 
+    def __init__(
+        self, window_secs, min_y=0, max_y=100,
+    ):
+        """Initializes Plotter.
+
+        :param window_secs: How many seconds to show in the x axis
+        :param min_y: Initial minimum y value to display
+        :param max_y: Initial maximum y value to display
+
+        """
+        super().__init__()
+
+        # Set up the VisPy plot
+        self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=(0.1, 0.1, 0.1))
+        self.grid = self.canvas.central_widget.add_grid()
+        # Supporting panning and zooming
+        self.view = self.grid.add_view(row=0, col=1, camera="panzoom")
+        self.view.camera.set_range(x=[0, window_secs], y=[min_y, max_y])
+        self.window_secs = window_secs
+
+        # Visualizing Axis
+        self.x_axis = scene.AxisWidget(orientation="top")
+        self.y_axis = scene.AxisWidget(orientation="right", tick_label_margin=3)
+        self.x_axis.stretch = (1, 0.05)
+        self.y_axis.stretch = (0.05, 1)
+        self.grid.add_widget(self.x_axis, row=1, col=1)
+        self.grid.add_widget(self.y_axis, row=0, col=0)
+        self.x_axis.link_view(self.view)
+        self.y_axis.link_view(self.view)
+
+        # Initialize data structures
+        self.line_data = np.zeros((1, 2), dtype=np.float32)
+        self.color_data = np.zeros((1, 4), dtype=np.float32)
+        self.connections = np.zeros(1, dtype=bool)
+        self.vispy_line = scene.visuals.Line(
+            self.line_data, parent=self.view.scene, color="white"
+        )
+
+        self.live_plotting_enabled = True
+        self.should_update_camera = False
+
+        # Variables added for debugging
+        self.num_calls = 0
+        self.refresh_total_time = 0
+
+    def refresh(self):
+        """Refreshes NamedValuePlotter and updates data in the respective
+        plots.
+
+        """
+        refresh_start = time.time()
+
+        # TODO: Make the data aggregation multi-threaded. This should make points more spread out as well
+        #       Aggregate new data with the time they were received, but only update the line (emit) 1/60 sec
+        # Re-render plot
+        if self.live_plotting_enabled:
+            self.vispy_line.set_data(
+                self.line_data, connect=self.connections, color=self.color_data
+            )
+
+        # Update camera
+        if self.should_update_camera:
+            # Calculate min/max y based on the visible points
+            plotted_data = self.line_data[self.connections]
+            if len(plotted_data) > 0:
+                y_min = plotted_data[:, 1].min()
+                y_max = plotted_data[:, 1].max()
+
+                self.view.camera.set_range(x=[0, self.window_secs], y=[y_min, y_max])
+                self.should_update_camera = False
+
+        self.refresh_total_time += time.time() - refresh_start
+        self.num_calls += 1
+        if self.num_calls >= 100:
+            print(f"=== avg plotter time for {self.num_calls} calls: {self.refresh_total_time / self.num_calls:0.5f}")
+            self.num_calls = 0
+            self.refresh_total_time = 0
+
+    def set_new_data(self, new_data: dict):
+        """Sets the new data to be plotted.
+
+        :param new_data: A dictionary with the line, point, and connection data
+
+        """
+        self.line_data = new_data["line_data"]
+        self.color_data = new_data["color_data"]
+        self.connections = new_data["connections"]
+
+    def set_live_plotting(self, live_plotting_enabled: bool):
+        """Update whether the plots should be updated in real-time or not.
+
+        :param live_plotting_enabled: If true, the plot will be updated in real time. If false, the plot will not be updated.
+
+        """
+        self.live_plotting_enabled = live_plotting_enabled
+
+    def update_camera(self):
+        """If this callback is called, the camera will be updated in the next refresh call."""
+        self.should_update_camera = True
+
+
+class ProtoPlotDataGenerator(QtCore.QObject):
     """Plot the protobuf data in a VisPy plot
 
     In-order to make the plotter as flexible as possible, we need dependency
@@ -63,63 +165,40 @@ class ProtoPlotter(QWidget):
 
     """
 
+    # Signal for sending the new data to the plotter
+    new_data_signal = QtCore.pyqtSignal(dict)
+
+    # Signal for when a new line is added
     new_line_signal = QtCore.pyqtSignal(NamedLine)
 
-    def __init__(
-        self, configuration, min_y=0, max_y=100, window_secs=20, buffer_size=200,
-    ):
-        """Initializes Plotter.
+    def __init__(self, configuration, max_points_per_line, buffer_size=200,):
+        """Initializes a ProtoPlotDataGenerator.
 
         :param configuration: A dictionary of protobuf types to data extractor
-        :param min_y: Initial minimum y value to display
-        :param max_y: Initial maximum y value to display
-        :param window_secs: How many seconds to show in the x axis
+        :param max_points_per_line: The maximum number of points to store per line
         :param buffer_size: The size of the buffer to use for plotting.
 
         """
         super().__init__()
-
-        # Set up the VisPy plot
-        self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=(0.1, 0.1, 0.1))
-        self.grid = self.canvas.central_widget.add_grid()
-        # Supporting panning and zooming
-        self.view = self.grid.add_view(row=0, col=1, camera="panzoom")
-        self.view.camera.set_range(x=[0, window_secs], y=[min_y, max_y])
-
-        # Visualizing Axis
-        self.x_axis = scene.AxisWidget(orientation="top")
-        self.y_axis = scene.AxisWidget(orientation="right", tick_label_margin=3)
-        self.x_axis.stretch = (1, 0.05)
-        self.y_axis.stretch = (0.05, 1)
-        self.grid.add_widget(self.x_axis, row=1, col=1)
-        self.grid.add_widget(self.y_axis, row=0, col=0)
-        self.x_axis.link_view(self.view)
-        self.y_axis.link_view(self.view)
-
-        # Initialize data structures
-        self.lines: Dict[str, NamedLine] = {}
-        self.line_data = np.empty((0, 2), dtype=np.float32)
-        self.vispy_line = scene.visuals.Line(
-            self.line_data, parent=self.view.scene, color="white"
-        )
 
         self.configuration = configuration
         self.buffers = {
             key: ThreadSafeBuffer(buffer_size, key) for key in configuration.keys()
         }
 
-        self.last_buffer_read_time = time.time()
-        self.window_secs = window_secs
-        self.max_points_in_line = window_secs * 60
-        self.live_plotting_enabled = True
-        self.should_update_camera = False
+        # Initialize data structures
+        self.lines: Dict[str, NamedLine] = {}
+        self.line_data = np.empty((0, 2), dtype=np.float32)
 
-    def refresh(self):
-        """Refreshes NamedValuePlotter and updates data in the respective
-        plots.
+        self.last_buffer_read_time = time.time()
+        self.max_points_per_line = max_points_per_line
+
+    def generate_line_data(self):
+        """Generates data for the proto plotter.
+
+        :param
 
         """
-        # TODO: Make the data aggregation multi-threaded
         # Shift old data to the right by the elapsed time
         self.line_data[:, 0] += time.time() - self.last_buffer_read_time
 
@@ -135,7 +214,6 @@ class ProtoPlotter(QWidget):
                     if name not in self.lines:
                         self.lines[name] = NamedLine(name=name)
                         self.new_line_signal.emit(self.lines[name])
-                        self.should_update_camera = True
 
                     new_data_pair = np.zeros((2,), dtype=np.float32)
                     new_data_pair[1] = value
@@ -158,7 +236,7 @@ class ProtoPlotter(QWidget):
 
             old_data_len = line.num_points
             old_data_end = data_start_index + min(
-                old_data_len, self.max_points_in_line - new_data_len
+                old_data_len, self.max_points_per_line - new_data_len
             )
 
             # Shift old data points to the right
@@ -177,7 +255,6 @@ class ProtoPlotter(QWidget):
         connections = np.ones(len(self.line_data), dtype=bool)
         line_colors = []
         line_lengths = []
-        any_visible_lines = False
         offset = 0
         for name, line in self.lines.items():
             num_points = line.num_points
@@ -186,8 +263,6 @@ class ProtoPlotter(QWidget):
                 # The last point of each line should not be connected with the first point
                 # of the next line
                 connections[offset + num_points - 1] = False
-                if line.num_points > 0:
-                    any_visible_lines = True
             else:
                 # If the line is not visible, don't connect its points
                 connections[offset : offset + num_points] = False
@@ -198,21 +273,12 @@ class ProtoPlotter(QWidget):
 
         color_data = np.repeat(line_colors, line_lengths, axis=0)
 
-        # Re-render plot
-        if self.live_plotting_enabled:
-            self.vispy_line.set_data(
-                self.line_data, connect=connections, color=color_data
-            )
-
-        # Update camera
-        if self.should_update_camera and any_visible_lines:
-            # Calculate min/max y based on the visible points
-            plotted_data = self.line_data[connections]
-            y_min = plotted_data[:, 1].min()
-            y_max = plotted_data[:, 1].max()
-
-            self.view.camera.set_range(x=[0, self.window_secs], y=[y_min, y_max])
-            self.should_update_camera = False
+        data_dict = {
+            "line_data": self.line_data,
+            "color_data": color_data,
+            "connections": connections,
+        }
+        self.new_data_signal.emit(data_dict)
 
     def set_line_visibility(self, line_name: str, line_visibility: bool):
         """Update the visibility of a line. If line_visibility is True, the line will be shown. If False, the line will not be rendered in the next refresh call.
@@ -222,18 +288,6 @@ class ProtoPlotter(QWidget):
 
         """
         self.lines[line_name].is_visible = line_visibility
-
-    def set_live_plotting(self, live_plotting_enabled: bool):
-        """Update whether the plots should be updated in real-time or not.
-
-        :param live_plotting_enabled: If true, the plot will be updated in real time. If false, the plot will not be updated.
-
-        """
-        self.live_plotting_enabled = live_plotting_enabled
-
-    def update_camera(self):
-        """If this callback is called, the camera will be updated in the next refresh call."""
-        self.should_update_camera = True
 
 
 class PlotControlsWidget(QWidget):
@@ -328,9 +382,11 @@ class PlotControlsWidget(QWidget):
 class MainPlotterWidget(QWidget):
     """Widget that contains the plotter and the controls for the plotter"""
 
-    def __init__(self, plotter: ProtoPlotter):
+    def __init__(self, plotter: ProtoPlotter, data_generator: ProtoPlotDataGenerator):
         super().__init__()
         self.plotter = plotter
+        self.data_generator = data_generator
+        # timer = Timer("1.0", connect=self.data_generator.generate_line_data, start=True)
 
         # Using pyqtgraph Docks to allow for easy resizing of the plotter and its controls
         plotter_dock = Dock("Plotter")
@@ -349,21 +405,36 @@ class MainPlotterWidget(QWidget):
 
         self.main_layout = QHBoxLayout()
         self.main_layout.addWidget(self.dock_area)
-
         self.setLayout(self.main_layout)
+
         self._connect_controls()
+
+        # TODO: Added for debugging
+        self.widget_total_time = 0
+        self.num_calls = 0
 
     def _connect_controls(self):
         """Connect the plotter with the controls"""
         self.plot_controls.update_camera_signal.connect(self.plotter.update_camera)
         self.plot_controls.live_plotting_signal.connect(self.plotter.set_live_plotting)
         self.plot_controls.line_visibility_signal.connect(
-            self.plotter.set_line_visibility
+            self.data_generator.set_line_visibility
         )
-        self.plotter.new_line_signal.connect(
+        self.data_generator.new_line_signal.connect(
             self.plot_controls.add_line_visibility_checkbox
         )
+        self.data_generator.new_data_signal.connect(self.plotter.set_new_data)
 
     def refresh(self):
         """Refresh the plotter with new data"""
+        widget_start = time.time()
+
+        self.data_generator.generate_line_data()
         self.plotter.refresh()
+
+        self.widget_total_time += time.time() - widget_start
+        self.num_calls += 1
+        if self.num_calls >= 100:
+            print(f"=== avg main widget time for {self.num_calls} calls: {self.widget_total_time / self.num_calls:0.5f}")
+            self.num_calls = 0
+            self.widget_total_time = 0

@@ -31,6 +31,7 @@ from proto.import_all_protos import *
 from software.thunderscope.common.proto_plotter import *
 from extlibs.er_force_sim.src.protobuf.world_pb2 import *
 from software.thunderscope.dock_label_style import *
+import software.python_bindings as tbots
 
 # Import Widgets
 from software.thunderscope.field import (
@@ -604,17 +605,31 @@ class Thunderscope(object):
         def extract_namedvalue_data(named_value_data):
             return {named_value_data.name: named_value_data.value}
 
-        # Performance Plots plot HZ so the values can't be negative
-        proto_plotter = ProtoPlotter(
-            configuration={NamedValue: extract_namedvalue_data},
+        def extract_world_velocity_data(world_data):
+            robot_velocities = {}
+            for robot in world_data.friendly_team.team_robots:
+                robot_velocities[f"vel {robot.id}"] = tbots.createVector(robot.current_state.global_velocity).length()
+            return robot_velocities
+
+        # TODO: Performance Plots plot HZ so the values can't be negative
+        plot_window_secs = 20
+        proto_plotter = ProtoPlotter(window_secs=plot_window_secs)
+
+        max_points_per_line = plot_window_secs * 60
+        proto_plot_data_generator = ProtoPlotDataGenerator(
+            configuration={NamedValue: extract_namedvalue_data, World: extract_world_velocity_data},
+            max_points_per_line=max_points_per_line
         )
 
         # Create widget
-        main_plotter_widget = MainPlotterWidget(proto_plotter)
+        main_plotter_widget = MainPlotterWidget(proto_plotter, proto_plot_data_generator)
 
         # Register observer
         proto_unix_io.register_observer(
-            NamedValue, main_plotter_widget.plotter.buffers[NamedValue]
+            NamedValue, main_plotter_widget.data_generator.buffers[NamedValue]
+        )
+        proto_unix_io.register_observer(
+            World, main_plotter_widget.data_generator.buffers[World]
         )
 
         # Register refresh function
