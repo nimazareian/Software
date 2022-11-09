@@ -1,6 +1,8 @@
 import random
 import time
 import numpy as np
+from dataclasses import dataclass, field
+from typing import Dict
 
 from vispy import scene
 from vispy.color.color_array import Color
@@ -18,9 +20,17 @@ MAX_NUM_POINTS_IN_LINE = TIME_WINDOW_TO_DISPLAY_S * 60
 BACKGROUND_COLOR = (0.1, 0.1, 0.1)
 
 
+@dataclass
+class NamedLine:
+    name: str
+    num_points: int = 0
+    is_visible: bool = True
+    color: Color = field(default_factory=lambda: Color(color=[random.uniform(0.4, 1.0) for _ in range(3)]))
+
+
 class NamedValuePlotter(QWidget):
     """ Plot named values in real time with a scrolling plot """
-    new_line_signal = QtCore.pyqtSignal(str, Color)
+    new_line_signal = QtCore.pyqtSignal(NamedLine)
 
     def __init__(self, buffer_size=200, *args, **kwargs):
         """Initializes NamedValuePlotter.
@@ -30,7 +40,7 @@ class NamedValuePlotter(QWidget):
         """
         super().__init__(*args, **kwargs)
         self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=BACKGROUND_COLOR)
-        # For allowing to have multiple plots in the same window
+        # For allowing to have multiple plots/axis in the same window
         self.grid = self.canvas.central_widget.add_grid()
         # Supporting panning and zooming
         self.view = self.grid.add_view(row=0, col=1, camera="panzoom")
@@ -38,8 +48,8 @@ class NamedValuePlotter(QWidget):
 
         # Visualizing Axis
         self.x_axis = scene.AxisWidget(orientation="top")
-        self.y_axis = scene.AxisWidget(orientation="right")
-        self.x_axis.stretch = (1, 0.05)  # TODO: Not sure what this does
+        self.y_axis = scene.AxisWidget(orientation="right", tick_label_margin=3)
+        self.x_axis.stretch = (1, 0.05)
         self.y_axis.stretch = (0.05, 1)
         self.grid.add_widget(self.x_axis, row=1, col=1)
         self.grid.add_widget(self.y_axis, row=0, col=0)
@@ -50,28 +60,11 @@ class NamedValuePlotter(QWidget):
         self.last_buffer_read_time = time.time()
         self.named_value_buffer = ThreadSafeBuffer(buffer_size, NamedValue)
 
-        self.line_point_lists = {}
-        self.line_names = []
-        self.line_data = np.empty((0, 2), dtype=np.float32)
-        self.line_length = {}
-        self.line_color_lists = {}
-        self.line_visibility = {}
-        self.assigned_line_colors = {}
+        self.lines: Dict[str, NamedLine] = {}
         self.live_plotting_enabled = True
         self.should_update_camera = False
-        self.line = scene.visuals.Line(self.line_data, parent=self.view.scene, color='white')
-
-        # Added for debugging
-        self.refresh_total_time = 0
-        self.new_data_total_time = 0
-        self.vstack_total_time = 0
-        self.setup_vstack_total_time = 0
-        self.setup_color_total_time = 0
-        self.create_final_array_total_time = 0
-        self.draw_line_total_time = 0
-        self.min_max_total_time = 0
-        self.set_range_total_time = 0
-        self.num_calls = 0
+        self.line_data = np.empty((0, 2), dtype=np.float32)
+        self.vispy_line = scene.visuals.Line(self.line_data, parent=self.view.scene, color='white')
 
     def refresh(self):
         """Refreshes NamedValuePlotter and updates data in the respective
@@ -79,11 +72,8 @@ class NamedValuePlotter(QWidget):
 
         """
         # TODO: Make the data aggregation multi-threaded
-        refresh_start = time.time()
-
         # Shift old data to the right by the elapsed time
-        time_since_last_read = time.time() - self.last_buffer_read_time
-        self.line_data[:, 0] += time_since_last_read
+        self.line_data[:, 0] += time.time() - self.last_buffer_read_time
 
         # Organize the entire buffer into numpy arrays for each line
         new_data = {}
@@ -92,20 +82,11 @@ class NamedValuePlotter(QWidget):
 
             # If named_value is new, create a plot and for the new value and
             # add it to necessary maps
-            if named_value.name not in self.line_point_lists:
+            if named_value.name not in self.lines:
                 new_line_name = named_value.name
-                self.line_names.append(new_line_name)
-                new_line_color = Color(color=[random.uniform(0.4, 1.0) for _ in range(4)])
-
-                self.line_point_lists[new_line_name] = np.empty((0, 2), dtype=np.float32)
-                self.line_length[new_line_name] = 0
-                print(f"PLOT ADDED {new_line_name} => {len(self.line_point_lists.keys())} total plots")
-
-                # Assign this line a random color
-                self.assigned_line_colors[new_line_name] = new_line_color
-                self.line_color_lists[new_line_name] = np.empty((0, 4), dtype=np.float32)
-                self.new_line_signal.emit(new_line_name, new_line_color)
-                self.line_visibility[new_line_name] = True
+                self.lines[new_line_name] = NamedLine(name=new_line_name)
+                self.new_line_signal.emit(self.lines[new_line_name])
+                self.should_update_camera = True
 
             new_data_pair = np.zeros((2, ), dtype=np.float32)
             new_data_pair[1] = named_value.value
@@ -116,21 +97,17 @@ class NamedValuePlotter(QWidget):
 
         # Update the time which we last read the buffer
         self.last_buffer_read_time = time.time()
-
-        self.new_data_total_time += time.time() - refresh_start
-
-        create_final_array_start = time.time()
         
         # Add new data points to the existing data points
         vstack_array = []
         data_start_index = 0
-        for name in self.line_names:
+        for name, line in self.lines.items():
             new_data_len = 0
             if name in new_data:
                 vstack_array.append(np.array(new_data[name])[::-1])
                 new_data_len = len(new_data[name])
 
-            old_data_len = self.line_length[name]
+            old_data_len = line.num_points
             old_data_end = data_start_index + min(old_data_len,
                                                   MAX_NUM_POINTS_IN_LINE - new_data_len)
 
@@ -138,88 +115,52 @@ class NamedValuePlotter(QWidget):
             vstack_array.append(self.line_data[data_start_index:old_data_end])
 
             # Length of remaining old data + length of new data
-            self.line_length[name] = (old_data_end - data_start_index) + new_data_len
-
+            line.num_points = (old_data_end - data_start_index) + new_data_len
             data_start_index += old_data_len
 
-        self.setup_vstack_total_time += time.time() - create_final_array_start
-        vstack_start = time.time()
         if len(vstack_array) > 0:
             self.line_data = np.vstack(vstack_array)
         else:
             self.line_data = np.empty((0, 2), dtype=np.float32)
-        self.vstack_total_time += time.time() - vstack_start
 
-        create_color_connection_start = time.time()
+        # Prepare the color and connection data
         connections = np.ones(len(self.line_data), dtype=bool)
-        visible_colors = []
-        visible_line_lengths = []
+        line_colors = []
+        line_lengths = []
+        any_visible_lines = False
         offset = 0
-        for name in self.line_names:
-            num_points = self.line_length[name]
+        for name, line in self.lines.items():
+            num_points = line.num_points
 
-            if self.line_visibility[name]:
+            if line.is_visible:
                 # The last point of each line should not be connected with the first point
                 # of the next line
                 connections[offset + num_points - 1] = False
+                if line.num_points > 0:
+                    any_visible_lines = True
             else:
                 # If the line is not visible, don't connect its points
                 connections[offset:offset + num_points] = False
             offset += num_points
 
-            visible_colors.append(self.assigned_line_colors[name].rgba)
-            visible_line_lengths.append(num_points)
+            line_colors.append(line.color.rgba)
+            line_lengths.append(num_points)
 
-        color_data = np.repeat(visible_colors, visible_line_lengths, axis=0)
-        self.setup_color_total_time += time.time() - create_color_connection_start
+        color_data = np.repeat(line_colors, line_lengths, axis=0)
 
-        self.create_final_array_total_time += time.time() - create_final_array_start
-
-        draw_line_start = time.time()
         # Re-render plot
         if self.live_plotting_enabled:
-            self.line.set_data(self.line_data, connect=connections, color=color_data)
-
-        self.draw_line_total_time += time.time() - draw_line_start
+            self.vispy_line.set_data(self.line_data, connect=connections, color=color_data)
 
         # Update camera
-        if self.should_update_camera and True in self.line_visibility.values():
+        if self.should_update_camera and any_visible_lines:
+            # Calculate min/max y based on the visible points
             plotted_data = self.line_data[connections]
             y_min = plotted_data[:, 1].min()
             y_max = plotted_data[:, 1].max()
 
-            set_range_start = time.time()
             self.view.camera.set_range(x=[0, TIME_WINDOW_TO_DISPLAY_S], y=[y_min, y_max])
             self.should_update_camera = False
-            self.set_range_total_time += time.time() - set_range_start
-
-        self.refresh_total_time += time.time() - refresh_start
-        self.num_calls += 1
-        if self.num_calls >= 150:
-            print(f"=== avg time for {self.num_calls} calls:")
-            avg_total_time = self.refresh_total_time / self.num_calls
-            print(f"refresh_total_time = {avg_total_time:.5f}")
-            new_data_avg = self.new_data_total_time / self.num_calls
-            print(f"new_data_total_time = {new_data_avg:.5f} => {(new_data_avg / avg_total_time)*100:.5f}%")
-            create_final_array_avg = self.create_final_array_total_time / self.num_calls
-            print(f"create_final_array_total_time = {create_final_array_avg:.5f} => {(create_final_array_avg / avg_total_time)*100:.5f}%")
-            setup_vstack_avg = self.setup_vstack_total_time / self.num_calls
-            print(f"    setup_vstack_total_time = {setup_vstack_avg:.5f} => {(setup_vstack_avg / avg_total_time)*100:.5f}%")
-            update_existing_datapoints_avg = self.vstack_total_time / self.num_calls
-            print(f"    vstack_total_time = {update_existing_datapoints_avg:.5f} => {(update_existing_datapoints_avg / avg_total_time)*100:.5f}%")
-            setup_color_avg = self.setup_color_total_time / self.num_calls
-            print(f"    setup_vstack_total_time = {setup_color_avg:.5f} => {(setup_color_avg / avg_total_time)*100:.5f}%")
-            draw_line_avg = self.draw_line_total_time / self.num_calls
-            print(f"draw_line_total_time = {draw_line_avg:.5f} => {(draw_line_avg / avg_total_time)*100:.5f}%")
-
-            self.num_calls = 0
-            self.refresh_total_time = 0
-            self.new_data_total_time = 0
-            self.vstack_total_time = 0
-            self.setup_vstack_total_time = 0
-            self.setup_color_total_time = 0
-            self.create_final_array_total_time = 0
-            self.draw_line_total_time = 0
 
     def set_line_visibility(self, line_name: str, line_visibility: bool):
         """Update the visibility of a line. If line_visibility is True, the line will be shown. If False, the line will not be rendered in the next refresh call.
@@ -228,7 +169,7 @@ class NamedValuePlotter(QWidget):
         :param line_visibility: New visibility of the line
 
         """
-        self.line_visibility[line_name] = line_visibility
+        self.lines[line_name].is_visible = line_visibility
 
     def set_live_plotting(self, live_plotting_enabled: bool):
         """Update whether the plots should be updated in real-time or not.
@@ -301,20 +242,19 @@ class PlotControlsWidget(QWidget):
         # Update the camera if a new line is shown/hidden
         self.update_camera_signal.emit()
 
-    def add_line_visibility_checkbox(self, line_name: str, line_color: Color):
+    def add_line_visibility_checkbox(self, new_line: NamedLine):
         """
         Callback for adding a new line visibility checkbox. Should be called when a new line is added to the plotter
 
-        :param line_name: Name of the new line
-        :param line_color: Color of the new line
+        :param new_line: The new line that was added
 
         """
-        checkbox = QCheckBox(line_name)
+        checkbox = QCheckBox(new_line.name)
         checkbox.setChecked(True)
-        checkbox.setStyleSheet(f"QCheckBox::indicator {{ border: 3px solid {line_color.hex};}}")
+        checkbox.setStyleSheet(f"QCheckBox::indicator {{ border: 3px solid {new_line.color.hex};}}")
         self.layout.addWidget(checkbox)
 
-        # Wrap the default stateChanged callback with a lambda function so we can pass the checkbox
+        # Wrap the default stateChanged callback with a lambda function so we can pass extra parameters
         checkbox.stateChanged.connect(lambda _, toggled_checkbox=checkbox: self.__on_line_visibility_checkbox_pressed(toggled_checkbox))
 
         # Update the camera when a new line is added
