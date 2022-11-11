@@ -130,42 +130,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 
     const double signed_delta_orientation =
         (dest_orientation - curr_orientation).clamp().toRadians();
-//   TODO: Interesting results (angular velocity from World/Sensor Fusion is messed up)
-//    acceleration_angular_speed: 0.602078 = curr_angular_velocity_: 0.485412 + 0.116667
-//    deceleration_angular_speed: 0.265407
-//    max_angular_speed: 10
-//    target: 0.265407
-//    ramped: 0.265407
-//    -----------------------
-//    acceleration_angular_speed: -378.073 = curr_angular_velocity_: -378.19 + 0.116667
-//    deceleration_angular_speed: 0.0529709
-//    max_angular_speed: 10
-//    target: -378.073
-//    ramped: -0.475326
 
-    std::cout << "acceleration_angular_speed: " << acceleration_angular_speed << " = curr_angular_velocity_: " << curr_angular_velocity_.toRadians() << " + " << robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * time_step_s_ << std::endl;
-    std::cout << "deceleration_angular_speed: " << deceleration_angular_speed << std::endl;
-    std::cout << "max_angular_speed: " << max_angular_speed << std::endl;
-
-    LOG(VISUALIZE, BLUE_NAMED_VALUE_PATH) << *createNamedValue(
-                "signed_delta_orientation",
-                static_cast<float>(signed_delta_orientation));
-    LOG(VISUALIZE, BLUE_NAMED_VALUE_PATH) << *createNamedValue(
-                "next_angular_speed",
-                static_cast<float>(AngularVelocity::fromRadians(
-                        std::copysign(next_angular_speed, signed_delta_orientation)).toRadians()));
-//    LOG(VISUALIZE, BLUE_NAMED_VALUE_PATH) << *createNamedValue(
-//                "max_angular_speed",
-//                static_cast<float>(max_angular_speed));
-//    LOG(VISUALIZE, BLUE_NAMED_VALUE_PATH) << *createNamedValue(
-//                "deceleration_angular_speed",
-//                static_cast<float>(deceleration_angular_speed));
-    LOG(VISUALIZE, BLUE_NAMED_VALUE_PATH) << *createNamedValue(
-                "curr_angular_velocity_",
-                static_cast<float>(curr_angular_velocity_.toRadians()));
-    LOG(VISUALIZE, BLUE_NAMED_VALUE_PATH) << *createNamedValue(
-                "acceleration_angular_speed",
-                static_cast<float>(acceleration_angular_speed));
     return AngularVelocity::fromRadians(
         std::copysign(next_angular_speed, signed_delta_orientation));
 }
@@ -175,7 +140,6 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
     const unsigned int robot_id,
     const RobotState& robot_state)  // TODO Nima: Revert to angle (orientation)
 {
-    std::cout << "-----------------------" << std::endl;
     hrvo_simulator_.doStep();
 
     // Visualize the HRVO Simulator for the current robot
@@ -286,14 +250,6 @@ std::pair<Vector, AngularVelocity> PrimitiveExecutor::rampVelocity(
     AngularVelocity ramped_angular_velocity =
         AngularVelocity::fromRadians(ramped_euclidean_velocity[2]);
 
-    LOG(VISUALIZE, BLUE_NAMED_VALUE_PATH) << *createNamedValue(
-                "target",
-                static_cast<float>(angle.toRadians()));
-    LOG(VISUALIZE, BLUE_NAMED_VALUE_PATH) << *createNamedValue(
-                "ramped",
-                static_cast<float>(ramped_angular_velocity.toRadians()));
-    std::cout << "target: " << angle.toRadians() << std::endl;
-    std::cout << "ramped: " << ramped_angular_velocity.toRadians() << std::endl;
     return {ramped_linear_velocity, ramped_angular_velocity};
 }
 
