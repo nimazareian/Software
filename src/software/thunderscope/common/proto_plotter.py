@@ -175,6 +175,8 @@ class ProtoPlotDataGenerator(QtCore.QObject):
     # Signal for when a new line is added
     new_line_signal = QtCore.pyqtSignal(NamedLine)
 
+    update_camera_signal = QtCore.pyqtSignal()
+
     def __init__(self, configuration, max_points_per_line, buffer_size=200,):
         """Initializes a ProtoPlotDataGenerator.
 
@@ -196,8 +198,9 @@ class ProtoPlotDataGenerator(QtCore.QObject):
 
         self.last_buffer_read_time = time.time()
         self.max_points_per_line = max_points_per_line
-        self.should_emit_new_data = True
         self.cached_new_data = {}
+        self.should_emit_new_data = True
+        self.should_update_camera = False
 
     def generate_line_data(self):
         """Generates data for the proto plotter."""
@@ -217,6 +220,7 @@ class ProtoPlotDataGenerator(QtCore.QObject):
                     if name not in self.lines:
                         self.lines[name] = NamedLine(name=name)
                         self.new_line_signal.emit(self.lines[name])
+                        self.should_update_camera = True
 
                     new_data_pair = np.zeros((2,), dtype=np.float32)
                     new_data_pair[1] = value
@@ -226,11 +230,10 @@ class ProtoPlotDataGenerator(QtCore.QObject):
                         self.cached_new_data[name].append(new_data_pair)
                     # print(f"New value read: {time.time()}")
 
-
         # Update the time which we last read the buffer
         self.last_buffer_read_time = time.time()
 
-        if self.should_emit_new_data and len(self.cached_new_data) > 0:
+        if True: # self.should_emit_new_data and len(self.cached_new_data) > 0:
             # Add the new data points to the existing data points
             vstack_array = []
             data_start_index = 0
@@ -284,11 +287,15 @@ class ProtoPlotDataGenerator(QtCore.QObject):
                 "color_data": color_data,
                 "connections": connections,
             }
+            # Send new data to the plotter
             self.new_data_signal.emit(data_dict)
-            # print(f"{time.time()} emitted new data")
-            # TODO: Should request an update camera from here to avoid race conditions
             self.should_emit_new_data = False
             self.cached_new_data = {}
+
+            # Update the camera if a new line was added or a line visibility was toggled
+            if self.should_update_camera:
+                self.update_camera_signal.emit()
+                self.should_update_camera = False
         else:
             pass
             # print(f"{time.time()} NOT EMITTING NEW DATA")
@@ -309,13 +316,13 @@ class ProtoPlotDataGenerator(QtCore.QObject):
 
         """
         self.lines[line_name].is_visible = line_visibility
+        self.should_update_camera = True
 
 
 class PlotControlsWidget(QWidget):
     """Widget with the controls for the plotter"""
 
     # Signals for connecting the controls to the plotter
-    update_camera_signal = QtCore.pyqtSignal()
     live_plotting_signal = QtCore.pyqtSignal(bool)
     line_visibility_signal = QtCore.pyqtSignal(str, bool)
 
@@ -372,9 +379,6 @@ class PlotControlsWidget(QWidget):
         """
         self.line_visibility_signal.emit(checkbox.text(), checkbox.isChecked())
 
-        # Update the camera if a new line is shown/hidden
-        self.update_camera_signal.emit()
-
     def add_line_visibility_checkbox(self, new_line: NamedLine):
         """
         Callback for adding a new line visibility checkbox. Should be called when a new line is added to the plotter
@@ -395,9 +399,6 @@ class PlotControlsWidget(QWidget):
                 toggled_checkbox
             )
         )
-
-        # Update the camera when a new line is added
-        self.update_camera_signal.emit()
 
 
 class MainPlotterWidget(QWidget):
@@ -447,7 +448,6 @@ class MainPlotterWidget(QWidget):
 
     def _connect_controls(self):
         """Connect the plotter with the controls"""
-        self.plot_controls.update_camera_signal.connect(self.plotter.update_camera)
         self.plot_controls.live_plotting_signal.connect(self.plotter.set_live_plotting)
         self.plot_controls.line_visibility_signal.connect(
             self.data_generator.set_line_visibility
@@ -456,6 +456,7 @@ class MainPlotterWidget(QWidget):
             self.plot_controls.add_line_visibility_checkbox
         )
         self.data_generator.new_data_signal.connect(self.plotter.set_new_data)
+        self.data_generator.update_camera_signal.connect(self.plotter.update_camera)
         self.plotter.refreshed_plot_signal.connect(self.data_generator.emit_new_data, QtCore.Qt.ConnectionType.DirectConnection)
 
     def refresh(self):
