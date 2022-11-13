@@ -201,39 +201,37 @@ class ProtoPlotDataGenerator(QtCore.QObject):
 
     def generate_line_data(self):
         """Generates data for the proto plotter."""
-        while True:
-            # TODO: If we x out of the window, this thread does NOT close!!
-            # Shift old data to the right by the elapsed time
-            self.line_data[:, 0] += time.time() - self.last_buffer_read_time
+        # TODO: If we x out of the window, this thread does NOT close!!
+        # Shift old data to the right by the elapsed time
+        self.line_data[:, 0] += time.time() - self.last_buffer_read_time
+        # print(f"Shifting data by: {time.time() - self.last_buffer_read_time}")
 
-            # Organize all buffers into numpy arrays containing new data for each line
-            for proto_class, buffer in self.buffers.items():
-                for _ in range(buffer.queue.qsize()):
+        # Organize all buffers into numpy arrays containing new data for each line
+        for proto_class, buffer in self.buffers.items():
+            for _ in range(buffer.queue.qsize()):
 
-                    data = self.configuration[proto_class](buffer.get(block=False))
+                data = self.configuration[proto_class](buffer.get(block=False))
 
-                    for name, value in data.items():
-                        # If named_value is new, add it to the necessary maps and notify listeners
-                        if name not in self.lines:
-                            self.lines[name] = NamedLine(name=name)
-                            self.new_line_signal.emit(self.lines[name])
+                for name, value in data.items():
+                    # If named_value is new, add it to the necessary maps and notify listeners
+                    if name not in self.lines:
+                        self.lines[name] = NamedLine(name=name)
+                        self.new_line_signal.emit(self.lines[name])
 
-                        new_data_pair = np.zeros((2,), dtype=np.float32)
-                        new_data_pair[1] = value
-                        if name not in self.cached_new_data:
-                            self.cached_new_data[name] = [new_data_pair]
-                        else:
-                            self.cached_new_data[name].append(new_data_pair)
+                    new_data_pair = np.zeros((2,), dtype=np.float32)
+                    new_data_pair[1] = value
+                    if name not in self.cached_new_data:
+                        self.cached_new_data[name] = [new_data_pair]
+                    else:
+                        self.cached_new_data[name].append(new_data_pair)
+                    # print(f"New value read: {time.time()}")
 
-            # Update the time which we last read the buffer
-            self.last_buffer_read_time = time.time()
 
-            print(f"{self.should_emit_new_data=} BEFORE IF STATEMENT")
-            if not self.should_emit_new_data or len(self.cached_new_data) == 0:
-                # Wait for the previous data sent to be plotted before sending new data
-                continue
+        # Update the time which we last read the buffer
+        self.last_buffer_read_time = time.time()
 
-            # Add new data points to the existing data points
+        if self.should_emit_new_data and len(self.cached_new_data) > 0:
+            # Add the new data points to the existing data points
             vstack_array = []
             data_start_index = 0
             for name, line in self.lines.items():
@@ -287,9 +285,16 @@ class ProtoPlotDataGenerator(QtCore.QObject):
                 "connections": connections,
             }
             self.new_data_signal.emit(data_dict)
+            # print(f"{time.time()} emitted new data")
+            # TODO: Should request an update camera from here to avoid race conditions
             self.should_emit_new_data = False
             self.cached_new_data = {}
-            time.sleep(1.0)
+        else:
+            pass
+            # print(f"{time.time()} NOT EMITTING NEW DATA")
+
+        # QTimer is used instead of a blocking infinite loop to allow this thread to receive signals between iterations
+        QtCore.QTimer.singleShot(0, self.generate_line_data)
 
     def emit_new_data(self):
         """Generate and send a new set of data to the plotter"""
