@@ -205,6 +205,8 @@ class ProtoPlotDataGenerator(QtCore.QObject):
     def generate_line_data(self):
         """Generates data for the proto plotter."""
         # TODO: If we x out of the window, this thread does NOT close!!
+
+        # TODO: Checkout profiling: https://napari.org/stable/developers/profiling.html Though this is probably specific to napari lib (uses vispy)
         # Shift old data to the right by the elapsed time
         self.line_data[:, 0] += time.time() - self.last_buffer_read_time
         # print(f"Shifting data by: {time.time() - self.last_buffer_read_time}")
@@ -305,7 +307,7 @@ class ProtoPlotDataGenerator(QtCore.QObject):
 
     def emit_new_data(self):
         """Generate and send a new set of data to the plotter"""
-        print("Received emit new data request")
+        # print("Received emit new data request")
         self.should_emit_new_data = True
 
     def set_line_visibility(self, line_name: str, line_visibility: bool):
@@ -440,13 +442,13 @@ class MainPlotterWidget(QWidget):
         self.main_layout.addWidget(self.dock_area)
         self.setLayout(self.main_layout)
 
-        self._connect_controls()
+        self._connect_signals()
 
         # TODO: Added for debugging
         self.widget_total_time = 0
         self.num_calls = 0
 
-    def _connect_controls(self):
+    def _connect_signals(self):
         """Connect the plotter with the controls"""
         self.plot_controls.live_plotting_signal.connect(self.plotter.set_live_plotting)
         self.plot_controls.line_visibility_signal.connect(
