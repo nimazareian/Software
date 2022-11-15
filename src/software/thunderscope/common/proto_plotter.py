@@ -26,6 +26,49 @@ class NamedLine:
     )
 
 
+class MinimalPlotter(QWidget):
+
+    def __init__(self, window_secs=20, min_y=0, max_y=100,):
+        super().__init__()
+
+        # Set up the VisPy plot
+        self.canvas = scene.SceneCanvas(keys="interactive", bgcolor=(0.1, 0.1, 0.1))
+        self.grid = self.canvas.central_widget.add_grid()
+        # Supporting panning and zooming
+        self.view = self.grid.add_view(row=0, col=1, camera="panzoom")
+        self.view.camera.set_range(x=[0, window_secs], y=[min_y, max_y])
+        self.window_secs = window_secs
+
+        # Visualizing Axis
+        self.x_axis = scene.AxisWidget(orientation="top")
+        self.y_axis = scene.AxisWidget(orientation="right", tick_label_margin=3)
+        self.x_axis.stretch = (1, 0.05)
+        self.y_axis.stretch = (0.05, 1)
+        self.grid.add_widget(self.x_axis, row=1, col=1)
+        self.grid.add_widget(self.y_axis, row=0, col=0)
+        self.x_axis.link_view(self.view)
+        self.y_axis.link_view(self.view)
+
+        # Initialize data structures
+        self.line_data = np.zeros((10, 2), dtype=np.float32)
+        self.color_data = np.zeros((10, 4), dtype=np.float32)
+        self.connections = np.zeros(10, dtype=bool)
+        self.vispy_line = scene.visuals.Line(
+            self.line_data, parent=self.view.scene, color="white"
+        )
+
+        self.live_plotting_enabled = True
+        self.should_update_camera = False
+
+        # Variables added for debugging
+        self.num_calls = 0
+        self.refresh_total_time = 0
+
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.canvas.native)
+        self.setLayout(main_layout)
+
+
 class ProtoPlotter(QWidget):
     refreshed_plot_signal = QtCore.pyqtSignal()
 
