@@ -333,5 +333,21 @@ if __name__ == "__main__":
             )
 
             thread.start()
-            tscope.show()
+            # tscope.show()
+
+            import cProfile
+            import pstats
+            import os
+            cProfile.runctx("tscope.show()", globals(), locals(), "exec.dat")
+
+            with open("output_time.txt", "w") as f:
+                print(f"Outputting profiling time data to {os.path.realpath(f.name)}")
+                stats = pstats.Stats("exec.dat", stream=f)
+                stats.sort_stats("time").print_stats()
+
+            with open("output_calls.txt", "w") as f:
+                print(f"Outputting profiling calls data to {os.path.realpath(f.name)}")
+                stats = pstats.Stats("exec.dat", stream=f)
+                stats.sort_stats("calls").print_stats()
+
             thread.join()

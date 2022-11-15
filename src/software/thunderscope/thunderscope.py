@@ -682,33 +682,35 @@ class Thunderscope(object):
 
     def show(self):
         """Show the main window"""
-
-        import cProfile
-        import pstats
-        import os
+        #
+        # import cProfile
+        # import pstats
+        # import os
 
         self.window.show()
-        # QtCore.QTimer.singleShot(4000, self.window.close)
-        cProfile.runctx("self.show2()", globals(), locals(), "exec.dat")
-
-        with open("output_time.txt", "w") as f:
-            print(f"Outputting profiling time data to {os.path.realpath(f.name)}")
-            stats = pstats.Stats("exec.dat", stream=f)
-            stats.sort_stats("time").print_stats()
-
-        with open("output_calls.txt", "w") as f:
-            print(f"Outputting profiling calls data to {os.path.realpath(f.name)}")
-            stats = pstats.Stats("exec.dat", stream=f)
-            stats.sort_stats("calls").print_stats()
+        QtCore.QTimer.singleShot(4000, self.window.close)
+        self.show2()
+        # cProfile.runctx("self.show2()", globals(), locals(), "exec.dat")
+        #
+        # with open("output_time.txt", "w") as f:
+        #     print(f"Outputting profiling time data to {os.path.realpath(f.name)}")
+        #     stats = pstats.Stats("exec.dat", stream=f)
+        #     stats.sort_stats("time").print_stats()
+        #
+        # with open("output_calls.txt", "w") as f:
+        #     print(f"Outputting profiling calls data to {os.path.realpath(f.name)}")
+        #     stats = pstats.Stats("exec.dat", stream=f)
+        #     stats.sort_stats("calls").print_stats()
         # pyqtgraph.exec()
 
     def close(self):
         """Close the main window"""
 
+        print("$$$$$ Close called")
         QtCore.QTimer.singleShot(0, self.window.close)
 
     def show2(self):
-        print("About to execute pyqtgraph.exec()")
+        print(f"About to execute pyqtgraph.exec(): {time.time()}")
         pyqtgraph.exec()
-        print("Ran pyqtgraph.exec()")
+        print("Finished pyqtgraph.exec()")
 

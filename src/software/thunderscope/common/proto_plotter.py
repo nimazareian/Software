@@ -50,12 +50,12 @@ class MinimalPlotter(QWidget):
         self.y_axis.link_view(self.view)
 
         # Initialize data structures
-        self.line_data = np.zeros((10, 2), dtype=np.float32)
-        self.color_data = np.zeros((10, 4), dtype=np.float32)
-        self.connections = np.zeros(10, dtype=bool)
-        self.vispy_line = scene.visuals.Line(
-            self.line_data, parent=self.view.scene, color="white"
-        )
+        # self.line_data = np.zeros((10, 2), dtype=np.float32)
+        # self.color_data = np.zeros((10, 4), dtype=np.float32)
+        # self.connections = np.zeros(10, dtype=bool)
+        # self.vispy_line = scene.visuals.Line(
+        #     self.line_data, parent=self.view.scene, color="white"
+        # )
 
         self.live_plotting_enabled = True
         self.should_update_camera = False
