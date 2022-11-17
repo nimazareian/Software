@@ -68,7 +68,8 @@ class MinimalPlotter(QWidget):
         main_layout.addWidget(self.canvas.native)
         self.setLayout(main_layout)
 
-
+# TODO: Keep existing plotter and use plot juggler for additional log visualize calls?! (potentially define a different log sync for plotjuggler)
+#TODO: Use a QTimer singleshot call to instantiate plotter after 10sec
 class ProtoPlotter(QWidget):
     refreshed_plot_signal = QtCore.pyqtSignal()
 
