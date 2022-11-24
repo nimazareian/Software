@@ -353,9 +353,10 @@ SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
             auto& primitive_executor = primitive_executor_with_id.second;
             // Set to NEG_X because the world msg in this simulator is
             // normalized correctly
+            primitive_executor->updateAngularVelocity(createAngularVelocity(
+                robot_proto_it->current_state().global_angular_velocity()));
             auto direct_control = primitive_executor->stepPrimitive(
-                robot_id,
-                createAngle(robot_proto_it->current_state().global_orientation()));
+                robot_id, createRobotState(robot_proto_it->current_state()));
 
             auto command = *getRobotCommandFromDirectControl(
                 robot_id, std::move(direct_control), robot_constants);

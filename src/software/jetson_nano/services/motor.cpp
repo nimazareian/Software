@@ -381,6 +381,8 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         static_cast<float>(current_euclidean_velocity[0]));
     motor_status.mutable_local_velocity()->set_y_component_meters(
         static_cast<float>(current_euclidean_velocity[1]));
+    motor_status.mutable_angular_velocity()->set_radians_per_second(
+        current_euclidean_velocity[2]);
 
     WheelSpace_t target_wheel_velocities = {0.0, 0.0, 0.0, 0.0};
 

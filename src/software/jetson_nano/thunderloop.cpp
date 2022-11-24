@@ -182,7 +182,7 @@ Thunderloop::~Thunderloop() {}
                 if (robot.has_value())
                 {
                     direct_control_ = *primitive_executor_.stepPrimitive(
-                        robot_id_, robot->currentState().orientation());
+                        robot_id_, robot->currentState());
                 }
                 else
                 {
@@ -190,8 +190,8 @@ Thunderloop::~Thunderloop() {}
                     auto robot_state =
                         RobotState(Point(0, 0), Vector(0, 0), Angle::fromDegrees(0),
                                    Angle::fromDegrees(0));
-                    direct_control_ = *primitive_executor_.stepPrimitive(
-                        robot_id_, robot_state.orientation());
+                    direct_control_ =
+                        *primitive_executor_.stepPrimitive(robot_id_, robot_state);
                 }
             }
 
@@ -222,6 +222,8 @@ Thunderloop::~Thunderloop() {}
                                                      loop_duration_seconds);
                 primitive_executor_.updateLocalVelocity(
                     createVector(motor_status_.local_velocity()));
+                primitive_executor_.updateAngularVelocity(
+                    createAngularVelocity(motor_status_.angular_velocity()));
             }
             thunderloop_status_.set_motor_service_poll_time_ns(
                 static_cast<unsigned long>(poll_time.tv_nsec));
