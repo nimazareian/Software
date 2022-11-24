@@ -1,5 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
+load("@simulated_tests_deps//:requirements.bzl", "requirement")
+
 cc_test(
     name = "simulated_hrvo_test",
     srcs = ["simulated_hrvo_test.cpp"],
@@ -45,5 +47,17 @@ cc_library(
         "//software/geom:vector",
         "//software/networking:threaded_proto_unix_sender",
         "//software/world",
+    ],
+)
+
+py_test(
+    name = "hrvo_test",
+    srcs = [
+        "hrvo_test.py",
+    ],
+    deps = [
+        "//software/simulated_tests:simulated_test_fixture",
+        "//software/simulated_tests:validation",
+        requirement("pytest"),
     ],
 )

@@ -275,25 +275,6 @@ void ErForceSimulator::setBlueRobotPrimitiveSet(
                           *blue_team_world_msg, robot_to_local_velocity.at(robot_id));
     }
     blue_team_world_msg = std::move(world_msg);
-
-    auto friendly_robots = Team(blue_team_world_msg->friendly_team()).getAllRobots();
-    auto enemy_robots    = Team(blue_team_world_msg->enemy_team()).getAllRobots();
-    std::map<std::string, double> robot_xy_positions;
-    for (const Robot& robot : friendly_robots)
-    {
-        robot_xy_positions.insert(
-            {std::to_string(robot.id()) + "f_x", robot.position().x()});
-        robot_xy_positions.insert(
-            {std::to_string(robot.id()) + "f_y", robot.position().y()});
-    }
-    for (const Robot& robot : enemy_robots)
-    {
-        robot_xy_positions.insert(
-            {std::to_string(robot.id()) + "e_x", robot.position().x()});
-        robot_xy_positions.insert(
-            {std::to_string(robot.id()) + "e_y", robot.position().y()});
-    }
-//    LOG(PLOTJUGGLER) << *createPlotJugglerValue(robot_xy_positions);
 }
 
 void ErForceSimulator::setRobotPrimitive(

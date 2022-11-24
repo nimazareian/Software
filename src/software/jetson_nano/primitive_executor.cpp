@@ -6,6 +6,7 @@
 #include "proto/tbots_software_msgs.pb.h"
 #include "proto/visualization.pb.h"
 #include "software/math/math_functions.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 PrimitiveExecutor::PrimitiveExecutor(const double time_step,
                                      const RobotConstants_t& robot_constants,
@@ -15,7 +16,9 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       hrvo_simulator_(static_cast<float>(time_step), robot_constants,
                       friendly_team_colour),
       time_step_s_(time_step),
-      curr_angular_velocity_(AngularVelocity::zero())
+      curr_angular_velocity_(AngularVelocity::zero()),
+      friendly_team_colour(friendly_team_colour),
+      team_color(friendly_team_colour == TeamColour::YELLOW ? "y" : "b")
 {
 }
 
@@ -125,6 +128,14 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     double next_angular_speed = std::min(
         {max_angular_speed, deceleration_angular_speed, acceleration_angular_speed});
 
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t", curr_orientation.toRadians()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_deltaToDest", delta_orientation});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_accel", acceleration_angular_speed});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_decel", deceleration_angular_speed});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_max", max_angular_speed});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_min", next_angular_speed});
+
     const double signed_delta_orientation =
         (dest_orientation - curr_orientation).clamp().toRadians();
     return AngularVelocity::fromRadians(
@@ -136,6 +147,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
     const unsigned int robot_id,
     const RobotState& robot_state)
 {
+    robot_id_ = robot_id;
     hrvo_simulator_.doStep();
 
     // Visualize the HRVO Simulator for the current robot
@@ -179,6 +191,13 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
                 target_velocity, target_angular_velocity,
                 current_primitive_.move().dribbler_speed_rpm(),
                 current_primitive_.move().auto_chip_or_kick());
+
+            plotjuggler_values.insert({std::to_string(robot_id) + team_color + "_vt", target_angular_velocity.toRadians()});
+            plotjuggler_values.insert({std::to_string(robot_id) + team_color + "_vx", target_velocity.x()});
+            plotjuggler_values.insert({std::to_string(robot_id) + team_color + "_vy", target_velocity.y()});
+            plotjuggler_values.insert({std::to_string(robot_id) + team_color + "_vxy", target_velocity.length()});
+            LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
+            plotjuggler_values.clear();
 
             return std::make_unique<TbotsProto::DirectControlPrimitive>(
                 output->direct_control());

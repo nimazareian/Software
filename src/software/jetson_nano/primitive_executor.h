@@ -94,4 +94,8 @@ class PrimitiveExecutor
     HRVOSimulator hrvo_simulator_;
     const double time_step_s_;
     AngularVelocity curr_angular_velocity_;
+    std::map<std::string, double> plotjuggler_values;
+    const TeamColour friendly_team_colour;
+    const std::string team_color;
+    RobotId robot_id_ = 0;
 };
