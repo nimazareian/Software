@@ -47,7 +47,6 @@ void PrimitiveExecutor::updateWorld(const TbotsProto::World& world_msg)
 void PrimitiveExecutor::updateAngularVelocity(AngularVelocity angular_velocity)
 {
     curr_angular_velocity_ = angular_velocity;
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
 }
 
 void PrimitiveExecutor::updateLocalVelocity(Vector local_velocity) {}
@@ -129,6 +128,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     double next_angular_speed = std::min(
         {max_angular_speed, deceleration_angular_speed, acceleration_angular_speed});
 
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t", curr_orientation.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_deltaToDest", delta_orientation});
