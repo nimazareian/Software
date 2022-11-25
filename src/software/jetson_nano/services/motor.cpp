@@ -24,6 +24,7 @@
 #include "shared/constants.h"
 #include "software/logger/logger.h"
 #include "software/util/scoped_timespec_timer/scoped_timespec_timer.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 extern "C"
 {
@@ -162,10 +163,14 @@ void MotorService::setUpMotors()
     // Drive Motor Setup
     for (uint8_t motor = 0; motor < NUM_DRIVE_MOTORS; motor++)
     {
+        LOG(DEBUG) << "startDriver " <<  std::to_string(motor);
         startDriver(motor);
+        LOG(DEBUG) << "checkDriverFault " <<  std::to_string(motor);
         checkDriverFault(motor);
         // Start all the controllers as drive motor controllers
+        LOG(DEBUG) << "startController " <<  std::to_string(motor);
         startController(motor, false);
+        LOG(DEBUG) << "tmc4671_setTargetVelocity " <<  std::to_string(motor);
         tmc4671_setTargetVelocity(motor, 0);
     }
 
@@ -338,6 +343,13 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
     motor_status.mutable_back_right()->set_wheel_velocity(
         static_cast<float>(back_right_velocity));
 
+
+    std::map<std::string, double> plotjuggler_values;
+    plotjuggler_values.insert({"fr_v", front_right_velocity});
+    plotjuggler_values.insert({"fl_v", front_left_velocity});
+    plotjuggler_values.insert({"bl_v", back_left_velocity});
+    plotjuggler_values.insert({"br_v", back_right_velocity});
+
     // This order needs to match euclidean_to_four_wheel converters order
     // We also want to work in the meters per second space rather than electrical RPMs
     WheelSpace_t current_wheel_velocities = {front_right_velocity, front_left_velocity,
@@ -421,6 +433,8 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
             break;
         }
     }
+
+    plotjuggler_values.insert({"desired_euclidean_vt", motor.direct_velocity_control().angular_velocity().radians_per_second()});
     target_wheel_velocities = rampWheelVelocity(
         prev_wheel_velocities, target_linear_velocity,
         static_cast<double>(robot_constants_.robot_max_speed_m_per_s),
@@ -447,6 +461,12 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         BACK_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
         static_cast<int>(target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX] *
                          ELECTRICAL_RPM_PER_MECHANICAL_MPS));
+
+    plotjuggler_values.insert({"fr_v_desired", target_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"fl_v_desired", target_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"bl_v_desired", target_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"br_v_desired", target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX]});
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
 
     // If the dribbler only needs to change by DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S,
     // just set the value

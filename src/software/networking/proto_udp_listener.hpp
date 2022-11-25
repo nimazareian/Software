@@ -82,9 +82,11 @@ ProtoUdpListener<ReceiveProtoT>::ProtoUdpListener(
     bool multicast)
     : socket_(io_service), receive_callback(receive_callback)
 {
+    std::cout << "OPENING PROTO UDP WITH IP " << ip_address << ":" << port << std::endl;
     boost::asio::ip::udp::endpoint listen_endpoint(
         boost::asio::ip::make_address(ip_address), port);
     socket_.open(listen_endpoint.protocol());
+    std::cout << "FINISHED OPENING PROTO UDP WITH IP " << ip_address << ":" << port << std::endl;
     socket_.set_option(boost::asio::socket_base::reuse_address(true));
     try
     {
@@ -116,8 +118,12 @@ ProtoUdpListener<ReceiveProtoT>::ProtoUdpListener(
     std::function<void(ReceiveProtoT&)> receive_callback)
     : socket_(io_service), receive_callback(receive_callback)
 {
+
+    std::cout << "OPENING PROTO UDP PORT " << port << std::endl;
+//    std::cout << "listen_endpoint.protocol()= " << listen_endpoint.protocol() << std::endl;
     boost::asio::ip::udp::endpoint listen_endpoint(boost::asio::ip::udp::v6(), port);
     socket_.open(listen_endpoint.protocol());
+    std::cout << "FINISHED OPENING PROTO UDP PORT " << port << std::endl;
     // Explicitly set the v6_only option to be false to accept both ipv4 and ipv6 packets
     socket_.set_option(boost::asio::ip::v6_only(false));
     try

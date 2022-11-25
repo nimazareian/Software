@@ -21,7 +21,7 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 
 Thunderloop::Thunderloop(const RobotConstants_t& robot_constants, const int loop_hz)
     // TODO (#2495): Set the friendly team colour once we receive World proto
-    : primitive_executor_(loop_hz, robot_constants, TeamColour::YELLOW)
+    : primitive_executor_(1.0 / loop_hz, robot_constants, TeamColour::YELLOW)
 {
     robot_id_        = MAX_ROBOT_IDS + 1;  // Initialize to a robot ID that is not valid
     channel_id_      = 0;
@@ -34,15 +34,21 @@ Thunderloop::Thunderloop(const RobotConstants_t& robot_constants, const int loop
     auto channel_id = std::stoi(redis_client_->get(ROBOT_MULTICAST_CHANNEL_REDIS_KEY));
     auto network_interface = redis_client_->get(ROBOT_NETWORK_INTERFACE_REDIS_KEY);
 
+
+    std::cout << "INITIALIZING NETWORK SERVICE IN THUNDERLOOP CONSTRUCTOR" << std::endl;
     network_service_ = std::make_unique<NetworkService>(
         std::string(ROBOT_MULTICAST_CHANNELS.at(channel_id)) + "%" +
         network_interface,
         VISION_PORT, PRIMITIVE_PORT, ROBOT_STATUS_PORT, true);
 
+    std::cout << "INITIALIZING NETWORK LOGGER IN THUNDERLOOP CONSTRUCTOR" << std::endl;
     NetworkLoggerSingleton::initializeLogger(channel_id, network_interface, robot_id);
 
+    std::cout << "INITIALIZING MOTOR SERVICE IN THUNDERLOOP CONSTRUCTOR" << std::endl;
     motor_service_ = std::make_unique<MotorService>(robot_constants, loop_hz);
+    std::cout << "INITIALIZING POWER SERVICE IN THUNDERLOOP CONSTRUCTOR" << std::endl;
     power_service_ = std::make_unique<PowerService>();
+    std::cout << "FINISHED INIT" << std::endl;
 }
 
 Thunderloop::~Thunderloop() {}

@@ -117,10 +117,11 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
         dest_orientation.minDiff(curr_orientation).toRadians();
 
     // The speed which we should be decelerating at to stop at the destination,
-    // derived by solving for v_i in the equation v_f^2 = v_i^2 + 2*a*d.
+    // TODO: In simulated tests, test rotation CW and CCW
     double acceleration_angular_speed =
-        curr_angular_velocity_.toRadians() +
-        robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * time_step_s_;
+            curr_angular_velocity_.abs().toRadians() +
+            robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * time_step_s_;
+    // derived by solving for v_i in the equation v_f^2 = v_i^2 + 2*a*d.
     double deceleration_angular_speed = std::sqrt(
         2 * robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * delta_orientation);
     double max_angular_speed =
@@ -182,9 +183,9 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         case TbotsProto::Primitive::kMove:
         {
             // Compute the target velocities
-            Vector target_velocity = getTargetLinearVelocity(robot_id, robot_state.orientation());
-            //            Vector target_velocity =
-            //            getTargetLinearVelocity(current_primitive_.move(), robot_state);
+//            Vector target_velocity = getTargetLinearVelocity(robot_id, robot_state.orientation());
+                        Vector target_velocity =
+                        getTargetLinearVelocity(current_primitive_.move(), robot_state);
             AngularVelocity target_angular_velocity =
                 getTargetAngularVelocity(current_primitive_.move(), robot_state.orientation());
 

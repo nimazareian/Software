@@ -323,6 +323,8 @@ cc_library(
         ":example_play",
         ":free_kick_play",
         ":halt_play",
+        ":move_to_dest_and_orient_play",
+        ":move_to_dest_play",
         ":kickoff_enemy_play",
         ":kickoff_friendly_play",
         ":penalty_kick_enemy_play",
