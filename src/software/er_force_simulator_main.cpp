@@ -146,6 +146,12 @@ int main(int argc, char **argv)
                         input, std::make_unique<TbotsProto::World>(blue_vision));
                 });
 
+        // TODO: Multiple simulated tests without closing tscope
+        //       Stop simulation using space button (+ change speed)
+        //       Fullscreen tscope!?
+        //       Fix no robot in world race condition
+        //       Shorten printed pytest failure messages
+
         // Simulator Tick Input
         auto simulator_tick = ThreadedProtoUnixListener<TbotsProto::SimulatorTick>(
             runtime_dir + SIMULATION_TICK_PATH, [&](TbotsProto::SimulatorTick input) {
