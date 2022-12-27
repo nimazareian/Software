@@ -11,7 +11,6 @@
 #include "software/util/scoped_timespec_timer/scoped_timespec_timer.h"
 #include "software/world/robot_state.h"
 #include "software/world/team.h"
-#include "software/test_util/test_util.h"
 
 /**
  * https://rt.wiki.kernel.org/index.php/Squarewave-example
@@ -85,6 +84,7 @@ Thunderloop::~Thunderloop() {}
 
     for (;;)
     {
+        auto start_tloop = std::chrono::system_clock::now();
         {
             // Wait until next shot
             //
@@ -98,14 +98,15 @@ Thunderloop::~Thunderloop() {}
 
             // Grab the latest configs from redis
 
-            auto start_time = std::chrono::system_clock::now();
+            auto start = std::chrono::system_clock::now();
             auto robot_id = std::stoi(redis_client_->get(ROBOT_ID_REDIS_KEY));
             auto channel_id =
                 std::stoi(redis_client_->get(ROBOT_MULTICAST_CHANNEL_REDIS_KEY));
             auto network_interface =
                 redis_client_->get(ROBOT_NETWORK_INTERFACE_REDIS_KEY);
-            double duration_ms = ::TestUtil::millisecondsSince(start_time);
-            std::cout << "102:" << duration_ms << "ms 3x get" << std::endl;
+            auto end                                      = std::chrono::system_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//            std::cout << "102:" << milliseconds.count() << "ns 3x set" << std::endl;
 
             // If any of the configs have changed, update the network service to switch
             // to the new interface and channel with the correct robot ID
@@ -217,14 +218,16 @@ Thunderloop::~Thunderloop() {}
             // Power Service: execute the power control command
             {
                 ScopedTimespecTimer timer(&poll_time);
-                auto start_time = std::chrono::system_clock::now();
+                start = std::chrono::system_clock::now();
                 auto kick_slope =
                     std::stoi(redis_client_->get(ROBOT_KICK_SLOPE_REDIS_KEY));
                 auto kick_constant =
                     std::stoi(redis_client_->get(ROBOT_KICK_CONSTANT_REDIS_KEY));
                 auto chip_pulse_width =
                     std::stoi(redis_client_->get(ROBOT_CHIP_PULSE_WIDTH_REDIS_KEY));
-                std::cout << "102:" << duration_ms << "ms 3x get" << std::endl;
+                end                                      = std::chrono::system_clock::now();
+                milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//                std::cout << "220:" << milliseconds.count() << "ns 3x set" << std::endl;
 
                 power_status_ =
                     power_service_->poll(direct_control_.power_control(), kick_slope,
@@ -253,13 +256,14 @@ Thunderloop::~Thunderloop() {}
             *(robot_status_.mutable_jetson_status())      = jetson_status_;
 
             // Update Redis
-            auto start_time = std::chrono::system_clock::now();
+            start             = std::chrono::system_clock::now();
             redis_client_->set(ROBOT_BATTERY_VOLTAGE_REDIS_KEY,
                                std::to_string(power_status_.battery_voltage()));
             redis_client_->set(ROBOT_CURRENT_DRAW_REDIS_KEY,
                                std::to_string(power_status_.current_draw()));
-            double duration_ms = ::TestUtil::millisecondsSince(start_time);
-            std::cout << "102:" << duration_ms << "ms 2x set" << std::endl;
+            end                                      = std::chrono::system_clock::now();
+            milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//            std::cout << "260:" << milliseconds.count() << "ns 2x set" << std::endl;
         }
 
         auto loop_duration =
@@ -274,6 +278,10 @@ Thunderloop::~Thunderloop() {}
         // Calculate next shot taking into account how long this iteration took
         next_shot.tv_nsec += interval - loop_duration;
         timespecNorm(next_shot);
+
+        auto end_tloop                                      = std::chrono::system_clock::now();
+        auto milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end_tloop - start_tloop);
+//        std::cout << "285:" << milliseconds.count() << "ns THUNDERLOOP" << std::endl;
     }
 }
 
