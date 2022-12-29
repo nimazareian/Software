@@ -5,6 +5,7 @@
 #include "proto/tbots_software_msgs.pb.h"
 #include "software/geom/vector.h"
 #include "software/world/world.h"
+#include "software/geom/algorithms/pid.h"
 
 class PrimitiveExecutor
 {
@@ -98,4 +99,6 @@ class PrimitiveExecutor
     const TeamColour friendly_team_colour;
     const std::string team_color;
     RobotId robot_id_ = 0;
+    PID angular_speed_pid_;
+    double angular_vel = 0.0;
 };

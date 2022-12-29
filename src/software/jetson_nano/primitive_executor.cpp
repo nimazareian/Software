@@ -18,7 +18,13 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       time_step_s_(time_step),
       curr_angular_velocity_(AngularVelocity::zero()),
       friendly_team_colour(friendly_team_colour),
-      team_color(friendly_team_colour == TeamColour::YELLOW ? "y" : "b")
+      team_color(friendly_team_colour == TeamColour::YELLOW ? "y" : "b"),
+      angular_speed_pid_(time_step,
+                       robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                       -robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                         0.01,
+                         1.0,
+                         0.0)
 {
 }
 
@@ -46,7 +52,7 @@ void PrimitiveExecutor::updateWorld(const TbotsProto::World& world_msg)
 
 void PrimitiveExecutor::updateAngularVelocity(AngularVelocity angular_velocity)
 {
-    curr_angular_velocity_ = angular_velocity;
+//    curr_angular_velocity_ = angular_velocity;
 }
 
 void PrimitiveExecutor::updateLocalVelocity(Vector local_velocity) {}
@@ -109,39 +115,60 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(
     return Vector(local_x_velocity, local_y_velocity).normalize(norm_dist_delta * 2.5f);
 }
 
+//AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
+//    const TbotsProto::MovePrimitive& move_primitive, const Angle& curr_orientation)
+//{
+//    const Angle dest_orientation = createAngle(move_primitive.final_angle());
+//    const double delta_orientation =
+//        dest_orientation.minDiff(curr_orientation).toRadians();
+//
+//    // The speed which we should be decelerating at to stop at the destination,
+//    // TODO: In simulated tests, test rotation CW and CCW
+//    double acceleration_angular_speed =
+//            curr_angular_velocity_.abs().toRadians() +
+//            robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * time_step_s_;
+//    // derived by solving for v_i in the equation v_f^2 = v_i^2 + 2*a*d.
+//    double deceleration_angular_speed = std::sqrt(
+//        2 * robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * delta_orientation);
+//    double max_angular_speed =
+//        static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
+//    double next_angular_speed = std::min(
+//        {max_angular_speed, deceleration_angular_speed, acceleration_angular_speed});
+//
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t", curr_orientation.toRadians()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_deltaToDest", delta_orientation});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_accel", acceleration_angular_speed});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_decel", deceleration_angular_speed});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_max", max_angular_speed});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_min", next_angular_speed});
+//
+//    const double signed_delta_orientation =
+//        (dest_orientation - curr_orientation).clamp().toRadians();
+//    return AngularVelocity::fromRadians(
+//        std::copysign(next_angular_speed, signed_delta_orientation));
+//}
+
 AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const TbotsProto::MovePrimitive& move_primitive, const Angle& curr_orientation)
 {
     const Angle dest_orientation = createAngle(move_primitive.final_angle());
-    const double delta_orientation =
-        dest_orientation.minDiff(curr_orientation).toRadians();
-
-    // The speed which we should be decelerating at to stop at the destination,
-    // TODO: In simulated tests, test rotation CW and CCW
-    double acceleration_angular_speed =
-            curr_angular_velocity_.abs().toRadians() +
-            robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * time_step_s_;
-    // derived by solving for v_i in the equation v_f^2 = v_i^2 + 2*a*d.
-    double deceleration_angular_speed = std::sqrt(
-        2 * robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * delta_orientation);
-    double max_angular_speed =
-        static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
-    double next_angular_speed = std::min(
-        {max_angular_speed, deceleration_angular_speed, acceleration_angular_speed});
-
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t", curr_orientation.toRadians()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_deltaToDest", delta_orientation});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_accel", acceleration_angular_speed});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_decel", deceleration_angular_speed});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_max", max_angular_speed});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_min", next_angular_speed});
-
     const double signed_delta_orientation =
-        (dest_orientation - curr_orientation).clamp().toRadians();
-    return AngularVelocity::fromRadians(
-        std::copysign(next_angular_speed, signed_delta_orientation));
+            (dest_orientation - curr_orientation).clamp().toDegrees();
+
+    // TODO: Should we be using feedback from the robot here: curr_angular_velocity_?
+    const double inc = angular_speed_pid_.calculate(signed_delta_orientation, 0.0);
+    AngularVelocity output = AngularVelocity::fromDegrees(curr_angular_velocity_.toDegrees() + inc);
+
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toDegrees()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_output", output.toDegrees()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_inc", inc});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toDegrees()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_signedDeltaToDest", signed_delta_orientation});
+
+    curr_angular_velocity_ = output;
+    return output;
 }
 
 

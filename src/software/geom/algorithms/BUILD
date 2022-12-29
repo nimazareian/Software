@@ -17,6 +17,7 @@ cc_library(
         "intersects.cpp",
         "rasterize.cpp",
         "voronoi_diagram.cpp",
+        "pid.cpp"
     ],
     hdrs = [
         "almost_equal.h",
@@ -33,6 +34,7 @@ cc_library(
         "intersects.h",
         "rasterize.h",
         "voronoi_diagram.h",
+        "pid.h"
     ],
     deps = [
         "//software/ai/navigator/path_planner/hrvo:velocity_obstacle",
@@ -192,5 +194,16 @@ cc_test(
         ":algorithms",
         "//shared/test_util:tbots_gtest_main",
         "//software/test_util",
+    ],
+)
+
+cc_test(
+    name = "pid_test",
+    srcs = [
+        "pid_test.cpp",
+    ],
+    deps = [
+        ":algorithms",
+        "//shared/test_util:tbots_gtest_main",
     ],
 )

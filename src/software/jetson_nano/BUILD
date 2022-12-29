@@ -11,6 +11,7 @@ cc_library(
         "//shared:constants",
         "//software/math:math_functions",
         "//software/world",
+        "//software/geom/algorithms:algorithms",
     ],
 )
 
