@@ -458,19 +458,19 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
 
     start             = std::chrono::system_clock::now();
     // Set target speeds accounting for acceleration
-    writeToDriverOrDieTrying(
+    writeToControllerOrDieTrying(
             FRONT_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
             static_cast<int>(target_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX] *
                              ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
-    writeToDriverOrDieTrying(
+    writeToControllerOrDieTrying(
             FRONT_LEFT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
             static_cast<int>(target_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX] *
                              ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
-    writeToDriverOrDieTrying(
+    writeToControllerOrDieTrying(
             BACK_LEFT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
             static_cast<int>(target_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX] *
                              ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
-    writeToDriverOrDieTrying(
+    writeToControllerOrDieTrying(
             BACK_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
             static_cast<int>(target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX] *
                              ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
@@ -702,9 +702,9 @@ uint8_t MotorService::readWriteByte(uint8_t motor, uint8_t data, uint8_t last_tr
     return ret_byte;
 }
 
-void MotorService::writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int32_t value, int num_retires_left)
+void MotorService::writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int32_t value)
 {
-//    int num_retires_left = 1; // NUM_RETRIES_SPI;
+    int num_retires_left = NUM_RETRIES_SPI;
     int read_value       = 0;
 
     // The SPI lines have a lot of noise, and sometimes a transfer will fail
@@ -729,17 +729,17 @@ void MotorService::writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int3
     // If we get here, we have failed to write to the driver. We reset
     // the chip to clear any bad values we just wrote and crash so everything stops.
     reset_gpio.setValue(GpioState::LOW);
-//    CHECK(read_value == value) << "Couldn't write " << value
-//                               << " to the TMC6100 at address " << address
-//                               << " at address " << static_cast<uint32_t>(address)
-//                               << " on motor " << static_cast<uint32_t>(motor)
-//                               << " received: " << read_value;
+    CHECK(read_value == value) << "Couldn't write " << value
+                               << " to the TMC6100 at address " << address
+                               << " at address " << static_cast<uint32_t>(address)
+                               << " on motor " << static_cast<uint32_t>(motor)
+                               << " received: " << read_value;
 }
 
 void MotorService::writeToControllerOrDieTrying(uint8_t motor, uint8_t address,
-                                                int32_t value)
+                                                int32_t value, int num_retires_left)
 {
-    int num_retires_left = NUM_RETRIES_SPI;
+//    int num_retires_left = NUM_RETRIES_SPI;
     int read_value       = 0;
 
     // The SPI lines have a lot of noise, and sometimes a transfer will fail
@@ -753,6 +753,11 @@ void MotorService::writeToControllerOrDieTrying(uint8_t motor, uint8_t address,
             return;
         }
         LOG(DEBUG) << "SPI Transfer to Controller Failed, retrying...";
+        LOG(WARNING)  << "Couldn't write " << value
+                                   << " to the TMC4671 at address " << address
+                                   << " at address " << static_cast<uint32_t>(address)
+                                   << " on motor " << static_cast<uint32_t>(motor)
+                                   << " received: " << read_value;
         num_retires_left--;
     }
 
@@ -957,8 +962,8 @@ void MotorService::startDriver(uint8_t motor)
     // by the TMC4671-TMC6100-BOB datasheet.
     int32_t current_drive_conf = tmc6100_readInt(motor, TMC6100_DRV_CONF);
     writeToDriverOrDieTrying(motor, TMC6100_DRV_CONF,
-                             current_drive_conf & (~TMC6100_DRVSTRENGTH_MASK), NUM_RETRIES_SPI);
-    writeToDriverOrDieTrying(motor, TMC6100_GCONF, 0x40, NUM_RETRIES_SPI);
+                             current_drive_conf & (~TMC6100_DRVSTRENGTH_MASK));
+    writeToDriverOrDieTrying(motor, TMC6100_GCONF, 0x40);
     LOG(DEBUG) << "Driver " << std::to_string(motor) << " accepted conf";
 }
 

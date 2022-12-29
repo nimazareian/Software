@@ -100,5 +100,7 @@ class PrimitiveExecutor
     const std::string team_color;
     RobotId robot_id_ = 0;
     PID angular_speed_pid_;
+    PID linear_speed_x_pid_;
+    PID linear_speed_y_pid_;
     double angular_vel = 0.0;
 };

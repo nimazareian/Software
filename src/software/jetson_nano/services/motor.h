@@ -135,8 +135,8 @@ class MotorService
      * @param value The value to write
      *
      */
-    void writeToControllerOrDieTrying(uint8_t motor, uint8_t address, int32_t value);
-    void writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int32_t value, int num_retires_left = 3);
+    void writeToControllerOrDieTrying(uint8_t motor, uint8_t address, int32_t value, int num_retires_left = 3);
+    void writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int32_t value);
 
     /**
      * Trigger an SPI transfer over an open SPI connection

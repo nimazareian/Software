@@ -20,11 +20,23 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       friendly_team_colour(friendly_team_colour),
       team_color(friendly_team_colour == TeamColour::YELLOW ? "y" : "b"),
       angular_speed_pid_(time_step,
-                       robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
-                       -robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
-                         0.01,
-                         1.0,
-                         0.0)
+                       3 * robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                       -3 * robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                         0.8,
+                         0.09,
+                         0.0),
+     linear_speed_x_pid_(time_step,
+                       3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
+                       -3*robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                       1,
+                       0,
+                       0),
+      linear_speed_y_pid_(time_step,
+                          3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
+                          -3*robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                          1,
+                          0,
+                          0)
 {
 }
 
@@ -52,7 +64,7 @@ void PrimitiveExecutor::updateWorld(const TbotsProto::World& world_msg)
 
 void PrimitiveExecutor::updateAngularVelocity(AngularVelocity angular_velocity)
 {
-//    curr_angular_velocity_ = angular_velocity;
+    curr_angular_velocity_ = angular_velocity;
 }
 
 void PrimitiveExecutor::updateLocalVelocity(Vector local_velocity) {}
@@ -67,108 +79,46 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const unsigned int robot_id,
 Vector PrimitiveExecutor::getTargetLinearVelocity(
     const TbotsProto::MovePrimitive& move_primitive, const RobotState& robot_state)
 {
-    // const float LOCAL_EPSILON = 1e-6f;  // Avoid dividing by zero
-
-    //// Unpack current move primitive
-    // const float dest_linear_speed = move_primitive.final_speed_m_per_s();
-    // const float max_speed_m_per_s = moveu_primitive.max_speed_m_per_s();
     const Point final_position =
         createPoint(move_primitive.motion_control().path().points().at(1));
 
-    // const float max_target_linear_speed = fmaxf(max_speed_m_per_s, dest_linear_speed);
+    const double x_diff = (robot_state.position() - final_position).x();
+    const double y_diff = (robot_state.position() - final_position).y();
 
-    //// Compute distance to destination
-    const float norm_dist_delta =
-        static_cast<float>((robot_state.position() - final_position).length());
+    const double x_inc = linear_speed_x_pid_.calculate(x_diff, 0.0);
+    const double y_inc = linear_speed_y_pid_.calculate(y_diff, 0.0);
 
-    //// Compute at what linear distance we should start decelerating
-    //// d = (Vf^2 - Vi^2) / (2a + LOCAL_EPSILON)
-    // const float start_linear_deceleration_distance =
-    //(max_target_linear_speed * max_target_linear_speed -
-    // dest_linear_speed * dest_linear_speed) /
-    //(2 * move_primitive.robot_max_acceleration_m_per_s_2() + LOCAL_EPSILON);
-
-    ////    (max_target_linear_speed * max_target_linear_speed) /  // Changes formula here
-    ///and removed dest_linear_speed * dest_linear_speed /    (2 *
-    ///move_primitive.robot_max_acceleration_m_per_s_2() + LOCAL_EPSILON)
-
-    //// When we are close enough to start decelerating, we reduce the max speed
-    //// by 60%. Once we get closer than 0.6 meters, we start to linearly decrease
-    //// speed proportional to the distance to the destination. 0.6 was determined
-    //// experimentally.
-    // float target_linear_speed = max_target_linear_speed;
-    // if (norm_dist_delta < start_linear_deceleration_distance)
-    //{
-    // target_linear_speed = max_target_linear_speed * fminf(norm_dist_delta, 0.6f);
-    //}
-
-    Vector target_global_velocity = final_position - robot_state.position();
-
-    double local_x_velocity =
-        robot_state.orientation().cos() * target_global_velocity.x() +
-        robot_state.orientation().sin() * target_global_velocity.y();
-
-    double local_y_velocity =
-        -robot_state.orientation().sin() * target_global_velocity.x() +
-        robot_state.orientation().cos() * target_global_velocity.y();
-
-    return Vector(local_x_velocity, local_y_velocity).normalize(norm_dist_delta * 2.5f);
+    return Vector(robot_state.velocity().x()+x_inc, robot_state.velocity().y()+y_inc).rotate(-robot_state.orientation());
 }
-
-//AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
-//    const TbotsProto::MovePrimitive& move_primitive, const Angle& curr_orientation)
-//{
-//    const Angle dest_orientation = createAngle(move_primitive.final_angle());
-//    const double delta_orientation =
-//        dest_orientation.minDiff(curr_orientation).toRadians();
-//
-//    // The speed which we should be decelerating at to stop at the destination,
-//    // TODO: In simulated tests, test rotation CW and CCW
-//    double acceleration_angular_speed =
-//            curr_angular_velocity_.abs().toRadians() +
-//            robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * time_step_s_;
-//    // derived by solving for v_i in the equation v_f^2 = v_i^2 + 2*a*d.
-//    double deceleration_angular_speed = std::sqrt(
-//        2 * robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * delta_orientation);
-//    double max_angular_speed =
-//        static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
-//    double next_angular_speed = std::min(
-//        {max_angular_speed, deceleration_angular_speed, acceleration_angular_speed});
-//
-//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
-//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t", curr_orientation.toRadians()});
-//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
-//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_deltaToDest", delta_orientation});
-//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_accel", acceleration_angular_speed});
-//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_decel", deceleration_angular_speed});
-//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_max", max_angular_speed});
-//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_min", next_angular_speed});
-//
-//    const double signed_delta_orientation =
-//        (dest_orientation - curr_orientation).clamp().toRadians();
-//    return AngularVelocity::fromRadians(
-//        std::copysign(next_angular_speed, signed_delta_orientation));
-//}
 
 AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const TbotsProto::MovePrimitive& move_primitive, const Angle& curr_orientation)
 {
     const Angle dest_orientation = createAngle(move_primitive.final_angle());
     const double signed_delta_orientation =
-            (dest_orientation - curr_orientation).clamp().toDegrees();
+            (dest_orientation - curr_orientation).clamp().toRadians();
 
     // TODO: Should we be using feedback from the robot here: curr_angular_velocity_?
     const double inc = angular_speed_pid_.calculate(signed_delta_orientation, 0.0);
-    AngularVelocity output = AngularVelocity::fromDegrees(curr_angular_velocity_.toDegrees() + inc);
+    AngularVelocity output = AngularVelocity::fromRadians(curr_angular_velocity_.toRadians() + inc);
 
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toDegrees()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_output", output.toDegrees()});
+    // Used to stop Jitter when at destination
+    // Value determined experimentally
+    if (output.abs().toRadians() < 0.15)
+    {
+        output = AngularVelocity::zero();
+    }
+
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_output", output.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_inc", inc});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toDegrees()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_signedDeltaToDest", signed_delta_orientation});
 
     curr_angular_velocity_ = output;
-    return output;
+
+    // TODO: Nima remove support for turning
+    return AngularVelocity::zero(); // output
 }
 
 
@@ -210,9 +160,10 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         case TbotsProto::Primitive::kMove:
         {
             // Compute the target velocities
-//            Vector target_velocity = getTargetLinearVelocity(robot_id, robot_state.orientation());
-                        Vector target_velocity =
-                        getTargetLinearVelocity(current_primitive_.move(), robot_state);
+            Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(), robot_state);
+                    //getTargetLinearVelocity(robot_id, robot_state.orientation());
+//                        Vector target_velocity = Vector(0,0);
+
             AngularVelocity target_angular_velocity =
                 getTargetAngularVelocity(current_primitive_.move(), robot_state.orientation());
 
