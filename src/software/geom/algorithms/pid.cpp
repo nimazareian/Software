@@ -1,3 +1,4 @@
+#include <iostream>
 #include "pid.h"
 
 PID::PID(double dt, double max, double min, double Kp, double Kd, double Ki)
@@ -47,6 +48,7 @@ double PIDImpl::calculate(double setpoint, double pv)
     double output = Pout + Iout + Dout;
 
     // Restrict to max/min
+    std::cout << "output: " << output;
     if (output > _max)
     {
         output = _max;
@@ -55,6 +57,7 @@ double PIDImpl::calculate(double setpoint, double pv)
     {
         output = _min;
     }
+    std::cout << " -> clamped: " << output << std::endl;
 
     // Save error to previous error
     _pre_error = error;

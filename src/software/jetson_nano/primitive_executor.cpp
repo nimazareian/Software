@@ -20,10 +20,10 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       friendly_team_colour(friendly_team_colour),
       team_color(friendly_team_colour == TeamColour::YELLOW ? "y" : "b"),
       angular_speed_pid_(time_step,
-                       robot_constants.robot_max_ang_speed_rad_per_s * time_step,
-                       -robot_constants.robot_max_ang_speed_rad_per_s * time_step,
-                         0.1,
-                         0.0,
+                       robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                       -robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                         0.01,
+                         1.0,
                          0.0)
 {
 }
@@ -52,7 +52,7 @@ void PrimitiveExecutor::updateWorld(const TbotsProto::World& world_msg)
 
 void PrimitiveExecutor::updateAngularVelocity(AngularVelocity angular_velocity)
 {
-    curr_angular_velocity_ = angular_velocity;
+//    curr_angular_velocity_ = angular_velocity;
 }
 
 void PrimitiveExecutor::updateLocalVelocity(Vector local_velocity) {}
@@ -161,11 +161,13 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double inc = angular_speed_pid_.calculate(signed_delta_orientation, 0.0);
     AngularVelocity output = AngularVelocity::fromDegrees(curr_angular_velocity_.toDegrees() + inc);
 
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toDegrees()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_output", output.toDegrees()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_inc", inc});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toDegrees()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_signedDeltaToDest", signed_delta_orientation});
 
+    curr_angular_velocity_ = output;
     return output;
 }
 
