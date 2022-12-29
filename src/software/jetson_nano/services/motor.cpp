@@ -100,7 +100,9 @@ MotorService::MotorService(const RobotConstants_t& robot_constants,
       driver_control_enable_gpio(DRIVER_CONTROL_ENABLE_GPIO, GpioDirection::OUTPUT,
                                  GpioState::HIGH),
       reset_gpio(MOTOR_DRIVER_RESET_GPIO, GpioDirection::OUTPUT, GpioState::HIGH),
-      euclidean_to_four_wheel(robot_constants)
+      euclidean_to_four_wheel(robot_constants),
+      prev_wheel_velocities({0.0, 0.0, 0.0, 0.0}),
+      plotjuggler_values()
 {
     robot_constants_ = robot_constants;
 
@@ -280,6 +282,7 @@ bool MotorService::checkDriverFault(uint8_t motor)
 TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor,
                                            double time_elapsed_since_last_poll_s)
 {
+    plotjuggler_values.clear();
     TbotsProto::MotorStatus motor_status;
 
     bool encoders_calibrated = (encoder_calibrated_[FRONT_LEFT_MOTOR_CHIP_SELECT] ||
@@ -287,7 +290,13 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
                                 encoder_calibrated_[BACK_LEFT_MOTOR_CHIP_SELECT] ||
                                 encoder_calibrated_[BACK_RIGHT_MOTOR_CHIP_SELECT]);
 
+    auto start             = std::chrono::system_clock::now();
+
     int reset_detector = tmc4671_readInt(0, TMC4671_PID_ACCELERATION_LIMIT);
+
+    auto end                                      = std::chrono::system_clock::now();
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    plotjuggler_values.insert({"tloop_motor_reset_spi", milliseconds.count()});
 
     // When the motor board is reset the value in the above register is set to the maximum
     // signed 32 bit value Please read the header file and the datasheet for more info
@@ -320,6 +329,7 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
           encoder_calibrated_[BACK_RIGHT_MOTOR_CHIP_SELECT])
         << "Running without encoder calibration can cause serious harm, exiting";
 
+    start             = std::chrono::system_clock::now();
     // Get current wheel electical RPMs (don't account for pole pairs)
     double front_right_velocity =
         static_cast<double>(tmc4671_getActualVelocity(FRONT_RIGHT_MOTOR_CHIP_SELECT)) *
@@ -334,6 +344,10 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         static_cast<double>(tmc4671_getActualVelocity(BACK_LEFT_MOTOR_CHIP_SELECT)) *
         MECHANICAL_MPS_PER_ELECTRICAL_RPM;
 
+    end                                      = std::chrono::system_clock::now();
+    milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    plotjuggler_values.insert({"tloop_motor_act_vel_spi", milliseconds.count()});
+
     motor_status.mutable_front_right()->set_wheel_velocity(
         static_cast<float>(front_right_velocity));
     motor_status.mutable_front_left()->set_wheel_velocity(
@@ -343,8 +357,6 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
     motor_status.mutable_back_right()->set_wheel_velocity(
         static_cast<float>(back_right_velocity));
 
-
-    std::map<std::string, double> plotjuggler_values;
     plotjuggler_values.insert({"fr_v", front_right_velocity});
     plotjuggler_values.insert({"fl_v", front_left_velocity});
     plotjuggler_values.insert({"bl_v", back_left_velocity});
@@ -444,30 +456,35 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
     // TODO (#2719): interleave the angular accelerations in here at some point.
     prev_wheel_velocities = target_wheel_velocities;
 
+    start             = std::chrono::system_clock::now();
     // Set target speeds accounting for acceleration
-    tmc4671_writeInt(
-        FRONT_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
-        static_cast<int>(target_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX] *
-                         ELECTRICAL_RPM_PER_MECHANICAL_MPS));
-    tmc4671_writeInt(
-        FRONT_LEFT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
-        static_cast<int>(target_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX] *
-                         ELECTRICAL_RPM_PER_MECHANICAL_MPS));
-    tmc4671_writeInt(
-        BACK_LEFT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
-        static_cast<int>(target_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX] *
-                         ELECTRICAL_RPM_PER_MECHANICAL_MPS));
-    tmc4671_writeInt(
-        BACK_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
-        static_cast<int>(target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX] *
-                         ELECTRICAL_RPM_PER_MECHANICAL_MPS));
+    writeToDriverOrDieTrying(
+            FRONT_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
+            static_cast<int>(target_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX] *
+                             ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
+    writeToDriverOrDieTrying(
+            FRONT_LEFT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
+            static_cast<int>(target_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX] *
+                             ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
+    writeToDriverOrDieTrying(
+            BACK_LEFT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
+            static_cast<int>(target_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX] *
+                             ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
+    writeToDriverOrDieTrying(
+            BACK_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
+            static_cast<int>(target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX] *
+                             ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
+
+    end                                      = std::chrono::system_clock::now();
+    milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    plotjuggler_values.insert({"tloop_motor_spi", milliseconds.count()});
 
     plotjuggler_values.insert({"fr_v_desired", target_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX]});
     plotjuggler_values.insert({"fl_v_desired", target_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX]});
     plotjuggler_values.insert({"bl_v_desired", target_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX]});
     plotjuggler_values.insert({"br_v_desired", target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX]});
-    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
 
+    start             = std::chrono::system_clock::now();
     // If the dribbler only needs to change by DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S,
     // just set the value
     if (std::abs(target_dribbler_rpm - ramp_rpm) <=
@@ -485,6 +502,11 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         ramp_rpm -= DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S;
         tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, ramp_rpm);
     }
+
+    end                                      = std::chrono::system_clock::now();
+    milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    plotjuggler_values.insert({"tloop_motor_dribbler_spi", milliseconds.count()});
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
 
     return motor_status;
 }
@@ -525,6 +547,12 @@ WheelSpace_t MotorService::rampWheelVelocity(
     // convert euclidean to wheel velocity
     WheelSpace_t target_wheel_velocity =
         euclidean_to_four_wheel.getWheelVelocity(target_euclidean_velocity);
+
+
+    plotjuggler_values.insert({"fr_v_bef_ramp", target_wheel_velocity[FRONT_RIGHT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"fl_v_bef_ramp", target_wheel_velocity[FRONT_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"bl_v_bef_ramp", target_wheel_velocity[BACK_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"br_v_bef_ramp", target_wheel_velocity[BACK_RIGHT_WHEEL_SPACE_INDEX]});
 
     // Ramp wheel velocity vector
     // Step 1: Find absolute max velocity delta
@@ -674,9 +702,9 @@ uint8_t MotorService::readWriteByte(uint8_t motor, uint8_t data, uint8_t last_tr
     return ret_byte;
 }
 
-void MotorService::writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int32_t value)
+void MotorService::writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int32_t value, int num_retires_left)
 {
-    int num_retires_left = NUM_RETRIES_SPI;
+//    int num_retires_left = 1; // NUM_RETRIES_SPI;
     int read_value       = 0;
 
     // The SPI lines have a lot of noise, and sometimes a transfer will fail
@@ -690,17 +718,22 @@ void MotorService::writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int3
             return;
         }
         LOG(DEBUG) << "SPI Transfer to Driver Failed, retrying...";
+        LOG(INFO) << "Couldn't write " << value
+                                   << " to the TMC6100 at address " << address
+                                   << " at address " << static_cast<uint32_t>(address)
+                                   << " on motor " << static_cast<uint32_t>(motor)
+                                   << " received: " << read_value << ". retries left = " << num_retires_left;
         num_retires_left--;
     }
 
     // If we get here, we have failed to write to the driver. We reset
     // the chip to clear any bad values we just wrote and crash so everything stops.
     reset_gpio.setValue(GpioState::LOW);
-    CHECK(read_value == value) << "Couldn't write " << value
-                               << " to the TMC6100 at address " << address
-                               << " at address " << static_cast<uint32_t>(address)
-                               << " on motor " << static_cast<uint32_t>(motor)
-                               << " received: " << read_value;
+//    CHECK(read_value == value) << "Couldn't write " << value
+//                               << " to the TMC6100 at address " << address
+//                               << " at address " << static_cast<uint32_t>(address)
+//                               << " on motor " << static_cast<uint32_t>(motor)
+//                               << " received: " << read_value;
 }
 
 void MotorService::writeToControllerOrDieTrying(uint8_t motor, uint8_t address,
@@ -924,8 +957,8 @@ void MotorService::startDriver(uint8_t motor)
     // by the TMC4671-TMC6100-BOB datasheet.
     int32_t current_drive_conf = tmc6100_readInt(motor, TMC6100_DRV_CONF);
     writeToDriverOrDieTrying(motor, TMC6100_DRV_CONF,
-                             current_drive_conf & (~TMC6100_DRVSTRENGTH_MASK));
-    writeToDriverOrDieTrying(motor, TMC6100_GCONF, 0x40);
+                             current_drive_conf & (~TMC6100_DRVSTRENGTH_MASK), NUM_RETRIES_SPI);
+    writeToDriverOrDieTrying(motor, TMC6100_GCONF, 0x40, NUM_RETRIES_SPI);
     LOG(DEBUG) << "Driver " << std::to_string(motor) << " accepted conf";
 }
 

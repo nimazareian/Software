@@ -85,6 +85,7 @@ Thunderloop::~Thunderloop() {}
     for (;;)
     {
         auto start_tloop = std::chrono::system_clock::now();
+        std::map<std::string, double> plotjuggler_values;
         {
             // Wait until next shot
             //
@@ -105,7 +106,8 @@ Thunderloop::~Thunderloop() {}
             auto network_interface =
                 redis_client_->get(ROBOT_NETWORK_INTERFACE_REDIS_KEY);
             auto end                                      = std::chrono::system_clock::now();
-            auto milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            plotjuggler_values.insert({"tloop_redis_get1", milliseconds.count()});
 //            std::cout << "102:" << milliseconds.count() << "ns 3x set" << std::endl;
 
             // If any of the configs have changed, update the network service to switch
@@ -139,6 +141,7 @@ Thunderloop::~Thunderloop() {}
 
             thunderloop_status_.set_network_service_poll_time_ns(
                 static_cast<unsigned long>(poll_time.tv_nsec));
+            plotjuggler_values.insert({"tloop_network_service", poll_time.tv_nsec / 1000000});
 
             // If the primitive msg is new, update the internal buffer
             // and start the new primitive.
@@ -214,6 +217,7 @@ Thunderloop::~Thunderloop() {}
 
             thunderloop_status_.set_primitive_executor_step_time_ns(
                 static_cast<unsigned long>(poll_time.tv_nsec));
+            plotjuggler_values.insert({"tloop_prim_exec", poll_time.tv_nsec / 1000000});
 
             // Power Service: execute the power control command
             {
@@ -226,7 +230,8 @@ Thunderloop::~Thunderloop() {}
                 auto chip_pulse_width =
                     std::stoi(redis_client_->get(ROBOT_CHIP_PULSE_WIDTH_REDIS_KEY));
                 end                                      = std::chrono::system_clock::now();
-                milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+                milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+                plotjuggler_values.insert({"tloop_redis_get2", milliseconds.count()});
 //                std::cout << "220:" << milliseconds.count() << "ns 3x set" << std::endl;
 
                 power_status_ =
@@ -235,6 +240,7 @@ Thunderloop::~Thunderloop() {}
             }
             thunderloop_status_.set_power_service_poll_time_ns(
                 static_cast<unsigned long>(poll_time.tv_nsec));
+            plotjuggler_values.insert({"tloop_power_service", poll_time.tv_nsec / 1000000});
 
             // Motor Service: execute the motor control command
             {
@@ -248,6 +254,7 @@ Thunderloop::~Thunderloop() {}
             }
             thunderloop_status_.set_motor_service_poll_time_ns(
                 static_cast<unsigned long>(poll_time.tv_nsec));
+            plotjuggler_values.insert({"tloop_motor_service", poll_time.tv_nsec / 1000000});
 
             // Update Robot Status with poll responses
             *(robot_status_.mutable_thunderloop_status()) = thunderloop_status_;
@@ -262,8 +269,8 @@ Thunderloop::~Thunderloop() {}
             redis_client_->set(ROBOT_CURRENT_DRAW_REDIS_KEY,
                                std::to_string(power_status_.current_draw()));
             end                                      = std::chrono::system_clock::now();
-            milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-//            std::cout << "260:" << milliseconds.count() << "ns 2x set" << std::endl;
+            milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            plotjuggler_values.insert({"tloop_redis_set", milliseconds.count()});
         }
 
         auto loop_duration =
@@ -280,8 +287,10 @@ Thunderloop::~Thunderloop() {}
         timespecNorm(next_shot);
 
         auto end_tloop                                      = std::chrono::system_clock::now();
-        auto milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end_tloop - start_tloop);
-//        std::cout << "285:" << milliseconds.count() << "ns THUNDERLOOP" << std::endl;
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end_tloop - start_tloop);
+//        std::cout << "285:" << milliseconds.count() << "ms THUNDERLOOP" << std::endl;
+        plotjuggler_values.insert({"tloop_ms", milliseconds.count()});
+        LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
     }
 }
 

@@ -136,7 +136,7 @@ class MotorService
      *
      */
     void writeToControllerOrDieTrying(uint8_t motor, uint8_t address, int32_t value);
-    void writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int32_t value);
+    void writeToDriverOrDieTrying(uint8_t motor, uint8_t address, int32_t value, int num_retires_left = 3);
 
     /**
      * Trigger an SPI transfer over an open SPI connection
@@ -219,4 +219,5 @@ class MotorService
 
     // Previous wheel velocities
     WheelSpace_t prev_wheel_velocities;
+    std::map<std::string, double> plotjuggler_values;
 };

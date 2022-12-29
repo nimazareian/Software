@@ -70,9 +70,9 @@ void NetworkService::primitiveSetCallback(TbotsProto::PrimitiveSet input)
 
     if (packet_loss_rate > PACKET_LOSS_WARNING_THRESHOLD)
     {
-        LOG(WARNING) << "Primitive set packet loss in the past "
-                     << expected_primitive_set_count << " packets is more than "
-                     << PACKET_LOSS_WARNING_THRESHOLD * 100 << "% ";
+//        LOG(WARNING) << "Primitive set packet loss in the past "
+//                     << expected_primitive_set_count << " packets is more than "
+//                     << PACKET_LOSS_WARNING_THRESHOLD * 100 << "% ";
     }
 }
 

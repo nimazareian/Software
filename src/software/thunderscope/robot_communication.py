@@ -194,7 +194,7 @@ class RobotCommunication(object):
             self.multicast_channel + "%" + self.interface, VISION_PORT, True
         )
 
-        # self.connect_fullsystem_to_robots()
+        self.connect_fullsystem_to_robots()
 
         # TODO (#2741): we might not want to support robot diagnostics in tscope
         # make a ticket here to create a widget to call these functions to detach
