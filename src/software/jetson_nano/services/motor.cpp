@@ -407,6 +407,8 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         static_cast<float>(current_euclidean_velocity[1]));
     motor_status.mutable_angular_velocity()->set_radians_per_second(
         current_euclidean_velocity[2]);
+    plotjuggler_values.insert({"5read_local_vel_x", current_euclidean_velocity[0]});
+    plotjuggler_values.insert({"5read_local_vel_y", current_euclidean_velocity[1]});
 
     WheelSpace_t target_wheel_velocities = {0.0, 0.0, 0.0, 0.0};
 

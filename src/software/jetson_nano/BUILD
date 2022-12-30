@@ -32,6 +32,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "primitive_executor_test",
+    srcs = [
+        "primitive_executor_test.cpp",
+    ],
+    deps = [
+        "//software/geom:angle",
+        "//software/geom:vector",
+        "//shared/test_util:tbots_gtest_main",
+    ],
+)
+
 cc_library(
     name = "gpio",
     srcs = ["gpio.cpp"],
