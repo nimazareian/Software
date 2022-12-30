@@ -48,16 +48,16 @@ double PIDImpl::calculate(double setpoint, double pv)
     double output = Pout + Iout + Dout;
 
     // Restrict to max/min
-    std::cout << "output: " << output;
     if (output > _max)
     {
+//        std::cout << "output: " << output << " -> max clamped: " << _max << std::endl;
         output = _max;
     }
     else if (output < _min)
     {
+//        std::cout << "output: " << output << " -> min clamped: " << _min << std::endl;
         output = _min;
     }
-    std::cout << " -> clamped: " << output << std::endl;
 
     // Save error to previous error
     _pre_error = error;

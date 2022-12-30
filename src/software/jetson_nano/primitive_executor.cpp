@@ -29,17 +29,18 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
      linear_speed_x_pid_(time_step,
                        3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
                        -3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
-                       5,
-                       0,
+                       3,
+                       0.9,
                        0),
       linear_speed_y_pid_(time_step,
                           3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
                           -3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
-                          5,
-                          0,
+                          3,
+                          0.9,
                           0)
 {
 }
+// TODO: Tuned PD Simulation constants: X,Y => P=3, D=0.9
 
 void PrimitiveExecutor::updatePrimitiveSet(
     const unsigned int robot_id, const TbotsProto::PrimitiveSet& primitive_set_msg)
@@ -68,7 +69,8 @@ void PrimitiveExecutor::updateAngularVelocity(AngularVelocity angular_velocity)
     curr_angular_velocity_ = angular_velocity;
 }
 
-void PrimitiveExecutor::updateLocalVelocity(Vector local_velocity) {
+void PrimitiveExecutor::updateLocalVelocity(Vector local_velocity)
+{
     curr_local_velocity_ = local_velocity;
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual_local", curr_local_velocity_.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
@@ -87,12 +89,12 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(
     const Point final_position =
         createPoint(move_primitive.motion_control().path().points().at(1));
 
-    const double x_inc = 0.0; // linear_speed_x_pid_.calculate(final_position.x(), robot_state.position().x());
+    const double x_inc = linear_speed_x_pid_.calculate(final_position.x(), robot_state.position().x());
     const double y_inc = linear_speed_y_pid_.calculate(final_position.y(), robot_state.position().y());
 
     Vector xy_inc_local = Vector(x_inc, y_inc).rotate(-robot_state.orientation());
     Vector output = curr_local_velocity_ + xy_inc_local;
-    output = Vector(0.0, output.y());
+    output = Vector(output.x(), output.y());
 
     Vector output_global = output.rotate(robot_state.orientation());
     Vector curr_global = curr_local_velocity_.rotate(robot_state.orientation());
@@ -110,7 +112,7 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual", curr_global.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual", curr_global.y()});
 
-//    curr_local_velocity_ = output;
+    curr_local_velocity_ = output;
     return output;
 }
 
@@ -186,8 +188,10 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(), robot_state);
                     //getTargetLinearVelocity(robot_id, robot_state.orientation());
 
-            AngularVelocity target_angular_velocity = AngularVelocity::zero();
-//                getTargetAngularVelocity(current_primitive_.move(), robot_state.orientation());
+            AngularVelocity target_angular_velocity = getTargetAngularVelocity(current_primitive_.move(), robot_state.orientation());
+
+//            target_velocity = Vector(target_velocity.x(), 0.0);
+//            target_angular_velocity = AngularVelocity::fromDegrees(0.0);
 
             auto output = createDirectControlPrimitive(
                 target_velocity, target_angular_velocity,

@@ -64,13 +64,12 @@ class PrimitiveExecutor
 
    private:
     /*
-     * Compute the next target linear velocity the robot should be at
-     * assuming max acceleration.
+     * Compute the next target linear _local_ velocity the robot should be at.
      *
      * @param robot_id The id of the robot which is running this Primitive Executor
      * @param curr_orientation The current orientation of the robot which is running this
      * Primitive Executor
-     * @returns Vector The target linear velocity
+     * @returns Vector The target linear _local_ velocity
      */
     Vector getTargetLinearVelocity(const unsigned int robot_id,
                                    const Angle& curr_orientation);
