@@ -1,3 +1,4 @@
+import math
 import os
 import time
 import threading
@@ -278,11 +279,17 @@ if __name__ == "__main__":
 
             """
             world_state = tbots_protobuf.create_world_state(
-                blue_robot_locations=[
-                    cpp_bindings.Point(-3, y) for y in numpy.linspace(-2, 2, NUM_ROBOTS)
+                blue_robot_states=[
+                    RobotState(
+                        global_position=Point(x_meters=-3.0, y_meters=y),
+                        global_orientation=Angle(radians=0.0),
+                    ) for y in numpy.linspace(-2, 2, NUM_ROBOTS)
                 ],
-                yellow_robot_locations=[
-                    cpp_bindings.Point(3, y) for y in numpy.linspace(-2, 2, NUM_ROBOTS)
+                yellow_robot_states=[
+                    RobotState(
+                        global_position=Point(x_meters=3.0, y_meters=y),
+                        global_orientation=Angle(radians=math.pi),
+                    ) for y in numpy.linspace(-2, 2, NUM_ROBOTS)
                 ],
                 ball_location=cpp_bindings.Point(0, 0),
                 ball_velocity=cpp_bindings.Vector(0, 0),

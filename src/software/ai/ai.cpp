@@ -82,16 +82,6 @@ std::unique_ptr<TbotsProto::PrimitiveSet> Ai::getPrimitives(const World& world)
         ai_config_changed = false;
     }
 
-    std::map<std::string, double> robot_xy_positions;
-    for (const Robot& robot : world.friendlyTeam().getAllRobots())
-    {
-        robot_xy_positions.insert(
-                {std::to_string(robot.id()) + "_x", robot.position().x()});
-        robot_xy_positions.insert(
-                {std::to_string(robot.id()) + "_y", robot.position().y()});
-    }
-    LOG(PLOTJUGGLER) << *createPlotJugglerValue(robot_xy_positions);
-
     if (static_cast<bool>(override_play))
     {
         return override_play->get(field_to_path_planner_factory.at(world.field()), world,
