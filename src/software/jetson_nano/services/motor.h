@@ -188,6 +188,7 @@ class MotorService
      * @return bool true if faulted
      */
     bool checkDriverFault(uint8_t motor);
+    bool checkEnable(uint8_t motor);
 
     // Select between driver and controller gpio
     GPIO spi_demux_select_0;

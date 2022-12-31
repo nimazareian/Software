@@ -14,8 +14,7 @@ py_binary(
         ":scripts",
         "//software/jetson_nano:setup_nano",
         "//software/jetson_nano:thunderloop_main",
-        "//software/jetson_nano/broadcasts:robot_broadcast_receiver",
-        "//software/jetson_nano/broadcasts:robot_broadcast_sender_zip",
+        "//software/jetson_nano/broadcasts:robot_broadcast_receiver",  # TODO: ansible.py remove receiving broadcast impl then remove this dep
         "//software/jetson_nano/display:robot_ui_zip",
         "//software/jetson_nano/linux_configs:device_tree",
         "//software/jetson_nano/linux_configs:extlinux",

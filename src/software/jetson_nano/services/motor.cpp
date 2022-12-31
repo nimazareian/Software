@@ -183,6 +183,17 @@ void MotorService::setUpMotors()
     tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, 0);
 }
 
+bool MotorService::checkEnable(uint8_t motor)
+{
+    int ioin = tmc6100_readInt(motor, TMC6100_IOIN_OUTPUT);
+    std::bitset<32> ioin_bitset(ioin);
+    if (!ioin_bitset[6])
+    {
+        LOG(DEBUG) << "Motor: " << std::to_string(motor) << " is disabled";
+        return false;
+    }
+    return true;
+}
 
 bool MotorService::checkDriverFault(uint8_t motor)
 {
@@ -460,22 +471,24 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
 
     start             = std::chrono::system_clock::now();
     // Set target speeds accounting for acceleration
-    writeToControllerOrDieTrying(
+    checkDriverFault(BACK_LEFT_MOTOR_CHIP_SELECT);
+
+    tmc4671_writeInt(
             FRONT_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
             static_cast<int>(target_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX] *
-                             ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
-    writeToControllerOrDieTrying(
+                             ELECTRICAL_RPM_PER_MECHANICAL_MPS));
+    tmc4671_writeInt(
             FRONT_LEFT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
             static_cast<int>(target_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX] *
-                             ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
-    writeToControllerOrDieTrying(
+                             ELECTRICAL_RPM_PER_MECHANICAL_MPS));
+    tmc4671_writeInt(
             BACK_LEFT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
             static_cast<int>(target_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX] *
-                             ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
-    writeToControllerOrDieTrying(
+                             ELECTRICAL_RPM_PER_MECHANICAL_MPS));
+    tmc4671_writeInt(
             BACK_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
             static_cast<int>(target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX] *
-                             ELECTRICAL_RPM_PER_MECHANICAL_MPS), 3);
+                             ELECTRICAL_RPM_PER_MECHANICAL_MPS));
 
     end                                      = std::chrono::system_clock::now();
     milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -797,7 +810,7 @@ void MotorService::configureDrivePI(uint8_t motor)
 
     writeToControllerOrDieTrying(motor, TMC4671_PIDOUT_UQ_UD_LIMITS, 32767);
     writeToControllerOrDieTrying(motor, TMC4671_PID_TORQUE_FLUX_LIMITS, 5000);
-    writeToControllerOrDieTrying(motor, TMC4671_PID_ACCELERATION_LIMIT, 1000);
+    writeToControllerOrDieTrying(motor, TMC4671_PID_ACCELERATION_LIMIT, 10000);
 
     writeToControllerOrDieTrying(motor, TMC4671_PID_VELOCITY_LIMIT, 45000);
 
@@ -966,6 +979,10 @@ void MotorService::startDriver(uint8_t motor)
     writeToDriverOrDieTrying(motor, TMC6100_DRV_CONF,
                              current_drive_conf & (~TMC6100_DRVSTRENGTH_MASK));
     writeToDriverOrDieTrying(motor, TMC6100_GCONF, 0x40);
+
+    // All default but updated SHORTFILTER to 2us to avoid false positive shorts
+    // detection.
+    writeToDriverOrDieTrying(motor, TMC6100_SHORT_CONF, 0x13020606);
     LOG(DEBUG) << "Driver " << std::to_string(motor) << " accepted conf";
 }
 

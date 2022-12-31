@@ -21,20 +21,20 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       friendly_team_colour(friendly_team_colour),
       team_color(friendly_team_colour == TeamColour::YELLOW ? "y" : "b"),
       angular_speed_pid_(time_step,
-                       3 * robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
-                       -3 * robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                       robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
+                       robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
                          0.8,
                          0.09,
                          0.0),
      linear_speed_x_pid_(time_step,
-                       3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
-                       -3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
+                       robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
+                       robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
                        3,
                        0.9,
                        0),
       linear_speed_y_pid_(time_step,
-                          3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
-                          -3*robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
+                          robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
+                          robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
                           3,
                           0.9,
                           0)
@@ -191,6 +191,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             AngularVelocity target_angular_velocity = getTargetAngularVelocity(current_primitive_.move(), robot_state.orientation());
 
 //            target_velocity = Vector(target_velocity.x(), 0.0);
+            target_velocity = Vector();
 //            target_angular_velocity = AngularVelocity::fromDegrees(0.0);
 
             auto output = createDirectControlPrimitive(
