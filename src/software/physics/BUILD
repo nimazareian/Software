@@ -27,6 +27,17 @@ cc_test(
 )
 
 cc_library(
+    name = "velocity_conversion_util",
+    hdrs = [
+        "velocity_conversion_util.h",
+    ],
+    deps = [
+        "//software/geom:vector",
+    ],
+)
+# TODO: Add tests
+
+cc_library(
     name = "physics",
     srcs = [
         "physics.cpp",

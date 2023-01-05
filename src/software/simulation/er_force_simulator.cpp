@@ -16,6 +16,7 @@
 #include "proto/robot_status_msg.pb.h"
 #include "software/logger/logger.h"
 #include "software/world/robot_state.h"
+#include "software/physics/velocity_conversion_util.h"
 
 ErForceSimulator::ErForceSimulator(const TbotsProto::FieldType& field_type,
                                    const RobotConstants_t& robot_constants)
@@ -464,9 +465,8 @@ std::map<RobotId, Vector> ErForceSimulator::getRobotIdToLocalVelocityMap(
     for (const auto& sim_robot : sim_robots)
     {
         // rotate converts global velocity to local velocity
-        robot_to_local_velocity[sim_robot.id()] =
-            Vector(sim_robot.v_x(), sim_robot.v_y())
-                .rotate(Angle::fromRadians(sim_robot.angle()));
+        robot_to_local_velocity[sim_robot.id()] = globalToLocal(Vector(sim_robot.v_x(), sim_robot.v_y()),
+                                                                Angle::fromRadians(sim_robot.angle()));
     }
     return robot_to_local_velocity;
 }
