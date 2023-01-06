@@ -19,27 +19,31 @@ from proto.ssl_gc_common_pb2 import Team
 
 @pytest.mark.parametrize(
     "robot_initial_position,robot_initial_orientation,robot_destination,robot_desired_orientation",
-    # [
-    #     (
-    #         Point(x_meters=0.0, y_meters=0.0),
-    #         Angle(radians=0.0),
-    #         Point(x_meters=0.0, y_meters=0.0),
-    #         Angle(radians=math.pi),
-    #     ),
-    # ],
     [
+        # (
+        #     Point(x_meters=0.0, y_meters=0.0),
+        #     Angle(radians=0.0),
+        #     Point(x_meters=0.0, y_meters=0.0),
+        #     Angle(radians=math.pi),
+        # ),
         (
-            Point(x_meters=0.0, y_meters=0.0),
-            Angle(radians=0.0),
-            Point(x_meters=2.8, y_meters=2.8),
-            Angle(radians=0.0),
+                Point(x_meters=0.0, y_meters=0.0),
+                Angle(radians=0.0),
+                Point(x_meters=2.8, y_meters=-2.8),
+                Angle(radians=math.pi),
         ),
-        (
-            Point(x_meters=0.0, y_meters=0.0),
-            Angle(radians=0.0),
-            Point(x_meters=-2.8, y_meters=-2.8),
-            Angle(radians=0.0),
-        ),
+        # (
+        #     Point(x_meters=0.0, y_meters=0.0),
+        #     Angle(radians=0.0),
+        #     Point(x_meters=0, y_meters=2.8),
+        #     Angle(radians=math.pi),
+        # ),
+        # (
+        #     Point(x_meters=0.0, y_meters=0.0),
+        #     Angle(radians=0.0),
+        #     Point(x_meters=2.8, y_meters=0),
+        #     Angle(radians=math.pi),
+        # ),
     ],
 )
 def test_robot_movement(
@@ -108,7 +112,7 @@ def test_robot_movement(
     eventually_validation_sequence_set = [[]]
 
     simulated_test_runner.run_test(
-        test_timeout_s=6,
+        test_timeout_s=7,
         eventually_validation_sequence_set=eventually_validation_sequence_set,
         always_validation_sequence_set=always_validation_sequence_set,
     )

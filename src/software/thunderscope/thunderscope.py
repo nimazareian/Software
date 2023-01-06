@@ -551,6 +551,7 @@ class Thunderscope(object):
             (World, world.world_buffer),
             (RobotStatus, world.robot_status_buffer),
             (Referee, world.referee_buffer),
+            (Segment, world.desired_speeds),
             (PrimitiveSet, obstacles.primitive_set_buffer),
             (PrimitiveSet, paths.primitive_set_buffer),
             (PassVisualization, passing.pass_visualization_buffer),

@@ -312,6 +312,15 @@ Vector HRVOSimulator::getRobotVelocity(unsigned int robot_id) const
     return Vector();
 }
 
+void HRVOSimulator::updateRobotVelocity(RobotId robot_id, Vector new_velocity)
+{
+    auto hrvo_agent = getFriendlyAgentFromRobotId(robot_id);
+    if (hrvo_agent.has_value())
+    {
+        hrvo_agent.value()->setVelocity(new_velocity);
+    }
+}
+
 void HRVOSimulator::visualize(unsigned int robot_id) const
 {
     auto friendly_agent_opt = getFriendlyAgentFromRobotId(robot_id);

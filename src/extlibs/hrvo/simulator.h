@@ -226,6 +226,9 @@ class HRVOSimulator
      */
     Vector getAgentVelocity(std::size_t agent_no) const;
 
+    // TODO: Add documentation
+    void updateRobotVelocity(RobotId robot_id, Vector new_velocity);
+
     /**
      *   Returns the global time of the simulation.
      *

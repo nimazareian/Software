@@ -41,6 +41,7 @@ class WorldLayer(FieldLayer):
         self.world_buffer = ThreadSafeBuffer(buffer_size, World)
         self.robot_status_buffer = ThreadSafeBuffer(buffer_size, RobotStatus)
         self.referee_buffer = ThreadSafeBuffer(buffer_size, Referee, False)
+        self.desired_speeds = ThreadSafeBuffer(buffer_size, Segment, False)
         self.cached_world = World()
         self.cached_status = {}
 
@@ -480,6 +481,18 @@ class WorldLayer(FieldLayer):
         speed_line = Segment(start=start, end=end)
         self.drawSegment(speed_line, painter)
 
+    def draw_robot_desired_speeds(self, painter):
+        """Draw the robot speeds
+
+        :param painter: The painter
+
+        """
+        painter.setPen(pg.mkPen(Colors.DESIRED_SPEED_COLOR, width=3))
+
+        for _ in range(self.desired_speeds.queue.qsize()):
+            segment = self.desired_speeds.get(block=False)
+            self.drawSegment(segment, painter)
+
     def paint(self, painter, option, widget):
         """Paint this layer
 
@@ -519,3 +532,4 @@ class WorldLayer(FieldLayer):
         self.draw_robot_status(painter)
         self.draw_robot_speeds(painter)
         self.draw_ball_speed(painter)
+        self.draw_robot_desired_speeds(painter)

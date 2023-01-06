@@ -17,7 +17,6 @@ cc_library(
         "intersects.cpp",
         "rasterize.cpp",
         "voronoi_diagram.cpp",
-        "pid.cpp"
     ],
     hdrs = [
         "almost_equal.h",
@@ -34,7 +33,6 @@ cc_library(
         "intersects.h",
         "rasterize.h",
         "voronoi_diagram.h",
-        "pid.h"
     ],
     deps = [
         "//software/ai/navigator/path_planner/hrvo:velocity_obstacle",
@@ -49,6 +47,20 @@ cc_library(
         "//software/geom:rectangle",
         "//software/geom:segment",
         "//software/geom:vector",
+        "//software/logger",
+    ],
+)
+
+cc_library(
+    name = "pid",
+    srcs = [
+        "pid.cpp"
+    ],
+    hdrs = [
+        "pid.h"
+    ],
+    deps = [
+        "//proto/message_translation:tbots_protobuf",
         "//software/logger",
     ],
 )

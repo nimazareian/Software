@@ -2,7 +2,7 @@ from pyqtgraph.Qt import QtCore, QtGui
 
 LINE_WIDTH = 3
 SPEED_LINE_WIDTH = 2
-SPEED_SEGMENT_SCALE = 0.2
+SPEED_SEGMENT_SCALE = 1.0
 
 
 class Colors(object):
@@ -18,6 +18,7 @@ class Colors(object):
     TRANSPARENT = QtGui.QColor(0, 0, 0, 0)
     DESIRED_ROBOT_LOCATION_OUTLINE = QtGui.QColor(255, 0, 0, 150)
     SPEED_VECTOR_COLOR = QtGui.QColor(255, 0, 255, 100)
+    DESIRED_SPEED_COLOR = QtGui.QColor(255, 0, 0, 200)
 
     ROBOT_SPEED_SLOW_COLOR = "black"
     NAVIGATOR_PATH_COLOR = "green"

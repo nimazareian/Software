@@ -47,7 +47,7 @@ class PrimitiveExecutor
      *
      * @param local_velocity The local velocity
      */
-    void updateLocalVelocity(Vector local_velocity);
+    void updateLocalVelocity(const Vector &local_velocity);
     void updateAngularVelocity(AngularVelocity angular_velocity);
 
     /**
@@ -94,7 +94,9 @@ class PrimitiveExecutor
     HRVOSimulator hrvo_simulator_;
     const double time_step_s_;
     AngularVelocity curr_angular_velocity_;
+    Angle curr_orientation_;
     Vector curr_local_velocity_;
+    Point curr_global_position_;
     std::map<std::string, double> plotjuggler_values;
     const TeamColour friendly_team_colour;
     const std::string team_color;

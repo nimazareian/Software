@@ -302,6 +302,7 @@ void ErForceSimulator::setRobotPrimitive(
             robot_primitive_executor->updatePrimitiveSet(robot_id, primitive_set_msg);
             robot_primitive_executor->updateWorld(world_msg);
             robot_primitive_executor->updateLocalVelocity(local_velocity);
+//            robot_primitive_executor->updateAngularVelocity(...); // TODO:
         }
         else
         {

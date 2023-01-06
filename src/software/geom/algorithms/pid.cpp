@@ -1,5 +1,7 @@
 #include <iostream>
 #include "pid.h"
+#include "software/logger/logger.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 PID::PID(double dt, double max, double min, double Kp, double Kd, double Ki)
         : pimpl(dt, max, min, Kp, Kd, Ki)
@@ -25,11 +27,12 @@ PIDImpl::PIDImpl(double dt, double max, double min, double Kp, double Kd, double
         _pre_error(0),
         _integral(0)
 {
+    CHECK(_min < _max) << "PID min must be less than max";
 }
 
 double PIDImpl::calculate(double setpoint, double pv)
 {
-
+    // TODO: Fix the first output being super large!
     // Calculate error
     double error = setpoint - pv;
 
@@ -43,6 +46,12 @@ double PIDImpl::calculate(double setpoint, double pv)
     // Derivative term
     double derivative = (error - _pre_error) / _dt;
     double Dout = _Kd * derivative;
+
+    std::map<std::string, double> plotjuggler_values;
+    plotjuggler_values.insert({"PID_P_" + std::to_string(_Kd) + "out", Pout});
+    plotjuggler_values.insert({"PID_D_" + std::to_string(_Kd) + "out", Dout});
+    plotjuggler_values.insert({"PID_D_" + std::to_string(_Kd) + "derror", error - _pre_error});
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
 
     // Calculate total output
     double output = Pout + Iout + Dout;

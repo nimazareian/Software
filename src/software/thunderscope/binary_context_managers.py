@@ -167,6 +167,7 @@ gdb --args bazel-bin/{full_system}
             PassVisualization,
             NamedValue,
             PlayInfo,
+            Segment,
         ]:
             proto_unix_io.attach_unix_receiver(
                 runtime_dir=self.full_system_runtime_dir,
@@ -320,6 +321,7 @@ gdb --args bazel-bin/{simulator_command}
             (BLUE_ROBOT_STATUS_PATH, RobotStatus),
             (SIMULATOR_STATE_PATH, SimulatorState),
             ("", PlotJugglerValue, True),
+            ("", Segment, True),
         ] + [
             # TODO (#2655): Add/Remove HRVO layers dynamically based on the HRVOVisualization proto messages
             (BLUE_HRVO_PATH, HRVOVisualization, True)

@@ -27,7 +27,7 @@ static const char REDIS_DEFAULT_HOST[REDIS_HOST_LENGTH] = "127.0.0.1";
 static const short unsigned int REDIS_DEFAULT_PORT      = 6379;
 
 // PlotJuggler default host and port
-static const std::string PLOTJUGGLER_DEFAULT_HOST        = "192.168.0.110";
+static const std::string PLOTJUGGLER_DEFAULT_HOST        = "127.0.0.1"; // "192.168.0.110"; // TODO: should proabbly be dynamic
 static const short unsigned int PLOTJUGGLER_DEFAULT_PORT = 9870;
 
 // the port robots are listening to for vision and primitives
