@@ -61,12 +61,9 @@ class PrimitiveExecutor
      * Steps the current primitive and returns a direct control primitive with the
      * target wheel velocities
      *
-     * @param robot_state The current orientation of the robot which is running this
-     * Primitive Executor
      * @returns DirectControlPrimitive The direct control primitive msg
      */
-    std::unique_ptr<TbotsProto::DirectControlPrimitive> stepPrimitive(
-        const RobotState& robot_state);
+    std::unique_ptr<TbotsProto::DirectControlPrimitive> stepPrimitive();
 
    private:
     /*
@@ -75,7 +72,7 @@ class PrimitiveExecutor
      */
     Vector getTargetLinearVelocity();
 
-    Vector getTargetLinearVelocity(const RobotState& robot_state);
+    Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive);
 
     /*
      * Compute the next target angular velocity the robot should be at
@@ -101,7 +98,6 @@ class PrimitiveExecutor
     std::map<std::string, double> plotjuggler_values;
     const TeamColour friendly_team_colour;
     const std::string team_color;
-    RobotId robot_id_ = 0;
     PID angular_speed_pid_;
     PID linear_speed_x_pid_;
     PID linear_speed_y_pid_;

@@ -89,19 +89,13 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
 }
 
-void PrimitiveExecutor::updateAngularVelocity(AngularVelocity angular_velocity)
-{
-    curr_angular_velocity_ = angular_velocity;
-}
-
 Vector PrimitiveExecutor::getTargetLinearVelocity()
 {
     Vector target_global_velocity = hrvo_simulator_.getRobotVelocity(robot_id_);
     return globalToLocalVelocity(target_global_velocity, curr_orientation_);
 }
 
-Vector PrimitiveExecutor::getTargetLinearVelocity(
-    const TbotsProto::MovePrimitive& move_primitive, const RobotState& robot_state)
+Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive)
 {
     const Point final_position =
         createPoint(move_primitive.motion_control().path().points().at(1));
@@ -109,12 +103,12 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(
     const double x_inc = linear_speed_x_pid_.calculate(final_position.x(), curr_global_position_.x());
     const double y_inc = linear_speed_y_pid_.calculate(final_position.y(), curr_global_position_.y());
 
-    Vector xy_inc_local = globalToLocal(Vector(x_inc, y_inc), curr_orientation_);
+    Vector xy_inc_local = globalToLocalVelocity(Vector(x_inc, y_inc), curr_orientation_);
     Vector output = curr_local_velocity_ + xy_inc_local;
     output = Vector(output.x(), output.y());
 
-    Vector output_global = localToGlobal(output, curr_orientation_);
-    Vector curr_global_velocity = localToGlobal(curr_local_velocity_, curr_orientation_);
+    Vector output_global = localToGlobalVelocity(output, curr_orientation_);
+    Vector curr_global_velocity = localToGlobalVelocity(curr_local_velocity_, curr_orientation_);
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff", (final_position - curr_global_position_).x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff", (final_position - curr_global_position_).y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_est", curr_global_position_.x()});
@@ -132,10 +126,10 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual", curr_global_velocity.y()});
 
 
-    LOG(VISUALIZE) << *createSegmentProto(Segment(robot_state.position(),
-                                                  robot_state.position() + Vector(x_inc, 0.0)));
-    LOG(VISUALIZE) << *createSegmentProto(Segment(robot_state.position(),
-                                                  robot_state.position() + Vector(0.0, y_inc)));
+//    LOG(VISUALIZE) << *createSegmentProto(Segment(curr_global_position_,
+//                                                  curr_global_position_ + Vector(x_inc, 0.0)));
+//    LOG(VISUALIZE) << *createSegmentProto(Segment(curr_global_position_,
+//                                                  curr_global_position_ + Vector(0.0, y_inc)));
 
     // Update estimated local velocity
     curr_local_velocity_ = output;
@@ -178,8 +172,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 }
 
 
-std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive(
-    const RobotState& robot_state)
+std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive()
 {
     hrvo_simulator_.doStep();
 
@@ -204,11 +197,11 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         case TbotsProto::Primitive::kMove:
         {
             // Compute the target velocities
-            Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(), robot_state);
+            Vector target_velocity = getTargetLinearVelocity(current_primitive_.move());
 //            target_velocity = Vector(0, -1).rotate(-curr_orientation_); // TODO: See if robot actually moves down while rotating
 //              Vector target_velocity = getTargetLinearVelocity(robot_id, robot_state.orientation());
 
-            AngularVelocity target_angular_velocity = getTargetAngularVelocity(current_primitive_.move(), robot_state.orientation());
+            AngularVelocity target_angular_velocity = getTargetAngularVelocity(current_primitive_.move());
 
 //            target_velocity = Vector(target_velocity.x(), 0.0);
 //            target_velocity = Vector();
@@ -219,7 +212,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
                 current_primitive_.move().dribbler_speed_rpm(),
                 current_primitive_.move().auto_chip_or_kick());
 
-            plotjuggler_values.insert({std::to_string(robot_id) + team_color + "_vt", target_angular_velocity.toRadians()});
+            plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt", target_angular_velocity.toRadians()});
             LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
             plotjuggler_values.clear();
 

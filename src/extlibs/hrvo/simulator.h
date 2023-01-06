@@ -226,9 +226,6 @@ class HRVOSimulator
      */
     Vector getAgentVelocity(std::size_t agent_no) const;
 
-    // TODO: Add documentation
-    void updateRobotVelocity(RobotId robot_id, Vector new_velocity);
-
     /**
      * Update the velocity of the agent with the given id
      * @param robot_id Robot id of the agent to update
