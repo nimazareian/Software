@@ -35,7 +35,18 @@ cc_library(
         "//software/geom:vector",
     ],
 )
-# TODO: Add tests
+
+cc_test(
+    name = "velocity_conversion_util_test",
+    srcs = [
+        "velocity_conversion_util_test.cpp",
+    ],
+    deps = [
+        ":velocity_conversion_util",
+        "//shared/test_util:tbots_gtest_main",
+        "//software/test_util",
+    ],
+)
 
 cc_library(
     name = "physics",

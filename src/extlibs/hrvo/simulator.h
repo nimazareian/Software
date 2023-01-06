@@ -230,6 +230,13 @@ class HRVOSimulator
     void updateRobotVelocity(RobotId robot_id, Vector new_velocity);
 
     /**
+     * Update the velocity of the agent with the given id
+     * @param robot_id Robot id of the agent to update
+     * @param new_velocity New global velocity of the agent
+     */
+    void updateRobotVelocity(RobotId robot_id, const Vector &new_velocity);
+
+    /**
      *   Returns the global time of the simulation.
      *
      * @return The present global time of the simulation (zero initially).

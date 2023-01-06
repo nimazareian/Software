@@ -5,13 +5,13 @@
 #include "proto/primitive/primitive_msg_factory.h"
 #include "proto/tbots_software_msgs.pb.h"
 #include "proto/visualization.pb.h"
-#include "software/math/math_functions.h"
 #include "proto/message_translation/tbots_protobuf.h"
 #include "software/physics/velocity_conversion_util.h"
 
 PrimitiveExecutor::PrimitiveExecutor(const double time_step,
-                                     const RobotConstants_t& robot_constants,
-                                     const TeamColour friendly_team_colour)
+                                     const RobotConstants_t &robot_constants,
+                                     const TeamColour friendly_team_colour,
+                                     const RobotId robot_id)
     : current_primitive_(),
       robot_constants_(robot_constants),
       hrvo_simulator_(static_cast<float>(time_step), robot_constants,
@@ -19,6 +19,7 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       time_step_s_(time_step),
       curr_angular_velocity_(AngularVelocity::zero()),
       curr_orientation_(Angle::zero()),
+      robot_id_(robot_id),
       curr_local_velocity_(),
       curr_global_position_(),
       friendly_team_colour(friendly_team_colour),
@@ -48,10 +49,10 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
 // TODO: Tuned PD Simulation constants: X,Y => P=0.3, D=0.13 with 1*max_acceleration (2.1sec)
 
 void PrimitiveExecutor::updatePrimitiveSet(
-    const unsigned int robot_id, const TbotsProto::PrimitiveSet& primitive_set_msg)
+    const TbotsProto::PrimitiveSet &primitive_set_msg)
 {
     hrvo_simulator_.updatePrimitiveSet(primitive_set_msg);
-    auto primitive_set_msg_iter = primitive_set_msg.robot_primitives().find(robot_id);
+    auto primitive_set_msg_iter = primitive_set_msg.robot_primitives().find(robot_id_);
     if (primitive_set_msg_iter != primitive_set_msg.robot_primitives().end())
     {
         current_primitive_ = primitive_set_msg_iter->second;
@@ -59,12 +60,12 @@ void PrimitiveExecutor::updatePrimitiveSet(
     }
 }
 
-void PrimitiveExecutor::clearCurrentPrimitive()
+void PrimitiveExecutor::setStopPrimitive()
 {
-    current_primitive_.Clear();
+    current_primitive_ = *createStopPrimitive();
 }
 
-void PrimitiveExecutor::updateWorld(const TbotsProto::World& world_msg)
+void PrimitiveExecutor::updateWorld(const TbotsProto::World &world_msg)
 {
     World new_world = World(world_msg);
     hrvo_simulator_.updateWorld(new_world);
@@ -77,24 +78,26 @@ void PrimitiveExecutor::updateWorld(const TbotsProto::World& world_msg)
     }
 }
 
+void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
+                                       const AngularVelocity &angular_velocity)
+{
+    hrvo_simulator_.updateRobotVelocity(
+            robot_id_, localToGlobalVelocity(local_velocity, curr_orientation_));
+    curr_angular_velocity_ = angular_velocity;
+    curr_local_velocity_ = local_velocity;
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual_local", curr_local_velocity_.x()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
+}
+
 void PrimitiveExecutor::updateAngularVelocity(AngularVelocity angular_velocity)
 {
     curr_angular_velocity_ = angular_velocity;
 }
 
-void PrimitiveExecutor::updateLocalVelocity(const Vector &local_velocity)
+Vector PrimitiveExecutor::getTargetLinearVelocity()
 {
-    curr_local_velocity_ = local_velocity;
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual_local", curr_local_velocity_.x()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
-    hrvo_simulator_.updateRobotVelocity(robot_id_, localToGlobal(local_velocity, curr_orientation_));
-}
-
-Vector PrimitiveExecutor::getTargetLinearVelocity(const unsigned int robot_id,
-                                                  const Angle& curr_orientation)
-{
-    Vector target_global_velocity = hrvo_simulator_.getRobotVelocity(robot_id);
-    return globalToLocal(target_global_velocity, curr_orientation_);
+    Vector target_global_velocity = hrvo_simulator_.getRobotVelocity(robot_id_);
+    return globalToLocalVelocity(target_global_velocity, curr_orientation_);
 }
 
 Vector PrimitiveExecutor::getTargetLinearVelocity(
@@ -143,7 +146,7 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(
 }
 
 AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
-    const TbotsProto::MovePrimitive& move_primitive, const Angle& curr_orientation)
+    const TbotsProto::MovePrimitive &move_primitive)
 {
     const Angle dest_orientation = createAngle(move_primitive.final_angle());
     const double signed_delta_orientation =
@@ -176,27 +179,15 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 
 
 std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive(
-    const unsigned int robot_id,
     const RobotState& robot_state)
 {
-    robot_id_ = robot_id;
     hrvo_simulator_.doStep();
 
     // Visualize the HRVO Simulator for the current robot
-    hrvo_simulator_.visualize(robot_id);
+    hrvo_simulator_.visualize(robot_id_);
 
     switch (current_primitive_.primitive_case())
     {
-        case TbotsProto::Primitive::kEstop:
-        {
-            // Protobuf guarantees that the default values in a proto are all zero (bools
-            // are false)
-            //
-            // https://developers.google.com/protocol-buffers/docs/proto3#default
-            auto output = std::make_unique<TbotsProto::DirectControlPrimitive>();
-
-            return output;
-        }
         case TbotsProto::Primitive::kStop:
         {
             auto prim   = createDirectControlPrimitive(Vector(), AngularVelocity(), 0.0,
@@ -245,4 +236,9 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         }
     }
     return std::make_unique<TbotsProto::DirectControlPrimitive>();
+}
+
+void PrimitiveExecutor::setRobotId(const RobotId robot_id)
+{
+    robot_id_ = robot_id;
 }
