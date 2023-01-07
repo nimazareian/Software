@@ -36,6 +36,7 @@ private:
     double _Ki;
     double _pre_error;
     double _integral;
+    bool _first_run;
 };
 
 

@@ -133,15 +133,14 @@ class ErForceSimulator
      * @param robot_primitive_executor_map The robot primitive executors to send the
      * primitive set to
      * @param world_msg The world message
+     * @param prev_world_timestamp The timestamp of the previous world message
      * @param local_velocity The local velocity
      * @param angular_velocity The angular velocity
      */
-    static void setRobotPrimitive(
-        RobotId id, const TbotsProto::PrimitiveSet& primitive_set_msg,
-        std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>>&
-            robot_primitive_executor_map,
-        const TbotsProto::World& world_msg, const Vector& local_velocity,
-        const AngularVelocity angular_velocity);
+    static void setRobotPrimitive(RobotId id, const TbotsProto::PrimitiveSet &primitive_set_msg,
+                                  std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>> &robot_primitive_executor_map,
+                                  const TbotsProto::World &world_msg, double prev_world_timestamp, const Vector &local_velocity,
+                                  const AngularVelocity angular_velocity);
 
     /**
      * Gets a map from robot id to local and angular velocity from repeated sim robots
@@ -175,6 +174,8 @@ class ErForceSimulator
         blue_primitive_executor_map;
     std::unique_ptr<TbotsProto::World> yellow_team_world_msg;
     std::unique_ptr<TbotsProto::World> blue_team_world_msg;
+    double prev_yellow_world_timestamp;
+    double prev_blue_world_timestamp;
 
     static constexpr double primitive_executor_time_step = 1.0 / 60.0;
     unsigned int frame_number;

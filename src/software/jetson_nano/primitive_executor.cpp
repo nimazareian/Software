@@ -29,14 +29,14 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       angular_speed_pid_(time_step,
                        robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
                        -robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
-                         0.3, // 0.8, 0.15, 0.0
-                         0.15,
+                         0.8, // 0.3, 0.15, 0.0
+                         0.16,
                          0.0),
       linear_speed_x_pid_(time_step,
                          robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
                        -robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
                        0.3,
-                       0.12,
+                       0.178,
                        0),
       linear_speed_y_pid_(time_step,
                           robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
@@ -108,7 +108,6 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     output = Vector(output.x(), output.y());
 
     Vector output_global = localToGlobalVelocity(output, curr_orientation_);
-    Vector curr_global_velocity = localToGlobalVelocity(curr_local_velocity_, curr_orientation_);
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff", (final_position - curr_global_position_).x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff", (final_position - curr_global_position_).y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_est", curr_global_position_.x()});
@@ -122,8 +121,14 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy", output_global.y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_local", output.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_local", output.y()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual", curr_global_velocity.x()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual", curr_global_velocity.y()});
+//    Vector curr_global_velocity = localToGlobalVelocity(curr_local_velocity_, curr_orientation_);
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual", curr_global_velocity.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual", curr_global_velocity.y()});
+
+    Vector v_diff = (output - output.project(globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_)));
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_diff", v_diff.length()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_diff", v_diff.x()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_diff", v_diff.y()});
 
 
 //    LOG(VISUALIZE) << *createSegmentProto(Segment(curr_global_position_,
@@ -162,6 +167,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_inc", inc});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_signedDeltaToDest", signed_delta_orientation});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_primexec", curr_orientation_.toRadians()});
 
     curr_angular_velocity_ = output;
     // TODO: Should be set to actual position everytime a new world is received!!

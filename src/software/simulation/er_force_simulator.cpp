@@ -22,6 +22,8 @@ ErForceSimulator::ErForceSimulator(const TbotsProto::FieldType& field_type,
                                    const RobotConstants_t& robot_constants)
     : yellow_team_world_msg(std::make_unique<TbotsProto::World>()),
       blue_team_world_msg(std::make_unique<TbotsProto::World>()),
+      prev_yellow_world_timestamp(0),
+      prev_blue_world_timestamp(0),
       frame_number(0),
       robot_constants(robot_constants),
       field(Field::createField(field_type)),
@@ -258,8 +260,9 @@ void ErForceSimulator::setYellowRobotPrimitiveSet(
     {
         auto& [local_vel, angular_vel] = robot_to_vel_pair_map.at(robot_id);
         setRobotPrimitive(robot_id, primitive_set_msg, yellow_primitive_executor_map,
-                          world_proto, local_vel, angular_vel);
+                          world_proto, prev_yellow_world_timestamp, local_vel, angular_vel);
     }
+    prev_yellow_world_timestamp = world_proto.time_sent().epoch_timestamp_seconds();
 }
 
 void ErForceSimulator::setBlueRobotPrimitiveSet(
@@ -276,16 +279,15 @@ void ErForceSimulator::setBlueRobotPrimitiveSet(
     {
         auto& [local_vel, angular_vel] = robot_to_vel_pair_map.at(robot_id);
         setRobotPrimitive(robot_id, primitive_set_msg, blue_primitive_executor_map,
-                          world_proto, local_vel, angular_vel);
+                          world_proto, prev_blue_world_timestamp, local_vel, angular_vel);
     }
+    prev_blue_world_timestamp = world_proto.time_sent().epoch_timestamp_seconds();
 }
 
-void ErForceSimulator::setRobotPrimitive(
-    RobotId id, const TbotsProto::PrimitiveSet& primitive_set_msg,
-    std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>>&
-        robot_primitive_executor_map,
-    const TbotsProto::World& world_msg, const Vector& local_velocity,
-    const AngularVelocity angular_velocity)
+void ErForceSimulator::setRobotPrimitive(RobotId id, const TbotsProto::PrimitiveSet &primitive_set_msg,
+                                         std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>> &robot_primitive_executor_map,
+                                         const TbotsProto::World &world_msg, double prev_world_timestamp, const Vector &local_velocity,
+                                         const AngularVelocity angular_velocity)
 {
     // Set to NEG_X because the world msg in this simulator is normalized
     // correctly
@@ -294,8 +296,12 @@ void ErForceSimulator::setRobotPrimitive(
     if (robot_primitive_executor_iter != robot_primitive_executor_map.end())
     {
         auto primitive_executor = robot_primitive_executor_iter->second;
+        // TODO: Move logic into prim exec so it's shared between tloop and sim
+        if (world_msg.time_sent().epoch_timestamp_seconds() > prev_world_timestamp)
+        {
+            primitive_executor->updateWorld(world_msg);
+        }
         primitive_executor->updatePrimitiveSet(primitive_set_msg);
-        primitive_executor->updateWorld(world_msg);
         primitive_executor->updateVelocity(local_velocity, angular_velocity);
     }
     else
@@ -440,6 +446,8 @@ ErForceSimulator::getRobotIdToLocalVelocityMap(
     const google::protobuf::RepeatedPtrField<world::SimRobot>& sim_robots)
 {
     std::map<RobotId, std::pair<Vector, AngularVelocity>> robot_to_local_velocity;
+    std::map<std::string, double> plotjuggler_values;
+
     for (const auto& sim_robot : sim_robots)
     {
         const Vector local_vel =
@@ -447,6 +455,10 @@ ErForceSimulator::getRobotIdToLocalVelocityMap(
                                   Angle::fromRadians(sim_robot.angle()));
         const AngularVelocity angular_vel       = Angle::fromRadians(sim_robot.r_z());
         robot_to_local_velocity[sim_robot.id()] = {local_vel, angular_vel};
+        plotjuggler_values.insert({std::to_string(sim_robot.id()) + "_t_actual", Angle::fromRadians(sim_robot.angle()).toRadians()});
+        plotjuggler_values.insert({std::to_string(sim_robot.id()) + "_vx_actual", sim_robot.v_x()});
+        plotjuggler_values.insert({std::to_string(sim_robot.id()) + "_vy_actual", sim_robot.v_y()});
     }
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
     return robot_to_local_velocity;
 }
