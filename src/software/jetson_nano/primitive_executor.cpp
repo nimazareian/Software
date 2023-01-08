@@ -33,14 +33,14 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
                          0.16,
                          0.0),
       linear_speed_x_pid_(time_step,
-                         robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
-                       -robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
+                         6 * time_step, //robot_constants.robot_max_acceleration_m_per_s_2
+                       -6 * time_step,
                        0.3,
                        0.178,
                        0),
       linear_speed_y_pid_(time_step,
-                          robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
-                          -robot_constants.robot_max_acceleration_m_per_s_2 * time_step,
+                          6 * time_step,
+                          -6 * time_step,
                           0.3,
                           0.14,
                           0)
@@ -97,25 +97,28 @@ Vector PrimitiveExecutor::getTargetLinearVelocity()
 
 Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive)
 {
+    // TODO: I wonder if HRVO will also oscillate if we used local velocity (takes into account the changing orientation)
+    //       instead of global velocity
     const Point final_position =
         createPoint(move_primitive.motion_control().path().points().at(1));
+    Vector local_distance_delta = globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_);
 
-    const double x_inc = linear_speed_x_pid_.calculate(final_position.x(), curr_global_position_.x());
-    const double y_inc = linear_speed_y_pid_.calculate(final_position.y(), curr_global_position_.y());
+    const double x_inc = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0);
+    const double y_inc = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0);
 
-    Vector xy_inc_local = globalToLocalVelocity(Vector(x_inc, y_inc), curr_orientation_);
-    Vector output = curr_local_velocity_ + xy_inc_local;
+    Vector output = curr_local_velocity_ + Vector(x_inc, y_inc);
     output = Vector(output.x(), output.y());
 
+    Vector xy_inc_global = localToGlobalVelocity(Vector(x_inc, y_inc), curr_orientation_);
     Vector output_global = localToGlobalVelocity(output, curr_orientation_);
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff", (final_position - curr_global_position_).x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff", (final_position - curr_global_position_).y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_est", curr_global_position_.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_est", curr_global_position_.y()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_inc", x_inc});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_inc", y_inc});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_inc_local", xy_inc_local.x()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_inc_local", xy_inc_local.y()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_inc_local", x_inc});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_inc_local", y_inc});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_inc_global", xy_inc_global.x()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_inc_global", xy_inc_global.y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_len", output_global.length()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx", output_global.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy", output_global.y()});

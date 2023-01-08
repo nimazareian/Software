@@ -29,7 +29,7 @@ from proto.ssl_gc_common_pb2 import Team
         (
                 Point(x_meters=-2.5, y_meters=0.0),
                 Angle(radians=0.0),
-                Point(x_meters=2.5, y_meters=0.0),
+                Point(x_meters=0.0, y_meters=-2.5),
                 Angle(radians=0.0), #math.pi
         ),
         # (
@@ -112,7 +112,7 @@ def test_robot_movement(
     eventually_validation_sequence_set = [[]]
 
     simulated_test_runner.run_test(
-        test_timeout_s=7,
+        test_timeout_s=5,
         eventually_validation_sequence_set=eventually_validation_sequence_set,
         always_validation_sequence_set=always_validation_sequence_set,
     )

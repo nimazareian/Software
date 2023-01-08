@@ -160,3 +160,29 @@ TEST_F(EuclideanToWheelTest, test_double_convertion)
     EXPECT_TRUE(TestUtil::equalWithinTolerance(target_euclidean_velocity,
                                                calculated_euclidean_velocity, 0.001));
 }
+
+TEST_F(EuclideanToWheelTest, test_graph_vel_limits)
+{
+    Vector target_velocity(10, 0);
+    double max_motor_speed = create2021RobotConstants().robot_max_speed_m_per_s;
+
+    for (int orientation = 0; orientation <= 360; orientation++)
+    {
+        // 90 degree offset to have front of the robot being represented sa +y-axis in graph
+        Vector local_velocity = target_velocity.rotate(Angle::fromDegrees(orientation));
+        target_euclidean_velocity = {local_velocity.x(), local_velocity.y(), 0};
+        WheelSpace_t wheel_velocities =
+                euclidean_to_four_wheel.getWheelVelocity(target_euclidean_velocity);
+
+        // find absolute max wheel velocity
+        auto max_wheel_velocity = wheel_velocities.cwiseAbs().maxCoeff();
+        WheelSpace_t ramped_wheel_velocities = (wheel_velocities / max_wheel_velocity) * max_motor_speed;
+        EuclideanSpace_t calculated_ramped_euclidean_velocity =
+                euclidean_to_four_wheel.getEuclideanVelocity(ramped_wheel_velocities);
+
+        std::map<std::string, double> plotjuggler_values;
+        plotjuggler_values.insert({"ramped_x", calculated_ramped_euclidean_velocity.x()});
+        plotjuggler_values.insert({"ramped_y", calculated_ramped_euclidean_velocity.y()});
+        LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
+    }
+}
