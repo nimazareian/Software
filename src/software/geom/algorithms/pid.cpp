@@ -3,24 +3,24 @@
 #include "software/logger/logger.h"
 #include "proto/message_translation/tbots_protobuf.h"
 
-PID::PID(double dt, double max, double min, double Kp, double Kd, double Ki)
-        : pimpl(dt, max, min, Kp, Kd, Ki)
+PID::PID(double max_delta_s, double Kp, double Kd, double Ki)
+        : pimpl(max_delta_s, Kp, Kd, Ki)
 {
 }
 
-double PID::calculate(double setpoint, double pv)
+double PID::calculate(double setpoint, double pv, double dt_s)
 {
-    return pimpl.calculate(setpoint, pv);
+    return pimpl.calculate(setpoint, pv, dt_s);
 }
 
 
 /**
  * Implementation
  */
-PIDImpl::PIDImpl(double dt, double max, double min, double Kp, double Kd, double Ki) :
-        _dt(dt),
-        _max(max),
-        _min(min),
+PIDImpl::PIDImpl(double max_delta_s, double Kp, double Kd, double Ki) :
+//        _dt(dt),
+        _max_delta_s(max_delta_s),
+//        _min(min),
         _Kp(Kp),
         _Kd(Kd),
         _Ki(Ki),
@@ -28,10 +28,9 @@ PIDImpl::PIDImpl(double dt, double max, double min, double Kp, double Kd, double
         _integral(0),
         _first_run(true)
 {
-    CHECK(_min < _max) << "PID min must be less than max";
 }
 
-double PIDImpl::calculate(double setpoint, double pv)
+double PIDImpl::calculate(double setpoint, double pv, double dt_s)
 {
     // TODO: Fix the first output being super large!
     // Calculate error
@@ -41,7 +40,7 @@ double PIDImpl::calculate(double setpoint, double pv)
     double Pout = _Kp * error;
 
     // Integral term
-    _integral += error * _dt;
+    _integral += error * dt_s;
     double Iout = _Ki * _integral;
 
     // Derivative term
@@ -50,7 +49,7 @@ double PIDImpl::calculate(double setpoint, double pv)
         _pre_error = error;
         _first_run = false;
     }
-    double derivative = (error - _pre_error) / _dt;
+    double derivative = (error - _pre_error) / dt_s;
     double Dout = _Kd * derivative;
 
     // Calculate total output
@@ -63,14 +62,7 @@ double PIDImpl::calculate(double setpoint, double pv)
     plotjuggler_values.insert({"PID_" + std::to_string(_Kd) + "output_no_clamp", output});
 
     // Restrict to max/min
-    if (output > _max)
-    {
-        output = _max;
-    }
-    else if (output < _min)
-    {
-        output = _min;
-    }
+    output = std::clamp(output, -_max_delta_s * dt_s, _max_delta_s * dt_s);
 
     // Save error to previous error
     _pre_error = error;

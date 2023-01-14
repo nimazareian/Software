@@ -312,9 +312,8 @@ void ErForceSimulator::setRobotPrimitive(RobotId id, const TbotsProto::Primitive
 }
 
 SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
-    std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>>&
-        robot_primitive_executor_map,
-    const TbotsProto::World& world_msg)
+        std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>> &robot_primitive_executor_map,
+        const TbotsProto::World &world_msg, const Duration &time_step)
 {
     SSLSimulationProto::RobotControl robot_control;
 
@@ -322,7 +321,7 @@ SSLSimulationProto::RobotControl ErForceSimulator::updateSimulatorRobots(
     {
         unsigned int robot_id    = primitive_executor_with_id.first;
         auto& primitive_executor = primitive_executor_with_id.second;
-        auto direct_control      = primitive_executor->stepPrimitive();
+        auto direct_control      = primitive_executor->stepPrimitive(time_step);
 
         auto command = *getRobotCommandFromDirectControl(
             robot_id, std::move(direct_control), robot_constants);
@@ -336,10 +335,10 @@ void ErForceSimulator::stepSimulation(const Duration& time_step)
     current_time = current_time + time_step;
 
     SSLSimulationProto::RobotControl yellow_robot_control =
-        updateSimulatorRobots(yellow_primitive_executor_map, *yellow_team_world_msg);
+            updateSimulatorRobots(yellow_primitive_executor_map, *yellow_team_world_msg, time_step);
 
     SSLSimulationProto::RobotControl blue_robot_control =
-        updateSimulatorRobots(blue_primitive_executor_map, *blue_team_world_msg);
+            updateSimulatorRobots(blue_primitive_executor_map, *blue_team_world_msg, time_step);
 
     auto yellow_radio_responses =
         er_force_sim->acceptYellowRobotControlCommand(yellow_robot_control);

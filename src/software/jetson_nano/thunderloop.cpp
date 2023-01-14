@@ -76,6 +76,7 @@ Thunderloop::~Thunderloop() {}
     struct timespec last_primitive_received_time;
     struct timespec last_world_recieved_time;
     struct timespec current_time;
+    struct timespec last_step_primitive_time;
 
     // Input buffer
     TbotsProto::PrimitiveSet new_primitive_set;
@@ -91,6 +92,7 @@ Thunderloop::~Thunderloop() {}
     // Note: CLOCK_MONOTONIC is used over CLOCK_REALTIME since
     // CLOCK_REALTIME can jump backwards
     clock_gettime(CLOCK_MONOTONIC, &next_shot);
+    last_step_primitive_time = next_shot;
 
     double loop_duration_seconds = 0.0;
 
@@ -239,7 +241,14 @@ Thunderloop::~Thunderloop() {}
                                MILLISECONDS_PER_NANOSECOND;
                 }
 
-                direct_control_ = *primitive_executor_.stepPrimitive();
+                struct timespec elapsed_time;
+                ScopedTimespecTimer::timespecDiff(
+                        &current_time, &last_step_primitive_time, &elapsed_time);
+                auto nanoseconds_elapsed_since_step_primitive =
+                        elapsed_time.tv_sec * static_cast<int>(NANOSECONDS_PER_SECOND) +
+                        elapsed_time.tv_nsec;
+                direct_control_ = *primitive_executor_.stepPrimitive(Duration::fromSeconds(nanoseconds_elapsed_since_step_primitive * SECONDS_PER_NANOSECOND));
+                last_step_primitive_time = current_time;
             }
 
             thunderloop_status_.set_primitive_executor_step_time_ns(

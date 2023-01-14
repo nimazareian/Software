@@ -61,9 +61,11 @@ class PrimitiveExecutor
      * Steps the current primitive and returns a direct control primitive with the
      * target wheel velocities
      *
+     * @param time_step The elapsed time step since last call
+     *
      * @returns DirectControlPrimitive The direct control primitive msg
      */
-    std::unique_ptr<TbotsProto::DirectControlPrimitive> stepPrimitive();
+    std::unique_ptr<TbotsProto::DirectControlPrimitive> stepPrimitive(const Duration time_step);
 
    private:
     /*
@@ -72,7 +74,7 @@ class PrimitiveExecutor
      */
     Vector getTargetLinearVelocity();
 
-    Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive);
+    Vector getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive, const Duration time_step);
 
     /*
      * Compute the next target angular velocity the robot should be at
@@ -84,7 +86,7 @@ class PrimitiveExecutor
      * @returns AngularVelocity The target angular velocity
      */
     AngularVelocity getTargetAngularVelocity(
-        const TbotsProto::MovePrimitive &move_primitive);
+        const TbotsProto::MovePrimitive &move_primitive, const Duration time_step);
 
     TbotsProto::Primitive current_primitive_;
     RobotConstants_t robot_constants_;

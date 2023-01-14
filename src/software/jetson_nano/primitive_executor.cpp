@@ -26,24 +26,21 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       team_color(friendly_team_colour == TeamColour::YELLOW ? "y" : "b"),
       // TODO: Twente has a different PID constants for their Goalie vs other robots
       // TODO: Should we use I term? If so, we need to reset it to avoid it increasing forever
-      angular_speed_pid_(time_step,
-                       robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
-                       -robot_constants.robot_max_ang_acceleration_rad_per_s_2 * time_step,
-                         0.8, // 0.3, 0.15, 0.0
-                         0.16,
-                         0.0),
-      linear_speed_x_pid_(time_step,
-                         6 * time_step, //robot_constants.robot_max_acceleration_m_per_s_2
-                       -6 * time_step,
-                       0.3,
-                       0.178,
-                       0),
-      linear_speed_y_pid_(time_step,
-                          6 * time_step,
-                          -6 * time_step,
-                          0.3,
-                          0.14,
-                          0)
+      angular_speed_pid_(
+              robot_constants.robot_max_ang_acceleration_rad_per_s_2,
+              0.8, // 0.3, 0.15, 0.0
+              0.16,
+              0.0),
+      linear_speed_x_pid_(
+              robot_constants.robot_max_acceleration_m_per_s_2,
+              0.3,
+              0.178,
+              0),
+      linear_speed_y_pid_(
+              robot_constants.robot_max_acceleration_m_per_s_2,
+              0.3,
+              0.14,
+              0)
 {
 }
 // TODO: Tuned PD Simulation constants: X,Y => P=0.3, D=0.13 with 1*max_acceleration (2.1sec)
@@ -100,7 +97,7 @@ Vector PrimitiveExecutor::getTargetLinearVelocity()
     return globalToLocalVelocity(target_global_velocity, curr_orientation_);
 }
 
-Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive)
+Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive, const Duration time_step)
 {
     // TODO: I wonder if HRVO will also oscillate if we used local velocity (takes into account the changing orientation)
     //       instead of global velocity
@@ -108,8 +105,8 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
         createPoint(move_primitive.motion_control().path().points().at(1));
     Vector local_distance_delta = globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_);
 
-    const double x_inc = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0);
-    const double y_inc = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0);
+    const double x_inc = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step_s_);
+    const double y_inc = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step_s_);
 
     Vector output = curr_local_velocity_ + Vector(x_inc, y_inc);
     output = Vector(output.x(), output.y());
@@ -137,6 +134,7 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_diff", v_diff.length()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_diff", v_diff.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_diff", v_diff.y()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_prim_exec_time_step_ms", time_step.toMilliseconds()});
 
 
 //    LOG(VISUALIZE) << *createSegmentProto(Segment(curr_global_position_,
@@ -148,19 +146,19 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     curr_local_velocity_ = output;
     // TODO: Should be set to actual position everytime a new world is received!!
     // TODO: Use robotState instead of curr_global_position_
-    curr_global_position_ += output_global * time_step_s_;
+    curr_global_position_ += output_global * time_step.toSeconds();
     return output;
 }
 
 AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
-    const TbotsProto::MovePrimitive &move_primitive)
+    const TbotsProto::MovePrimitive &move_primitive, const Duration time_step)
 {
     const Angle dest_orientation = createAngle(move_primitive.final_angle());
     const double signed_delta_orientation =
             (dest_orientation - curr_orientation_).clamp().toRadians();
 
     // TODO: Should we be using feedback from the robot here: curr_angular_velocity_?
-    const double inc = angular_speed_pid_.calculate(signed_delta_orientation, 0.0);
+    const double inc = angular_speed_pid_.calculate(signed_delta_orientation, 0.0, time_step_s_);
     AngularVelocity output = AngularVelocity::fromRadians(curr_angular_velocity_.toRadians() + inc);
 
     // Used to stop Jitter when at destination
@@ -180,13 +178,13 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     curr_angular_velocity_ = output;
     // TODO: Should be set to actual position everytime a new world is received!!
     // TODO: Use robotState instead of curr_orientation_
-    curr_orientation_ += curr_angular_velocity_ * time_step_s_;
+    curr_orientation_ += curr_angular_velocity_ * time_step.toSeconds();
     // TODO: Nima remove support for turning
     return output;
 }
 
 
-std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive()
+std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive(const Duration time_step)
 {
     hrvo_simulator_.doStep();
 
@@ -211,11 +209,11 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         case TbotsProto::Primitive::kMove:
         {
             // Compute the target velocities
-            Vector target_velocity = getTargetLinearVelocity(current_primitive_.move());
-//            target_velocity = Vector(0, -1).rotate(-curr_orientation_); // TODO: See if robot actually moves down while rotating
+            Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(), time_step);
+//            target_velocity = globalToLocalVelocity(Vector(0, -1), curr_orientation_); // TODO: See if robot actually moves down while rotating
 //              Vector target_velocity = getTargetLinearVelocity(robot_id, robot_state.orientation());
 
-            AngularVelocity target_angular_velocity = getTargetAngularVelocity(current_primitive_.move());
+            AngularVelocity target_angular_velocity = getTargetAngularVelocity(current_primitive_.move(), time_step);
 
 //            target_velocity = Vector(target_velocity.x(), 0.0);
 //            target_velocity = Vector();

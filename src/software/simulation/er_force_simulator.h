@@ -163,9 +163,8 @@ class ErForceSimulator
      * @return robot control
      */
     SSLSimulationProto::RobotControl updateSimulatorRobots(
-        std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>>&
-            robot_primitive_executor_map,
-        const TbotsProto::World& world_msg);
+            std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>> &robot_primitive_executor_map,
+            const TbotsProto::World &world_msg, const Duration &time_step);
 
     // Map of Robot id to Primitive Executor
     std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>>

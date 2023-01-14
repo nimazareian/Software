@@ -30,7 +30,7 @@ from proto.ssl_gc_common_pb2 import Team
                 Point(x_meters=-2.5, y_meters=0.0),
                 Angle(radians=0.0),
                 Point(x_meters=0.0, y_meters=-2.5),
-                Angle(radians=0.0), #math.pi
+                Angle(radians=math.pi), #math.pi
         ),
         # (
         #     Point(x_meters=0.0, y_meters=0.0),
