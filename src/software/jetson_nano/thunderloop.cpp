@@ -83,8 +83,9 @@ Thunderloop::~Thunderloop() {}
     const TbotsProto::PrimitiveSet empty_primitive_set;
 
     // Loop interval
-    int interval =
+    const int interval_ns =
         static_cast<int>(1.0f / static_cast<float>(loop_hz_) * NANOSECONDS_PER_SECOND);
+    LOG(DEBUG) << "Desired Thunderloop interval: " << interval_ns * MILLISECONDS_PER_NANOSECOND << "ms" << std::endl;
 
     // Get current time
     // Note: CLOCK_MONOTONIC is used over CLOCK_REALTIME since
@@ -95,7 +96,6 @@ Thunderloop::~Thunderloop() {}
 
     for (;;)
     {
-        auto start_tloop = std::chrono::system_clock::now();
         std::map<std::string, double> plotjuggler_values;
         {
             // Wait until next shot
@@ -299,23 +299,25 @@ Thunderloop::~Thunderloop() {}
             plotjuggler_values.insert({"tloop_redis_set", milliseconds.count()});
         }
 
-        auto loop_duration =
+        auto loop_duration_ns =
             iteration_time.tv_sec * static_cast<int>(NANOSECONDS_PER_SECOND) +
             iteration_time.tv_nsec;
-        thunderloop_status_.set_iteration_time_ns(loop_duration);
+        thunderloop_status_.set_iteration_time_ns(loop_duration_ns);
 
         // Make sure the iteration can fit inside the period of the loop
         loop_duration_seconds =
-            static_cast<double>(loop_duration) * SECONDS_PER_NANOSECOND;
+                static_cast<double>(loop_duration_ns) * SECONDS_PER_NANOSECOND;
 
         // Calculate next shot taking into account how long this iteration took
-        next_shot.tv_nsec += interval - loop_duration;
+        next_shot.tv_nsec += interval_ns - loop_duration_ns;
         timespecNorm(next_shot);
+        if (loop_duration_ns > interval_ns)
+        {
+            LOG(WARNING) << "Thunderloop iteration took " << (interval_ns - loop_duration_ns) * MILLISECONDS_PER_NANOSECOND
+                         << "ms longer than the loop period of " << interval_ns * MILLISECONDS_PER_NANOSECOND << "ms";
+        }
 
-        auto end_tloop                                      = std::chrono::system_clock::now();
-        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end_tloop - start_tloop);
-//        std::cout << "285:" << milliseconds.count() << "ms THUNDERLOOP" << std::endl;
-        plotjuggler_values.insert({"tloop_ms", milliseconds.count()});
+        plotjuggler_values.insert({"tloop_ms", interval_ns * MILLISECONDS_PER_NANOSECOND});
         LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
     }
 }

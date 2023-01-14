@@ -67,6 +67,11 @@ void PrimitiveExecutor::setStopPrimitive()
 
 void PrimitiveExecutor::updateWorld(const TbotsProto::World &world_msg)
 {
+    // TODO: If this value is accurate, we should step simulation by this amount
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_world_network_delay",
+                               (createCurrentTimestamp()->epoch_timestamp_seconds() -
+                                world_msg.time_sent().epoch_timestamp_seconds()) * MILLISECONDS_PER_SECOND});
+
     World new_world = World(world_msg);
     hrvo_simulator_.updateWorld(new_world);
 
