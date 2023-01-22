@@ -19,7 +19,8 @@
 #include "software/world/robot_state.h"
 
 ErForceSimulator::ErForceSimulator(const TbotsProto::FieldType& field_type,
-                                   const RobotConstants_t& robot_constants)
+                                   const RobotConstants_t& robot_constants,
+                                   std::unique_ptr<RealismConfigErForce>& realism_config)
     : yellow_team_world_msg(std::make_unique<TbotsProto::World>()),
       blue_team_world_msg(std::make_unique<TbotsProto::World>()),
       prev_yellow_world_timestamp(0),
@@ -67,9 +68,7 @@ ErForceSimulator::ErForceSimulator(const TbotsProto::FieldType& field_type,
     Ball ball          = Ball(Point(), Vector(), Timestamp::fromSeconds(0));
     World world        = World(field, ball, friendly_team, enemy_team);
 
-    auto realism_config = std::make_unique<RealismConfigErForce>();
-    // Sets the dribbler to be ideal
-    realism_config->set_simulate_dribbling(false);
+    /* configure simulator */
     auto command_simulator = std::make_unique<amun::CommandSimulator>();
     *(command_simulator->mutable_realism_config())  = *realism_config;
     *(simulator_setup_command->mutable_simulator()) = *command_simulator;
@@ -77,6 +76,53 @@ ErForceSimulator::ErForceSimulator(const TbotsProto::FieldType& field_type,
     er_force_sim->handleSimulatorSetupCommand(simulator_setup_command);
 
     this->resetCurrentTime();
+}
+
+std::unique_ptr<RealismConfigErForce> ErForceSimulator::createDefaultRealismConfig()
+{
+    auto realism_config = std::make_unique<RealismConfigErForce>();
+    realism_config->set_stddev_ball_p(0);
+    realism_config->set_stddev_robot_p(0);
+    realism_config->set_stddev_robot_phi(0);
+    realism_config->set_stddev_ball_area(0);
+    realism_config->set_enable_invisible_ball(true);
+    realism_config->set_ball_visibility_threshold(0.4f);
+    realism_config->set_camera_overlap(0.3f);
+    realism_config->set_dribbler_ball_detections(0);
+    realism_config->set_camera_position_error(0);
+    realism_config->set_robot_command_loss(0);
+    realism_config->set_robot_response_loss(0);
+    realism_config->set_missing_ball_detections(0);
+    realism_config->set_vision_delay(0);
+    realism_config->set_vision_processing_time(0);
+    realism_config->set_missing_ball_detections(0);
+    realism_config->set_simulate_dribbling(false);
+    return realism_config;
+}
+
+std::unique_ptr<RealismConfigErForce> ErForceSimulator::createRealisticRealismConfig()
+{
+    /* values from
+     * https://github.com/robotics-erlangen/framework/blob/master/config/simulator-realism/Realistic.txt
+     */
+    auto realism_config = std::make_unique<RealismConfigErForce>();
+    realism_config->set_stddev_ball_p(0.0014f);
+    realism_config->set_stddev_robot_p(0.0013f);
+    realism_config->set_stddev_robot_phi(0.01f);
+    realism_config->set_stddev_ball_area(6.5f);
+    realism_config->set_enable_invisible_ball(true);
+    realism_config->set_ball_visibility_threshold(0.4f);
+    realism_config->set_camera_overlap(1);
+    realism_config->set_dribbler_ball_detections(0.05f);
+    realism_config->set_camera_position_error(0.1f);
+    realism_config->set_robot_command_loss(0.03f);
+    realism_config->set_robot_response_loss(0.1f);
+    realism_config->set_missing_ball_detections(0.05f);
+    realism_config->set_vision_delay(35000000);
+    realism_config->set_vision_processing_time(10000000);
+    realism_config->set_missing_ball_detections(0.02f);
+    realism_config->set_simulate_dribbling(false);
+    return realism_config;
 }
 
 void ErForceSimulator::setWorldState(const TbotsProto::WorldState& world_state)
@@ -273,13 +319,13 @@ void ErForceSimulator::setBlueRobotPrimitiveSet(
     const auto& sim_robots           = sim_state.blue_robots();
     const auto robot_to_vel_pair_map = getRobotIdToLocalVelocityMap(sim_robots);
 
-    blue_team_world_msg = std::move(world_msg);
+    blue_team_world_msg                 = std::move(world_msg);
     const TbotsProto::World world_proto = *blue_team_world_msg;
     for (auto& [robot_id, primitive] : primitive_set_msg.robot_primitives())
     {
         auto& [local_vel, angular_vel] = robot_to_vel_pair_map.at(robot_id);
         setRobotPrimitive(robot_id, primitive_set_msg, blue_primitive_executor_map,
-                          world_proto, prev_blue_world_timestamp, local_vel, angular_vel);
+                          world_proto, local_vel, angular_vel);
     }
     prev_blue_world_timestamp = world_proto.time_sent().epoch_timestamp_seconds();
 }
@@ -445,8 +491,6 @@ ErForceSimulator::getRobotIdToLocalVelocityMap(
     const google::protobuf::RepeatedPtrField<world::SimRobot>& sim_robots)
 {
     std::map<RobotId, std::pair<Vector, AngularVelocity>> robot_to_local_velocity;
-    std::map<std::string, double> plotjuggler_values;
-
     for (const auto& sim_robot : sim_robots)
     {
         const Vector local_vel =
@@ -454,10 +498,6 @@ ErForceSimulator::getRobotIdToLocalVelocityMap(
                                   Angle::fromRadians(sim_robot.angle()));
         const AngularVelocity angular_vel       = Angle::fromRadians(sim_robot.r_z());
         robot_to_local_velocity[sim_robot.id()] = {local_vel, angular_vel};
-        plotjuggler_values.insert({std::to_string(sim_robot.id()) + "_t_actual", Angle::fromRadians(sim_robot.angle()).toRadians()});
-        plotjuggler_values.insert({std::to_string(sim_robot.id()) + "_vx_actual", sim_robot.v_x()});
-        plotjuggler_values.insert({std::to_string(sim_robot.id()) + "_vy_actual", sim_robot.v_y()});
     }
-    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
     return robot_to_local_velocity;
 }

@@ -99,15 +99,15 @@ class Thunderloop
     std::string network_interface_;
     int loop_hz_;
 
+    // Calibrated power service constants
+    int kick_slope_;
+    int kick_constant_;
+    int chip_pulse_width_;
+
     // Primitive Executor
     PrimitiveExecutor primitive_executor_;
 
-    int kick_slope = 0;
-    int kick_constant = 0;
-    int chip_pulse_width = 0;
-
-
-    // 500 millisecond timeout on receiving primitives before we emergency stop the robots
+    // 500 millisecond timeout on receiving primitives before we stop the robots
     const double PRIMITIVE_MANAGER_TIMEOUT_NS = 500.0 * NANOSECONDS_PER_MILLISECOND;
 
     // 500 millisecond timeout on receiving world before we stop the robots
