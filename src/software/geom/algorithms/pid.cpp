@@ -8,9 +8,9 @@ PID::PID(double max_delta_s, double Kp, double Kd, double Ki)
 {
 }
 
-double PID::calculate(double setpoint, double pv, double dt_s)
+double PID::calculate(double setpoint, double pv, double dt_s, const std::string& name)
 {
-    return pimpl.calculate(setpoint, pv, dt_s);
+    return pimpl.calculate(setpoint, pv, dt_s, name);
 }
 
 
@@ -30,7 +30,7 @@ PIDImpl::PIDImpl(double max_delta_s, double Kp, double Kd, double Ki) :
 {
 }
 
-double PIDImpl::calculate(double setpoint, double pv, double dt_s)
+double PIDImpl::calculate(double setpoint, double pv, double dt_s, const std::string& name)
 {
     // TODO: Fix the first output being super large!
     // Calculate error
@@ -56,10 +56,10 @@ double PIDImpl::calculate(double setpoint, double pv, double dt_s)
     double output = Pout + Iout + Dout;
 
     std::map<std::string, double> plotjuggler_values;
-    plotjuggler_values.insert({"PID_P_" + std::to_string(_Kd) + "out", Pout});
-    plotjuggler_values.insert({"PID_D_" + std::to_string(_Kd) + "out", Dout});
-    plotjuggler_values.insert({"PID_D_" + std::to_string(_Kd) + "derror", error - _pre_error});
-    plotjuggler_values.insert({"PID_" + std::to_string(_Kd) + "output_no_clamp", output});
+    plotjuggler_values.insert({"PID_P_" + name + "out", Pout});
+    plotjuggler_values.insert({"PID_D_" + name + "out", Dout});
+    plotjuggler_values.insert({"PID_D_" + name + "derror", error - _pre_error});
+    plotjuggler_values.insert({"PID_" + name + "output_no_clamp", output});
 
     // Restrict to max/min
     output = std::clamp(output, -_max_delta_s * dt_s, _max_delta_s * dt_s);
@@ -67,7 +67,7 @@ double PIDImpl::calculate(double setpoint, double pv, double dt_s)
     // Save error to previous error
     _pre_error = error;
 
-    plotjuggler_values.insert({"PID_" + std::to_string(_Kd) + "output", output});
+    plotjuggler_values.insert({"PID_" + name + "output", output});
     LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
     return output;
 }

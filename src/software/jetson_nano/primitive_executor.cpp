@@ -29,17 +29,17 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       angular_speed_pid_(
               robot_constants.robot_max_ang_acceleration_rad_per_s_2,
               0.8, // 0.3, 0.15, 0.0
-              0.16,
+              0.27,
               0.0),
       linear_speed_x_pid_(
               robot_constants.robot_max_acceleration_m_per_s_2,
               0.3,
-              0.02,
+              0.14, // 0.14 seems pretty good, but lots of noise amplifies it
               0),
       linear_speed_y_pid_(
               robot_constants.robot_max_acceleration_m_per_s_2,
               0.3,
-              0.021,
+              0.14,
               0)
 {
 }
@@ -77,6 +77,9 @@ void PrimitiveExecutor::updateWorld(const TbotsProto::World &world_msg)
     {
         curr_global_position_ = this_robot->position();
         curr_orientation_ = this_robot->orientation();
+        plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_world", curr_global_position_.x()});
+        plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_world", curr_global_position_.y()});
+        plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_world", curr_orientation_.toRadians()});
     }
 }
 
@@ -89,6 +92,7 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
     curr_local_velocity_ = local_velocity;
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual_local", curr_local_velocity_.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
 }
 
 Vector PrimitiveExecutor::getTargetLinearVelocity()
@@ -105,10 +109,17 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
         createPoint(move_primitive.motion_control().path().points().at(1));
     Vector local_distance_delta = globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_);
 
-    const double x_inc = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step_s_);
-    const double y_inc = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step_s_);
+    const double x_inc = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step_s_, "x");
+    const double y_inc = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step_s_, "y");
 
-    Vector output = curr_local_velocity_ + Vector(x_inc, y_inc);
+    Vector xy_vel_inc = Vector(x_inc, y_inc);
+    if (local_distance_delta.length() <= 0.05)
+    {
+        // Linearly scale the velocity increment to 0 if we are within 5cm of the target
+        xy_vel_inc *= (local_distance_delta.length()) / 0.05;
+    }
+
+    Vector output = curr_local_velocity_ + xy_vel_inc;
 
     Vector xy_inc_global = localToGlobalVelocity(Vector(x_inc, y_inc), curr_orientation_);
     Vector output_global = localToGlobalVelocity(output, curr_orientation_);
@@ -116,6 +127,7 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff", (final_position - curr_global_position_).y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff_local", local_distance_delta.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff_local", local_distance_delta.y()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_xy_diff", local_distance_delta.length()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_est", curr_global_position_.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_est", curr_global_position_.y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_inc_local", x_inc});
@@ -159,7 +171,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
             (dest_orientation - curr_orientation_).clamp().toRadians();
 
     // TODO: Should we be using feedback from the robot here: curr_angular_velocity_?
-    const double inc = angular_speed_pid_.calculate(signed_delta_orientation, 0.0, time_step_s_);
+    const double inc = angular_speed_pid_.calculate(signed_delta_orientation, 0.0, time_step_s_, "t");
     AngularVelocity output = AngularVelocity::fromRadians(curr_angular_velocity_.toRadians() + inc);
 
     // Used to stop Jitter when at destination
@@ -211,6 +223,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         {
             // Compute the target velocities
             Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(), time_step);
+//            Vector target_velocity = getTargetLinearVelocity();
 //            target_velocity = globalToLocalVelocity(Vector(0, -1), curr_orientation_); // TODO: See if robot actually moves down while rotating
 //              Vector target_velocity = getTargetLinearVelocity(robot_id, robot_state.orientation());
 

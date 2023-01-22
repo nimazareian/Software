@@ -25,7 +25,7 @@ class PIDImpl
 {
 public:
     PIDImpl(double max_delta_s, double Kp, double Kd, double Ki);
-    double calculate(double setpoint, double pv, double dt_s);
+    double calculate(double setpoint, double pv, double dt_s, const std::string& name);
 
 private:
 //    double _dt;
@@ -51,7 +51,7 @@ public:
     PID(double max_delta_s, double Kp, double Kd, double Ki);
 
     // Returns the manipulated variable given a setpoint and current process value
-    double calculate( double setpoint, double pv , double dt_s);
+    double calculate( double setpoint, double pv , double dt_s, const std::string& name);
 
 private:
     PIDImpl pimpl;
