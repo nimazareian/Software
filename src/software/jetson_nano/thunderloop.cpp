@@ -159,22 +159,6 @@ Thunderloop::~Thunderloop() {}
             ScopedTimespecTimer::timespecDiff(&current_time, &last_world_recieved_time,
                                               &world_result);
 
-            auto nanoseconds_elapsed_since_last_world =
-                world_result.tv_sec * static_cast<int>(NANOSECONDS_PER_SECOND) +
-                world_result.tv_nsec;
-
-            if (nanoseconds_elapsed_since_last_world >
-                static_cast<long>(WORLD_TIMEOUT_NS))
-            {
-                primitive_executor_.setStopPrimitive();
-
-                // Log milliseconds since last world received if we are timing out
-                LOG(WARNING) << "World timeout, overriding with StopPrimitive\n"
-                             << "Milliseconds since last world: "
-                             << static_cast<int>(nanoseconds_elapsed_since_last_world) *
-                                    MILLISECONDS_PER_NANOSECOND;
-            }
-
             // Primitive Executor: run the last primitive if we have not timed out
             {
                 ScopedTimespecTimer timer(&poll_time);
@@ -209,7 +193,7 @@ Thunderloop::~Thunderloop() {}
                 auto nanoseconds_elapsed_since_step_primitive =
                         elapsed_time.tv_sec * static_cast<int>(NANOSECONDS_PER_SECOND) +
                         elapsed_time.tv_nsec;
-                direct_control_ = *primitive_executor_.stepPrimitive(Duration::fromSeconds(nanoseconds_elapsed_since_step_primitive * SECONDS_PER_NANOSECOND));
+                direct_control_ = *primitive_executor_.stepPrimitive(Duration::fromSeconds(static_cast<double>(nanoseconds_elapsed_since_step_primitive) * SECONDS_PER_NANOSECOND));
                 last_step_primitive_time = current_time;
             }
 
@@ -269,7 +253,7 @@ Thunderloop::~Thunderloop() {}
         timespecNorm(next_shot);
         if (loop_duration_ns > interval_ns)
         {
-            LOG(WARNING) << "Thunderloop iteration took " << (interval_ns - loop_duration_ns) * MILLISECONDS_PER_NANOSECOND
+            LOG(WARNING) << "Thunderloop iteration took " << static_cast<double>(interval_ns - loop_duration_ns) * MILLISECONDS_PER_NANOSECOND
                          << "ms longer than the loop period of " << interval_ns * MILLISECONDS_PER_NANOSECOND << "ms";
         }
 

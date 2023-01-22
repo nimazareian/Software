@@ -325,7 +325,7 @@ void ErForceSimulator::setBlueRobotPrimitiveSet(
     {
         auto& [local_vel, angular_vel] = robot_to_vel_pair_map.at(robot_id);
         setRobotPrimitive(robot_id, primitive_set_msg, blue_primitive_executor_map,
-                          world_proto, local_vel, angular_vel);
+                          world_proto, prev_blue_world_timestamp, local_vel, angular_vel);
     }
     prev_blue_world_timestamp = world_proto.time_sent().epoch_timestamp_seconds();
 }

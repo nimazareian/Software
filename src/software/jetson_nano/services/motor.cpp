@@ -380,9 +380,9 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         euclidean_to_four_wheel.getEuclideanVelocity(current_wheel_velocities);
 
     motor_status.mutable_local_velocity()->set_x_component_meters(
-        current_euclidean_velocity[0]);
-    motor_status.mutable_local_velocity()->set_y_component_meters(
         current_euclidean_velocity[1]);
+    motor_status.mutable_local_velocity()->set_y_component_meters(
+        -current_euclidean_velocity[0]);
     motor_status.mutable_angular_velocity()->set_radians_per_second(
         current_euclidean_velocity[2]);
 

@@ -34,12 +34,12 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       linear_speed_x_pid_(
               robot_constants.robot_max_acceleration_m_per_s_2,
               0.3,
-              0.178,
+              0.02,
               0),
       linear_speed_y_pid_(
               robot_constants.robot_max_acceleration_m_per_s_2,
               0.3,
-              0.14,
+              0.021,
               0)
 {
 }
@@ -109,12 +109,13 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     const double y_inc = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step_s_);
 
     Vector output = curr_local_velocity_ + Vector(x_inc, y_inc);
-    output = Vector(output.x(), output.y());
 
     Vector xy_inc_global = localToGlobalVelocity(Vector(x_inc, y_inc), curr_orientation_);
     Vector output_global = localToGlobalVelocity(output, curr_orientation_);
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff", (final_position - curr_global_position_).x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff", (final_position - curr_global_position_).y()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff_local", local_distance_delta.x()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff_local", local_distance_delta.y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_est", curr_global_position_.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_est", curr_global_position_.y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_inc_local", x_inc});
@@ -217,7 +218,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
 
 //            target_velocity = Vector(target_velocity.x(), 0.0);
 //            target_velocity = Vector();
-//            target_angular_velocity = AngularVelocity::fromDegrees(60.0);
+            target_angular_velocity = AngularVelocity::fromDegrees(0.0);
 
             auto output = createDirectControlPrimitive(
                 target_velocity, target_angular_velocity,
