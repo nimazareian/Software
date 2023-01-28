@@ -33,12 +33,12 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
               0.0),
       linear_speed_x_pid_(
               robot_constants.robot_max_acceleration_m_per_s_2 * 100,
-              0.3,
+              1.8,
               0, // 0.14 seems pretty good, but lots of noise amplifies it
               0),
       linear_speed_y_pid_(
               robot_constants.robot_max_acceleration_m_per_s_2 * 100,
-              0.3,
+              1.8,
               0,
               0),
       last_pos_updated_time(std::chrono::steady_clock::now())
@@ -115,12 +115,16 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
         createPoint(move_primitive.motion_control().path().points().at(1));
     Vector local_distance_delta = globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_);
 
-    TODO: There's a problem where max_accel is oscillating around 0 between negative and positive...
+    // TODO: There's a problem where max_accel is oscillating around 0 between negative and positive...
     const double x = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step_s_, "x");
     const double y = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step_s_, "y");
     Vector pid_vel = Vector(x, y);
-    Vector max_accel = (pid_vel - curr_local_velocity_).normalize(robot_constants_.robot_max_acceleration_m_per_s_2 * time_step.toSeconds());
-    Vector output = curr_local_velocity_ + max_accel;
+    Vector vel_inc = pid_vel - curr_local_velocity_;
+    // Clamp to max acceleration
+    Vector max_accel = vel_inc.normalize(std::min(vel_inc.length(), robot_constants_.robot_max_acceleration_m_per_s_2 * time_step.toSeconds()));
+    Vector desired_output = curr_local_velocity_ + max_accel;
+    // Clamp to max speed
+    Vector output = desired_output.normalize(std::min(desired_output.length(), static_cast<double>(robot_constants_.robot_max_speed_m_per_s)));
 
     // TODO: Rotate output slightly by angular velocity (similar to Tigers)
 
