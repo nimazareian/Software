@@ -311,6 +311,12 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         }
     }
 
+    // TODO: remove this once we have a better way to check for faults
+    for (uint8_t motor = 0; motor < NUM_DRIVE_MOTORS; motor++)
+    {
+        checkDriverFault(motor);
+    }
+
     CHECK(encoder_calibrated_[FRONT_LEFT_MOTOR_CHIP_SELECT] &&
           encoder_calibrated_[FRONT_RIGHT_MOTOR_CHIP_SELECT] &&
           encoder_calibrated_[BACK_LEFT_MOTOR_CHIP_SELECT] &&

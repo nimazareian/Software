@@ -180,11 +180,11 @@ Thunderloop::~Thunderloop() {}
                     primitive_executor_.setStopPrimitive();
 
                     // Log milliseconds since last world received if we are timing out
-                    LOG(WARNING)
-                        << "Primitive timeout, overriding with StopPrimitive\n"
-                        << "Milliseconds since last world: "
-                        << static_cast<int>(nanoseconds_elapsed_since_last_primitive) *
-                               MILLISECONDS_PER_NANOSECOND;
+//                    LOG(WARNING)
+//                        << "Primitive timeout, overriding with StopPrimitive\n"
+//                        << "Milliseconds since last world: "
+//                        << static_cast<int>(nanoseconds_elapsed_since_last_primitive) *
+//                               MILLISECONDS_PER_NANOSECOND;
                 }
 
                 struct timespec elapsed_time;
@@ -251,11 +251,11 @@ Thunderloop::~Thunderloop() {}
         // Calculate next shot taking into account how long this iteration took
         next_shot.tv_nsec += interval_ns - loop_duration_ns;
         timespecNorm(next_shot);
-        if (loop_duration_ns > interval_ns)
-        {
-            LOG(WARNING) << "Thunderloop iteration took " << static_cast<double>(interval_ns - loop_duration_ns) * MILLISECONDS_PER_NANOSECOND
-                         << "ms longer than the loop period of " << interval_ns * MILLISECONDS_PER_NANOSECOND << "ms";
-        }
+//        if (loop_duration_ns > interval_ns)
+//        {
+//            LOG(WARNING) << "Thunderloop iteration took " << static_cast<double>(interval_ns - loop_duration_ns) * MILLISECONDS_PER_NANOSECOND
+//                         << "ms longer than the loop period of " << interval_ns * MILLISECONDS_PER_NANOSECOND << "ms";
+//        }
 
         plotjuggler_values.insert({"tloop_ms", interval_ns * MILLISECONDS_PER_NANOSECOND});
         LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);

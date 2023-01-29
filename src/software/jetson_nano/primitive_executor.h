@@ -103,7 +103,6 @@ class PrimitiveExecutor
     PID angular_speed_pid_;
     PID linear_speed_x_pid_;
     PID linear_speed_y_pid_;
-    double angular_vel = 0.0;
 
 
     std::chrono::steady_clock::time_point last_pos_updated_time;

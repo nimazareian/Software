@@ -29,16 +29,16 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       angular_speed_pid_(
               robot_constants.robot_max_ang_acceleration_rad_per_s_2,
               0.8, // 0.3, 0.15, 0.0
-              0.27,
+              0,
               0.0),
       linear_speed_x_pid_(
               robot_constants.robot_max_acceleration_m_per_s_2 * 100,
-              1.8,
+              2.6,
               0, // 0.14 seems pretty good, but lots of noise amplifies it
               0),
       linear_speed_y_pid_(
               robot_constants.robot_max_acceleration_m_per_s_2 * 100,
-              1.8,
+              2.6,
               0,
               0),
       last_pos_updated_time(std::chrono::steady_clock::now())
@@ -92,9 +92,13 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
             robot_id_, localToGlobalVelocity(local_velocity, curr_orientation_));
     const auto now = std::chrono::steady_clock::now();
     const double time_since_last_update = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - last_pos_updated_time).count()) * SECONDS_PER_NANOSECOND;
-    curr_global_position_ += ((local_velocity + curr_local_velocity_) / 2) * time_since_last_update;
+    curr_global_position_ += localToGlobalVelocity((local_velocity + curr_local_velocity_) / 2, curr_orientation_) * time_since_last_update;
+
+    curr_orientation_ += ((angular_velocity + curr_angular_velocity_) / 2) * time_since_last_update;
+
     curr_angular_velocity_ = angular_velocity;
     curr_local_velocity_ = local_velocity;
+
     last_pos_updated_time = std::chrono::steady_clock::now();
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual_local", curr_local_velocity_.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
@@ -116,8 +120,8 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     Vector local_distance_delta = globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_);
 
     // TODO: There's a problem where max_accel is oscillating around 0 between negative and positive...
-    const double x = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step_s_, "x");
-    const double y = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step_s_, "y");
+    const double x = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step.toSeconds(), "x");
+    const double y = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step.toSeconds(), "y");
     Vector pid_vel = Vector(x, y);
     Vector vel_inc = pid_vel - curr_local_velocity_;
     // Clamp to max acceleration
@@ -149,6 +153,8 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy", output_global.y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_local", output.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_local", output.y()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_dest", final_position.x()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_dest", final_position.y()});
 
     Vector v_diff = (output - output.project(globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_)));
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_diff", v_diff.length()});
@@ -166,20 +172,25 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double signed_delta_orientation =
             (dest_orientation - curr_orientation_).clamp().toRadians();
 
-    // TODO: Should we be using feedback from the robot here: curr_angular_velocity_?
-    const double inc = angular_speed_pid_.calculate(signed_delta_orientation, 0.0, time_step_s_, "t");
-    AngularVelocity output = AngularVelocity::fromRadians(curr_angular_velocity_.toRadians() + inc);
+    // PID controller
+    const double pid_output = angular_speed_pid_.calculate(signed_delta_orientation, 0.0, time_step.toSeconds(), "t");
+    AngularVelocity pid_angular_velocity = AngularVelocity::fromRadians(pid_output);
 
-    // Used to stop Jitter when at destination
-    // Value determined experimentally
-//    if (abs(signed_delta_orientation) < Angle::fromDegrees(2).toRadians())
-//    {
-//        output = AngularVelocity::zero();
-//    }
+    // Clamp acceleration
+    double delta_angular_velocity = (pid_angular_velocity - curr_angular_velocity_).toRadians();
+    const double max_accel = robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * time_step.toSeconds();
+    delta_angular_velocity = std::clamp(delta_angular_velocity, max_accel, -max_accel);
+
+    // Clamp velocity
+    const double desired_output = curr_angular_velocity_.toRadians() + delta_angular_velocity;
+    const double max_angular_vel = static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
+    AngularVelocity output = AngularVelocity::fromRadians(std::clamp(desired_output, max_angular_vel, -max_angular_vel));
+
 
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_output", output.toRadians()});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_inc", inc});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_output", pid_output});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_inc", delta_angular_velocity});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_signedDeltaToDest", signed_delta_orientation});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_primexec", curr_orientation_.toRadians()});
@@ -226,8 +237,8 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             AngularVelocity target_angular_velocity = getTargetAngularVelocity(current_primitive_.move(), time_step);
 
 //            target_velocity = Vector(target_velocity.x(), 0.0);
-//            target_velocity = Vector();
-            target_angular_velocity = AngularVelocity::fromDegrees(0.0);
+            target_velocity = Vector();
+//            target_angular_velocity = AngularVelocity::fromDegrees(0.0);
 
             auto output = createDirectControlPrimitive(
                 target_velocity, target_angular_velocity,
