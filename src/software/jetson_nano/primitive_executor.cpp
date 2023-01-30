@@ -27,7 +27,7 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       // TODO: Twente has a different PID constants for their Goalie vs other robots
       // TODO: Should we use I term? If so, we need to reset it to avoid it increasing forever
       angular_speed_pid_(
-              robot_constants.robot_max_ang_acceleration_rad_per_s_2,
+              robot_constants.robot_max_ang_acceleration_rad_per_s_2 * 100,
               0.8, // 0.3, 0.15, 0.0
               0,
               0.0),
@@ -172,6 +172,8 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double signed_delta_orientation =
             (dest_orientation - curr_orientation_).clamp().toRadians();
 
+    TODO: Clamp inside the PID seems to be messing up some calculations...!? Clamp is based on max acceleration, but PID is done based on distance to destination...
+    // TODO: Initial value of the PID has a large spike...
     // PID controller
     const double pid_output = angular_speed_pid_.calculate(signed_delta_orientation, 0.0, time_step.toSeconds(), "t");
     AngularVelocity pid_angular_velocity = AngularVelocity::fromRadians(pid_output);
@@ -179,27 +181,26 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     // Clamp acceleration
     double delta_angular_velocity = (pid_angular_velocity - curr_angular_velocity_).toRadians();
     const double max_accel = robot_constants_.robot_max_ang_acceleration_rad_per_s_2 * time_step.toSeconds();
-    delta_angular_velocity = std::clamp(delta_angular_velocity, max_accel, -max_accel);
+    const double clamped_delta_angular_velocity = std::clamp(delta_angular_velocity, -max_accel, max_accel);
 
     // Clamp velocity
-    const double desired_output = curr_angular_velocity_.toRadians() + delta_angular_velocity;
+    const double desired_output = curr_angular_velocity_.toRadians() + clamped_delta_angular_velocity;
     const double max_angular_vel = static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
-    AngularVelocity output = AngularVelocity::fromRadians(std::clamp(desired_output, max_angular_vel, -max_angular_vel));
+    AngularVelocity output = AngularVelocity::fromRadians(std::clamp(desired_output, -max_angular_vel, max_angular_vel));
+    std::cout << "curr_angular_velocity_: " << curr_angular_velocity_.toRadians() << " + clamped_delta_angular_velocity: " << clamped_delta_angular_velocity << " = desired_output: " << desired_output << " => Output: " << output << std::endl;
 
+    // desired_output = pid_delta + vt_actual
 
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_output", output.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_output", pid_output});
-    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_inc", delta_angular_velocity});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_pid_delta", delta_angular_velocity});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_clamped_delta", clamped_delta_angular_velocity});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_desired_output", desired_output});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_desired", dest_orientation.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_signedDeltaToDest", signed_delta_orientation});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_t_primexec", curr_orientation_.toRadians()});
 
-    curr_angular_velocity_ = output;
-    // TODO: Should be set to actual position everytime a new world is received!!
-    // TODO: Use robotState instead of curr_orientation_
-    curr_orientation_ += curr_angular_velocity_ * time_step.toSeconds();
-    // TODO: Nima remove support for turning
     return output;
 }
 
