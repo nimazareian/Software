@@ -62,7 +62,9 @@ double PIDImpl::calculate(double setpoint, double pv, double dt_s, const std::st
     plotjuggler_values.insert({"PID_" + name + "output_no_clamp", output});
 
     // Restrict to max/min
-    output = std::clamp(output, -_max_delta_s * dt_s, _max_delta_s * dt_s);
+//    output = std::clamp(output, -_max_delta_s * dt_s, _max_delta_s * dt_s);
+
+//    std::cout << "PID_" + name + " clamped between: " << output << std::endl;
 
     // Save error to previous error
     _pre_error = error;

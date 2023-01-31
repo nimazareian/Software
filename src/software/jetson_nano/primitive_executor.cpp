@@ -27,17 +27,17 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       // TODO: Twente has a different PID constants for their Goalie vs other robots
       // TODO: Should we use I term? If so, we need to reset it to avoid it increasing forever
       angular_speed_pid_(
-              robot_constants.robot_max_ang_acceleration_rad_per_s_2 * 100,
-              0.8, // 0.3, 0.15, 0.0
-              0,
+              robot_constants.robot_max_ang_speed_rad_per_s,
+              2.8, // 0.3, 0.15, 0.0
+              0.0,
               0.0),
       linear_speed_x_pid_(
-              robot_constants.robot_max_acceleration_m_per_s_2 * 100,
+              robot_constants.robot_max_speed_m_per_s,
               2.6,
               0, // 0.14 seems pretty good, but lots of noise amplifies it
               0),
       linear_speed_y_pid_(
-              robot_constants.robot_max_acceleration_m_per_s_2 * 100,
+              robot_constants.robot_max_speed_m_per_s,
               2.6,
               0,
               0),
@@ -130,6 +130,8 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     // Clamp to max speed
     Vector output = desired_output.normalize(std::min(desired_output.length(), static_cast<double>(robot_constants_.robot_max_speed_m_per_s)));
 
+    // Compensate for angular velocity
+    output = output.rotate(-curr_angular_velocity_ * time_step.toSeconds() * 0.5);
     // TODO: Rotate output slightly by angular velocity (similar to Tigers)
 
     // Visualization
@@ -172,7 +174,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double signed_delta_orientation =
             (dest_orientation - curr_orientation_).clamp().toRadians();
 
-    TODO: Clamp inside the PID seems to be messing up some calculations...!? Clamp is based on max acceleration, but PID is done based on distance to destination...
+    // TODO: Clamp inside the PID seems to be messing up some calculations...!? Clamp is based on max acceleration, but PID is done based on distance to destination...
     // TODO: Initial value of the PID has a large spike...
     // PID controller
     const double pid_output = angular_speed_pid_.calculate(signed_delta_orientation, 0.0, time_step.toSeconds(), "t");
@@ -187,7 +189,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double desired_output = curr_angular_velocity_.toRadians() + clamped_delta_angular_velocity;
     const double max_angular_vel = static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
     AngularVelocity output = AngularVelocity::fromRadians(std::clamp(desired_output, -max_angular_vel, max_angular_vel));
-    std::cout << "curr_angular_velocity_: " << curr_angular_velocity_.toRadians() << " + clamped_delta_angular_velocity: " << clamped_delta_angular_velocity << " = desired_output: " << desired_output << " => Output: " << output << std::endl;
+//    std::cout << "curr_angular_velocity_: " << curr_angular_velocity_.toRadians() << " + clamped_delta_angular_velocity: " << clamped_delta_angular_velocity << " = desired_output: " << desired_output << " => Output: " << output << std::endl;
 
     // desired_output = pid_delta + vt_actual
 
@@ -238,7 +240,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             AngularVelocity target_angular_velocity = getTargetAngularVelocity(current_primitive_.move(), time_step);
 
 //            target_velocity = Vector(target_velocity.x(), 0.0);
-            target_velocity = Vector();
+//            target_velocity = Vector();
 //            target_angular_velocity = AngularVelocity::fromDegrees(0.0);
 
             auto output = createDirectControlPrimitive(
