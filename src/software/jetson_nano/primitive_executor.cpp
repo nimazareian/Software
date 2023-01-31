@@ -28,17 +28,17 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
       // TODO: Should we use I term? If so, we need to reset it to avoid it increasing forever
       angular_speed_pid_(
               robot_constants.robot_max_ang_speed_rad_per_s,
-              2.8, // 0.3, 0.15, 0.0
+              2.8,
               0.0,
               0.0),
       linear_speed_x_pid_(
               robot_constants.robot_max_speed_m_per_s,
-              2.6,
-              0, // 0.14 seems pretty good, but lots of noise amplifies it
+              2.0,
+              0,
               0),
       linear_speed_y_pid_(
               robot_constants.robot_max_speed_m_per_s,
-              2.6,
+              2.0,
               0,
               0),
       last_pos_updated_time(std::chrono::steady_clock::now())
@@ -90,16 +90,18 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
 {
     hrvo_simulator_.updateRobotVelocity(
             robot_id_, localToGlobalVelocity(local_velocity, curr_orientation_));
+
     const auto now = std::chrono::steady_clock::now();
     const double time_since_last_update = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - last_pos_updated_time).count()) * SECONDS_PER_NANOSECOND;
-    curr_global_position_ += localToGlobalVelocity((local_velocity + curr_local_velocity_) / 2, curr_orientation_) * time_since_last_update;
+    last_pos_updated_time = std::chrono::steady_clock::now();
 
+    // Update state
+    curr_global_position_ += localToGlobalVelocity((local_velocity + curr_local_velocity_) / 2, curr_orientation_) * time_since_last_update;
     curr_orientation_ += ((angular_velocity + curr_angular_velocity_) / 2) * time_since_last_update;
 
     curr_angular_velocity_ = angular_velocity;
     curr_local_velocity_ = local_velocity;
 
-    last_pos_updated_time = std::chrono::steady_clock::now();
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual_local", curr_local_velocity_.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
@@ -113,26 +115,24 @@ Vector PrimitiveExecutor::getTargetLinearVelocity()
 
 Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive, const Duration time_step)
 {
-    // TODO: I wonder if HRVO will also oscillate if we used local velocity (takes into account the changing orientation)
-    //       instead of global velocity
     const Point final_position =
         createPoint(move_primitive.motion_control().path().points().at(1));
     Vector local_distance_delta = globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_);
 
-    // TODO: There's a problem where max_accel is oscillating around 0 between negative and positive...
     const double x = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step.toSeconds(), "x");
     const double y = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step.toSeconds(), "y");
     Vector pid_vel = Vector(x, y);
     Vector vel_inc = pid_vel - curr_local_velocity_;
+
     // Clamp to max acceleration
     Vector max_accel = vel_inc.normalize(std::min(vel_inc.length(), robot_constants_.robot_max_acceleration_m_per_s_2 * time_step.toSeconds()));
     Vector desired_output = curr_local_velocity_ + max_accel;
+
     // Clamp to max speed
     Vector output = desired_output.normalize(std::min(desired_output.length(), static_cast<double>(robot_constants_.robot_max_speed_m_per_s)));
 
     // Compensate for angular velocity
     output = output.rotate(-curr_angular_velocity_ * time_step.toSeconds() * 0.5);
-    // TODO: Rotate output slightly by angular velocity (similar to Tigers)
 
     // Visualization
     Vector xy_inc_global = localToGlobalVelocity(max_accel, curr_orientation_);
@@ -174,8 +174,6 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double signed_delta_orientation =
             (dest_orientation - curr_orientation_).clamp().toRadians();
 
-    // TODO: Clamp inside the PID seems to be messing up some calculations...!? Clamp is based on max acceleration, but PID is done based on distance to destination...
-    // TODO: Initial value of the PID has a large spike...
     // PID controller
     const double pid_output = angular_speed_pid_.calculate(signed_delta_orientation, 0.0, time_step.toSeconds(), "t");
     AngularVelocity pid_angular_velocity = AngularVelocity::fromRadians(pid_output);
@@ -189,9 +187,6 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double desired_output = curr_angular_velocity_.toRadians() + clamped_delta_angular_velocity;
     const double max_angular_vel = static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
     AngularVelocity output = AngularVelocity::fromRadians(std::clamp(desired_output, -max_angular_vel, max_angular_vel));
-//    std::cout << "curr_angular_velocity_: " << curr_angular_velocity_.toRadians() << " + clamped_delta_angular_velocity: " << clamped_delta_angular_velocity << " = desired_output: " << desired_output << " => Output: " << output << std::endl;
-
-    // desired_output = pid_delta + vt_actual
 
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_output", output.toRadians()});
