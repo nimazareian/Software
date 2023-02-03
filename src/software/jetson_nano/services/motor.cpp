@@ -24,6 +24,7 @@
 #include "shared/constants.h"
 #include "software/logger/logger.h"
 #include "software/util/scoped_timespec_timer/scoped_timespec_timer.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 extern "C"
 {
@@ -381,6 +382,13 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         LOG(FATAL) << "Back right motor runaway";
     }
 
+    std::map<std::string, double> plotjuggler_values;
+    plotjuggler_values.insert({"motor_fr", current_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_fl", current_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_bl", current_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_br", current_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX]});
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
+
     // Convert to Euclidean velocity_delta
     EuclideanSpace_t current_euclidean_velocity =
         euclidean_to_four_wheel.getEuclideanVelocity(current_wheel_velocities);
@@ -514,6 +522,11 @@ WheelSpace_t MotorService::rampWheelVelocity(
     WheelSpace_t target_wheel_velocity =
         euclidean_to_four_wheel.getWheelVelocity(target_euclidean_velocity);
 
+    std::map<std::string, double> plotjuggler_values;
+    plotjuggler_values.insert({"motor_fr_desired_before_ramp", target_wheel_velocity[FRONT_RIGHT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_fl_desired_before_ramp", target_wheel_velocity[FRONT_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_bl_desired_before_ramp", target_wheel_velocity[BACK_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_br_desired_before_ramp", target_wheel_velocity[BACK_RIGHT_WHEEL_SPACE_INDEX]});
     // Ramp wheel velocity vector
     // Step 1: Find absolute max velocity delta
     auto delta_target_wheel_velocity = target_wheel_velocity - current_wheel_velocity;
@@ -545,6 +558,12 @@ WheelSpace_t MotorService::rampWheelVelocity(
         ramp_wheel_velocity = (ramp_wheel_velocity / max_ramp_wheel_velocity) *
                               max_allowable_wheel_velocity;
     }
+
+    plotjuggler_values.insert({"motor_fr_desired_after_ramp", ramp_wheel_velocity[FRONT_RIGHT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_fl_desired_after_ramp", ramp_wheel_velocity[FRONT_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_bl_desired_after_ramp", ramp_wheel_velocity[BACK_LEFT_WHEEL_SPACE_INDEX]});
+    plotjuggler_values.insert({"motor_br_desired_after_ramp", ramp_wheel_velocity[BACK_RIGHT_WHEEL_SPACE_INDEX]});
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
 
     return ramp_wheel_velocity;
 }
