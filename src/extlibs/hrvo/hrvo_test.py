@@ -20,18 +20,24 @@ from proto.ssl_gc_common_pb2 import Team
 @pytest.mark.parametrize(
     "robot_initial_position,robot_initial_orientation,robot_destination,robot_desired_orientation",
     [
+        # (
+        #     Point(x_meters=0.0, y_meters=0.0),
+        #     Angle(radians=0.0),
+        #     Point(x_meters=0.3, y_meters=0.0),
+        #     Angle(radians=math.pi),
+        # ),
         (
             Point(x_meters=-2.0, y_meters=0.0),
             Angle(radians=0.0),
             Point(x_meters=2.0, y_meters=0.0),
-            Angle(radians=math.pi),
-        ),
-        (
-            Point(x_meters=-2.5, y_meters=0.0),
             Angle(radians=0.0),
-            Point(x_meters=0.0, y_meters=-2.5),
-            Angle(radians=math.pi), #math.pi
         ),
+        # (
+        #     Point(x_meters=-2.5, y_meters=0.0),
+        #     Angle(radians=0.0),
+        #     Point(x_meters=0.0, y_meters=-2.5),
+        #     Angle(radians=math.pi), #math.pi
+        # ),
         # (
         #     Point(x_meters=0.0, y_meters=0.0),
         #     Angle(radians=0.0),

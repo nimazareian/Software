@@ -122,10 +122,19 @@ Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitiv
     const double x = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step.toSeconds(), "x");
     const double y = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step.toSeconds(), "y");
     Vector pid_vel = Vector(x, y);
-    Vector vel_inc = pid_vel - curr_local_velocity_;
+    Vector delta_vel = pid_vel - curr_local_velocity_;
 
     // Clamp to max acceleration
-    Vector max_accel = vel_inc.normalize(std::min(vel_inc.length(), robot_constants_.robot_max_acceleration_m_per_s_2 * time_step.toSeconds()));
+    float acceleration_limit;
+    if (pid_vel.length() >= curr_local_velocity_.length())
+    {
+        acceleration_limit = robot_constants_.robot_max_acceleration_m_per_s_2;
+    }
+    else
+    {
+        acceleration_limit = robot_constants_.robot_max_deceleration_m_per_s_2;
+    }
+    Vector max_accel = delta_vel.normalize(std::min(delta_vel.length(), acceleration_limit * time_step.toSeconds()));
     Vector desired_output = curr_local_velocity_ + max_accel;
 
     // Clamp to max speed
