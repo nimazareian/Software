@@ -130,7 +130,9 @@ class ProtoUnixIO:
         :param proto_class: The protobuf type to send
 
         """
-        sender = ThreadedUnixSender(unix_path=runtime_dir + unix_path, proto_class=proto_class)
+        sender = ThreadedUnixSender(
+            unix_path=runtime_dir + unix_path, proto_type=proto_class
+        )
         self.unix_senders[proto_class.DESCRIPTOR.full_name] = sender
         self.register_observer(proto_class, sender.proto_buffer)
 
@@ -150,11 +152,6 @@ class ProtoUnixIO:
         :param from_log_visualize: If the protobuf is coming from LOG(VISUALIZE)
 
         """
-        print(
-            runtime_dir + f"/{proto_class.DESCRIPTOR.full_name}"
-            if from_log_visualize and not unix_path
-            else runtime_dir + unix_path
-        )
         listener = ThreadedUnixListener(
             runtime_dir + f"/{proto_class.DESCRIPTOR.full_name}"
             if from_log_visualize and not unix_path
