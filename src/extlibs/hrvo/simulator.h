@@ -136,7 +136,7 @@ class HRVOSimulator
      * of each agent, and the progress of each towards its goal by moving
      * the simulation time_step seconds forward
      */
-    void doStep();
+    void doStep(const Angle &orientation, const AngularVelocity &angular_vel);
 
     /**
      * Get the current friendly robot velocity

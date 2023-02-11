@@ -31,7 +31,7 @@ class LinearVelocityAgent : public Agent
     /**
      * Computes the new velocity of this agent.
      */
-    void computeNewVelocity() override;
+    void computeNewVelocity(const Angle &orientation, const AngularVelocity &angular_vel, Duration time_step) override;
 
     /**
      * Create the velocity obstacle which other_agent should see for this Agent

@@ -213,7 +213,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
 
 std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive(const Duration time_step)
 {
-    hrvo_simulator_.doStep();
+    hrvo_simulator_.doStep(curr_orientation_, curr_angular_velocity_);
 
     // Visualize the HRVO Simulator for the current robot
     hrvo_simulator_.visualize(robot_id_);
@@ -236,8 +236,8 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         case TbotsProto::Primitive::kMove:
         {
             // Compute the target velocities
-            Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(), time_step);
-//            Vector target_velocity = getTargetLinearVelocity();
+//            Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(), time_step); // PID
+            Vector target_velocity = getTargetLinearVelocity(); // HRVO
 //            target_velocity = globalToLocalVelocity(Vector(0, -1), curr_orientation_); // TODO: See if robot actually moves down while rotating
 //              Vector target_velocity = getTargetLinearVelocity(robot_id, robot_state.orientation());
 

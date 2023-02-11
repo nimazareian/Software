@@ -9,7 +9,8 @@ LinearVelocityAgent::LinearVelocityAgent(HRVOSimulator *simulator, const Vector 
 {
 }
 
-void LinearVelocityAgent::computeNewVelocity()
+void LinearVelocityAgent::computeNewVelocity(const Angle &orientation, const AngularVelocity &angular_vel,
+                                             Duration time_step)
 {
     // TODO (#2496): Fix bug where LinearVelocityAgents go past their destination
     // Preferring a velocity which points directly towards goal

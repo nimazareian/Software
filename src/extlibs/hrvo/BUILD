@@ -47,6 +47,8 @@ cc_library(
         "//software/geom:vector",
         "//software/networking:threaded_proto_unix_sender",
         "//software/world",
+        "//software/geom/algorithms:pid",
+        "//software/physics:velocity_conversion_util",
     ],
 )
 

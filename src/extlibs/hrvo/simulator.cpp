@@ -253,7 +253,7 @@ size_t HRVOSimulator::addLinearVelocityAgent(const Vector &position, float agent
     return agents.size() - 1;
 }
 
-void HRVOSimulator::doStep()
+void HRVOSimulator::doStep(const Angle &orientation, const AngularVelocity &angular_vel)
 {
     if (kd_tree == nullptr)
     {
@@ -284,7 +284,7 @@ void HRVOSimulator::doStep()
     // Compute what velocity each agent will take next
     for (auto &agent : agents)
     {
-        agent->computeNewVelocity();
+        agent->computeNewVelocity(orientation, angular_vel, Duration::fromSeconds(time_step));
     }
 
     // Update the positions of all agents given their velocity

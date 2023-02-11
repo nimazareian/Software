@@ -40,6 +40,7 @@
 #include "proto/message_translation/tbots_geometry.h"
 #include "software/geom/algorithms/intersection.h"
 #include "software/geom/vector.h"
+#include "software/physics/velocity_conversion_util.h"
 
 HRVOAgent::HRVOAgent(HRVOSimulator *simulator, const Vector &position,
                      float neighbor_dist, std::size_t max_neighbors, float radius,
@@ -53,7 +54,17 @@ HRVOAgent::HRVOAgent(HRVOSimulator *simulator, const Vector &position,
       // TODO (#2676): This config should be dependency injected and updated when a
       // parameter is changed
       obstacle_factory(TbotsProto::RobotNavigationObstacleConfig()),
-      ball_obstacle(std::nullopt)
+      ball_obstacle(std::nullopt),
+      linear_speed_x_pid_(
+              robot_constants.robot_max_speed_m_per_s,
+              2.0,
+              0,
+              0),
+      linear_speed_y_pid_(
+              robot_constants.robot_max_speed_m_per_s,
+              2.0,
+              0,
+              0)
 {
 }
 
@@ -221,11 +232,11 @@ VelocityObstacle HRVOAgent::createVelocityObstacle(const Agent &other_agent)
     return VelocityObstacle(hrvo_apex, vo.getLeftSide(), vo.getRightSide());
 }
 
-void HRVOAgent::computeNewVelocity()
+void HRVOAgent::computeNewVelocity(const Angle &orientation, const AngularVelocity &angular_vel, Duration time_step)
 {
     // Based on The Hybrid Reciprocal Velocity Obstacle paper:
     // https://gamma.cs.unc.edu/HRVO/HRVO-T-RO.pdf
-    computePreferredVelocity();
+    computePreferredVelocity(orientation, angular_vel, time_step);
     computeVelocityObstacles();
 
     // Find candidate velocities which this agent can take to avoid collision
@@ -555,7 +566,7 @@ std::optional<int> HRVOAgent::findIntersectingVelocityObstacle(
     return std::nullopt;
 }
 
-void HRVOAgent::computePreferredVelocity()
+void HRVOAgent::computePreferredVelocity(const Angle &orientation, const AngularVelocity &angular_vel, Duration time_step)
 {
     auto path_point_opt = path.getCurrentPathPoint();
 
@@ -566,53 +577,125 @@ void HRVOAgent::computePreferredVelocity()
         return;
     }
 
-    Vector goal_position = path_point_opt.value().getPosition();
-    float speed_at_goal  = path_point_opt.value().getSpeed();
+    Vector final_position = path_point_opt.value().getPosition();
+    Vector local_distance_delta = globalToLocalVelocity(final_position - position_, orientation);
 
-    Vector dist_vector_to_goal = goal_position - position_;
-    auto dist_to_goal          = static_cast<float>(dist_vector_to_goal.length());
+    const double x = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step.toSeconds(), "x");
+    const double y = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step.toSeconds(), "y");
+    Vector pid_vel = Vector(x, y);
+    Vector curr_local_velocity_ = globalToLocalVelocity(velocity_, orientation);
+    Vector delta_vel = pid_vel - curr_local_velocity_;
 
-    // d = (Vf^2 - Vi^2) / 2a
-    double start_linear_deceleration_distance =
-        std::abs((std::pow(speed_at_goal, 2) - std::pow(pref_speed_, 2)) /
-                 (2 * max_accel_)) *
-        decel_dist_multiplier;
-
-    if (dist_to_goal < start_linear_deceleration_distance)
+    // Clamp to max acceleration
+    float acceleration_limit;
+    if (pid_vel.length() >= curr_local_velocity_.length())
     {
-        // velocity given linear deceleration, distance away from goal, and desired final
-        // speed
-        // v_pref = sqrt(v_goal^2 + 2 * a * d_remainingToDestination)
-        float curr_pref_speed =
-            static_cast<float>(
-                std::sqrt(std::pow(speed_at_goal, 2) + 2 * max_accel_ * dist_to_goal)) *
-            decel_pref_speed_multiplier;
-        Vector ideal_pref_velocity = dist_vector_to_goal.normalize(curr_pref_speed);
-
-        // Limit the preferred velocity to the kinematic limits
-        const Vector dv = ideal_pref_velocity - velocity_;
-        if (dv.length() <= max_accel_ * simulator_->getTimeStep())
-        {
-            pref_velocity_ = ideal_pref_velocity;
-        }
-        else
-        {
-            // Calculate the maximum velocity towards the preferred velocity, given the
-            // acceleration constraint
-            pref_velocity_ =
-                velocity_ + dv.normalize(max_accel_ * simulator_->getTimeStep());
-        }
+        acceleration_limit = robot_constants.robot_max_acceleration_m_per_s_2;
     }
     else
     {
-        // Accelerate to preferred speed
-        // v_pref = v_now + a * t
-        float curr_pref_speed =
-            std::min(static_cast<double>(pref_speed_),
-                     velocity_.length() + max_accel_ * simulator_->getTimeStep());
-        pref_velocity_ = dist_vector_to_goal.normalize(curr_pref_speed);
+        acceleration_limit = robot_constants.robot_max_deceleration_m_per_s_2;
     }
+    Vector max_accel = delta_vel.normalize(std::min(delta_vel.length(), acceleration_limit * time_step.toSeconds()));
+    Vector desired_output = curr_local_velocity_ + max_accel;
+
+    // Clamp to max speed
+    Vector output = desired_output.normalize(std::min(desired_output.length(), static_cast<double>(robot_constants.robot_max_speed_m_per_s)));
+
+    // Compensate for angular velocity
+    output = output.rotate(-angular_vel * time_step.toSeconds() * 0.5);
+    pref_velocity_ = localToGlobalVelocity(output, orientation);
+    // Visualization
+//    Vector xy_inc_global = localToGlobalVelocity(max_accel, curr_orientation_);
+//    Vector output_global = localToGlobalVelocity(output, curr_orientation_);
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff", (final_position - curr_global_position_).x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff", (final_position - curr_global_position_).y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff_local", local_distance_delta.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_diff_local", local_distance_delta.y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_xy_diff", local_distance_delta.length()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_est", curr_global_position_.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_est", curr_global_position_.y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_inc_local", max_accel.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_inc_local", max_accel.y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_pid_diff", (pid_vel - curr_local_velocity_).x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_pid_diff", (pid_vel - curr_local_velocity_).y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_inc_global", xy_inc_global.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_inc_global", xy_inc_global.y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_len", output_global.length()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx", output_global.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy", output_global.y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_local", output.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_local", output.y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_dest", final_position.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_y_dest", final_position.y()});
+
+//    Vector v_diff = (output - output.project(globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_)));
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_diff", v_diff.length()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_diff", v_diff.x()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_diff", v_diff.y()});
+//    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_prim_exec_time_step_ms", time_step.toMilliseconds()});
+
+//    return output;
 }
+
+//void HRVOAgent::computePreferredVelocity()
+//{
+//    auto path_point_opt = path.getCurrentPathPoint();
+//
+//    if (pref_speed_ <= 0.01f || max_accel_ <= 0.01f || path_point_opt == std::nullopt)
+//    {
+//        // Used to avoid edge cases with division by zero
+//        pref_velocity_ = Vector(0.f, 0.f);
+//        return;
+//    }
+//
+//    Vector goal_position = path_point_opt.value().getPosition();
+//    float speed_at_goal  = path_point_opt.value().getSpeed();
+//
+//    Vector dist_vector_to_goal = goal_position - position_;
+//    auto dist_to_goal          = static_cast<float>(dist_vector_to_goal.length());
+//
+//    // d = (Vf^2 - Vi^2) / 2a
+//    double start_linear_deceleration_distance =
+//        std::abs((std::pow(speed_at_goal, 2) - std::pow(pref_speed_, 2)) /
+//                 (2 * max_accel_)) *
+//        decel_dist_multiplier;
+//
+//    if (dist_to_goal < start_linear_deceleration_distance)
+//    {
+//        // velocity given linear deceleration, distance away from goal, and desired final
+//        // speed
+//        // v_pref = sqrt(v_goal^2 + 2 * a * d_remainingToDestination)
+//        float curr_pref_speed =
+//            static_cast<float>(
+//                std::sqrt(std::pow(speed_at_goal, 2) + 2 * max_accel_ * dist_to_goal)) *
+//            decel_pref_speed_multiplier;
+//        Vector ideal_pref_velocity = dist_vector_to_goal.normalize(curr_pref_speed);
+//
+//        // Limit the preferred velocity to the kinematic limits
+//        const Vector dv = ideal_pref_velocity - velocity_;
+//        if (dv.length() <= max_accel_ * simulator_->getTimeStep())
+//        {
+//            pref_velocity_ = ideal_pref_velocity;
+//        }
+//        else
+//        {
+//            // Calculate the maximum velocity towards the preferred velocity, given the
+//            // acceleration constraint
+//            pref_velocity_ =
+//                velocity_ + dv.normalize(max_accel_ * simulator_->getTimeStep());
+//        }
+//    }
+//    else
+//    {
+//        // Accelerate to preferred speed
+//        // v_pref = v_now + a * t
+//        float curr_pref_speed =
+//            std::min(static_cast<double>(pref_speed_),
+//                     velocity_.length() + max_accel_ * simulator_->getTimeStep());
+//        pref_velocity_ = dist_vector_to_goal.normalize(curr_pref_speed);
+//    }
+//}
 
 void HRVOAgent::insertNeighbor(std::size_t agent_no, float &range_sq)
 {

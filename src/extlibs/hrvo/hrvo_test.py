@@ -1,5 +1,6 @@
 import math
 import pytest
+import numpy as np
 
 import software.python_bindings as tbots
 from software.simulated_tests.robot_enters_region import *
@@ -63,7 +64,12 @@ def test_robot_movement(
     simulated_test_runner.simulator_proto_unix_io.send_proto(
         WorldState,
         create_world_state(
-            [],
+            yellow_robot_states=[
+                RobotState(
+                    global_position=Point(x_meters=-0.0, y_meters=y),
+                    global_orientation=Angle(radians=0.0),
+                ) for y in np.linspace(-1, 1, 6)
+            ],
             blue_robot_states=[
                 RobotState(
                     global_position=robot_initial_position,
