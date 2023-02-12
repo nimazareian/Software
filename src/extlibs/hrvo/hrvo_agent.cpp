@@ -161,35 +161,35 @@ void HRVOAgent::computeVelocityObstacles()
     Point agent_position_point(getPosition());
     Circle circle_rep_of_agent(agent_position_point, radius_);
     Segment path(agent_position_point, Point(current_destination));
-    for (const auto &obstacle : static_obstacles)
-    {
-        double dist_agent_to_obstacle = obstacle->distance(agent_position_point);
-
-        // Set of heuristics to minimize the amount of velocity obstacles
-        if ((obstacle->intersects(path) ||
-             dist_agent_to_obstacle < 2 * ROBOT_MAX_RADIUS_METERS) &&
-            !obstacle->contains(agent_position_point))
-        {
-            VelocityObstacle velocity_obstacle =
-                obstacle->generateVelocityObstacle(circle_rep_of_agent, Vector());
-            velocity_obstacles_.push_back(velocity_obstacle);
-        }
-    }
+//    for (const auto &obstacle : static_obstacles)
+//    {
+//        double dist_agent_to_obstacle = obstacle->distance(agent_position_point);
+//
+//        // Set of heuristics to minimize the amount of velocity obstacles
+//        if ((obstacle->intersects(path) ||
+//             dist_agent_to_obstacle < 2 * ROBOT_MAX_RADIUS_METERS) &&
+//            !obstacle->contains(agent_position_point))
+//        {
+//            VelocityObstacle velocity_obstacle =
+//                obstacle->generateVelocityObstacle(circle_rep_of_agent, Vector());
+//            velocity_obstacles_.push_back(velocity_obstacle);
+//        }
+//    }
 
     // The conditions for creating a velocity obstacle for the ball are different,
     // since the ball is a dynamic obstacle (not considered by the path planner)
     // and `generateVelocityObstacle` can create valid velocity obstacles for agents
     // contained in a circle.
-    if (ball_obstacle.has_value())
-    {
-        auto obstacle = ball_obstacle.value();
-        if (obstacle->intersects(path))
-        {
-            VelocityObstacle velocity_obstacle =
-                obstacle->generateVelocityObstacle(circle_rep_of_agent, Vector());
-            velocity_obstacles_.push_back(velocity_obstacle);
-        }
-    }
+//    if (ball_obstacle.has_value())
+//    {
+//        auto obstacle = ball_obstacle.value();
+//        if (obstacle->intersects(path))
+//        {
+//            VelocityObstacle velocity_obstacle =
+//                obstacle->generateVelocityObstacle(circle_rep_of_agent, Vector());
+//            velocity_obstacles_.push_back(velocity_obstacle);
+//        }
+//    }
 }
 
 VelocityObstacle HRVOAgent::createVelocityObstacle(const Agent &other_agent)
@@ -603,7 +603,7 @@ void HRVOAgent::computePreferredVelocity(const Angle &orientation, const Angular
     Vector output = desired_output.normalize(std::min(desired_output.length(), static_cast<double>(robot_constants.robot_max_speed_m_per_s)));
 
     // Compensate for angular velocity
-    output = output.rotate(-angular_vel * time_step.toSeconds() * 0.5);
+    output = output.rotate(-angular_vel * time_step.toSeconds() * 2.0);
     pref_velocity_ = localToGlobalVelocity(output, orientation);
     // Visualization
 //    Vector xy_inc_global = localToGlobalVelocity(max_accel, curr_orientation_);

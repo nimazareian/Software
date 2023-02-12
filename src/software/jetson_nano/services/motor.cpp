@@ -185,17 +185,17 @@ bool MotorService::checkDriverFault(uint8_t motor)
     int gstat = tmc6100_readInt(motor, TMC6100_GSTAT);
     std::bitset<32> gstat_bitset(gstat);
 
-    if (gstat_bitset.any())
+    if (gstat_bitset.any() && !gstat_bitset[0])
     {
         LOG(WARNING) << "======= Faults For Motor " << std::to_string(motor) << "=======";
     }
 
-    if (gstat_bitset[0])
-    {
-        LOG(WARNING)
-            << "Indicates that the IC has been reset. All registers have been cleared to reset values."
-            << "Attention: DRV_EN must be high to allow clearing reset";
-    }
+//    if (gstat_bitset[0])
+//    {
+//        LOG(WARNING)
+//            << "Indicates that the IC has been reset. All registers have been cleared to reset values."
+//            << "Attention: DRV_EN must be high to allow clearing reset";
+//    }
 
     if (gstat_bitset[1])
     {

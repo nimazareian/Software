@@ -180,11 +180,11 @@ Thunderloop::~Thunderloop() {}
                     primitive_executor_.setStopPrimitive();
 
                     // Log milliseconds since last world received if we are timing out
-//                    LOG(WARNING)
-//                        << "Primitive timeout, overriding with StopPrimitive\n"
-//                        << "Milliseconds since last world: "
-//                        << static_cast<int>(nanoseconds_elapsed_since_last_primitive) *
-//                               MILLISECONDS_PER_NANOSECOND;
+                    LOG(WARNING)
+                        << "Primitive timeout, overriding with StopPrimitive\n"
+                        << "Milliseconds since last world: "
+                        << static_cast<int>(nanoseconds_elapsed_since_last_primitive) *
+                               MILLISECONDS_PER_NANOSECOND;
                 }
 
                 struct timespec elapsed_time;
@@ -226,6 +226,8 @@ Thunderloop::~Thunderloop() {}
             plotjuggler_values.insert({"tloop_motor_service", poll_time.tv_nsec / 1000000});
 
             // Update Robot Status with poll responses
+            robot_status_ = TbotsProto::RobotStatus();
+            robot_status_.set_robot_id(robot_id_);
             *(robot_status_.mutable_thunderloop_status()) = thunderloop_status_;
             *(robot_status_.mutable_motor_status())       = motor_status_;
             *(robot_status_.mutable_power_status())       = power_status_;
