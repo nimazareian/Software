@@ -42,6 +42,7 @@
 #include "simulator.h"
 #include "software/ai/navigator/obstacle/robot_navigation_obstacle_factory.h"
 #include "software/geom/vector.h"
+#include "software/geom/algorithms/pid.h"
 
 /**
  * An agent/robot in the simulation which uses the HRVO algorithm to motion plan towards
@@ -75,7 +76,7 @@ class HRVOAgent : public Agent
     /**
      * Computes the new velocity of this agent.
      */
-    void computeNewVelocity() override;
+    void computeNewVelocity(const Angle &orientation, const AngularVelocity &angular_vel, Duration time_step) override;
 
     /**
      * Create the hybrid reciprocal velocity obstacle which other_agent should see for
@@ -99,7 +100,7 @@ class HRVOAgent : public Agent
     /**
      * Computes the preferred velocity of this agent.
      */
-    void computePreferredVelocity();
+    void computePreferredVelocity(const Angle &orientation, const AngularVelocity &angular_vel, Duration time_step);
 
     /**
      * Inserts a neighbor into the set of neighbors of this agent.
@@ -240,6 +241,11 @@ class HRVOAgent : public Agent
     std::vector<ObstaclePtr> static_obstacles;
     std::optional<ObstaclePtr> ball_obstacle;
     RobotNavigationObstacleFactory obstacle_factory;
+
+    // TODO: Dependency inject
+    RobotConstants robot_constants = create2021RobotConstants();
+    PID linear_speed_x_pid_;
+    PID linear_speed_y_pid_;
 
     // TODO (#2519): Remove magic numbers
     // Increasing deceleration distance to reduce the chance of overshooting the

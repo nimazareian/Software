@@ -4,6 +4,7 @@
 #include "extlibs/hrvo/path.h"
 #include "software/ai/navigator/path_planner/hrvo/velocity_obstacle.h"
 #include "software/geom/vector.h"
+#include "software/time/duration.h"
 
 class HRVOSimulator;
 
@@ -36,7 +37,7 @@ class Agent
     /**
      * Computes the new velocity of this agent.
      */
-    virtual void computeNewVelocity() = 0;
+    virtual void computeNewVelocity(const Angle &orientation, const Angle &angular_vel, Duration time_step) = 0;
 
     /**
      * Create the velocity obstacle which other_agent should see for this Agent
