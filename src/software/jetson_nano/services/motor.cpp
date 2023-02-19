@@ -177,6 +177,13 @@ void MotorService::setUpMotors()
     checkDriverFault(DRIBBLER_MOTOR_CHIP_SELECT);
     startController(DRIBBLER_MOTOR_CHIP_SELECT, true);
     tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, 0);
+
+// https://github.com/trinamic/TMC-API/blob/master/tmc/ic/TMC4671/TMC4671.h
+    // This is how much it should be accelerating by...
+    // See if setting the max velocity actually clamps this acceleration (from going to infinity)
+//    tmc4671_setTargetTorque_raw(DRIBBLER_MOTOR_CHIP_SELECT, 0); // start at 0 and slowly move up until it gets the ball
+//    // reduce SPI transfers by directly calling the write function, but will have to call - tmc4671_switchToMotionMode(motor, TMC4671_MOTION_MODE_TORQUE);
+//    tmc4671_writeRegister16BitValue(motor, TMC4671_PID_TORQUE_FLUX_TARGET, BIT_16_TO_31, targetTorque);
 }
 
 
@@ -755,18 +762,18 @@ void MotorService::configureDrivePI(uint8_t motor)
     LOG(INFO) << "Configuring Drive PI for motor " << static_cast<uint32_t>(motor);
     // Please read the header file and the datasheet for more info
     // These values were calibrated using the TMC-IDE
-    writeToControllerOrDieTrying(motor, TMC4671_PID_FLUX_P_FLUX_I, 67109376);
-    writeToControllerOrDieTrying(motor, TMC4671_PID_TORQUE_P_TORQUE_I, 67109376);
-    writeToControllerOrDieTrying(motor, TMC4671_PID_VELOCITY_P_VELOCITY_I, 52428800);
+    writeToControllerOrDieTrying(motor, TMC4671_PID_FLUX_P_FLUX_I, 67109376);        // should be correct
+    writeToControllerOrDieTrying(motor, TMC4671_PID_TORQUE_P_TORQUE_I, 67109376);    // should be correct
+    writeToControllerOrDieTrying(motor, TMC4671_PID_VELOCITY_P_VELOCITY_I, 52428800);// Tune (initially in diagnostics). Compare target and actual
 
     // Explicitly disable the position controller
     writeToControllerOrDieTrying(motor, TMC4671_PID_POSITION_P_POSITION_I, 0);
 
     writeToControllerOrDieTrying(motor, TMC4671_PIDOUT_UQ_UD_LIMITS, 32767);
     writeToControllerOrDieTrying(motor, TMC4671_PID_TORQUE_FLUX_LIMITS, 5000);
-    writeToControllerOrDieTrying(motor, TMC4671_PID_ACCELERATION_LIMIT, 1000);
+    writeToControllerOrDieTrying(motor, TMC4671_PID_ACCELERATION_LIMIT, 1000); // Doesnot seem to do anything. Try setting it to 0 and see if it accelerates
 
-    writeToControllerOrDieTrying(motor, TMC4671_PID_VELOCITY_LIMIT, 45000);
+    writeToControllerOrDieTrying(motor, TMC4671_PID_VELOCITY_LIMIT, 45000); // eRPM (/8 to get actual RPM)
 
     tmc4671_switchToMotionMode(motor, TMC4671_MOTION_MODE_VELOCITY);
 }
@@ -778,7 +785,7 @@ void MotorService::configureDribblerPI(uint8_t motor)
     // These values were calibrated using the TMC-IDE
     writeToControllerOrDieTrying(motor, TMC4671_PID_FLUX_P_FLUX_I, 39337600);
     writeToControllerOrDieTrying(motor, TMC4671_PID_TORQUE_P_TORQUE_I, 39333600);
-    writeToControllerOrDieTrying(motor, TMC4671_PID_VELOCITY_P_VELOCITY_I, 2621448);
+    writeToControllerOrDieTrying(motor, TMC4671_PID_VELOCITY_P_VELOCITY_I, 2621448); // Set to 0
 
     // Explicitly disable the position controller
     writeToControllerOrDieTrying(motor, TMC4671_PID_POSITION_P_POSITION_I, 0);
