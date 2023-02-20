@@ -324,6 +324,7 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
     {
         checkDriverFault(motor);
     }
+    checkDriverFault(DRIBBLER_MOTOR_CHIP_SELECT);
 
     CHECK(encoder_calibrated_[FRONT_LEFT_MOTOR_CHIP_SELECT] &&
           encoder_calibrated_[FRONT_RIGHT_MOTOR_CHIP_SELECT] &&
