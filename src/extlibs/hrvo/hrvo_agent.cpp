@@ -591,6 +591,10 @@ void HRVOAgent::computePreferredVelocity(const Angle &orientation, const Angular
     if (pid_vel.length() >= curr_local_velocity_.length())
     {
         acceleration_limit = robot_constants.robot_max_acceleration_m_per_s_2;
+//        if (velocity_.length() < 0.1)
+//        {
+//            acceleration_limit *= 5;
+//        }
     }
     else
     {
