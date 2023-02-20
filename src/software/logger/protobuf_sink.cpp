@@ -21,15 +21,15 @@ void ProtobufSink::sendProtobuf(g3::LogMessageMover log_entry)
     if (level.value == VISUALIZE.value)
     {
         std::string msg       = log_entry.get().message();
-        size_t file_name_pos  = msg.find(TYPE_DELIMITER);
+        size_t file_name_pos  = msg.find(PROTO_MSG_TYPE_DELIMITER);
         std::string file_name = msg.substr(0, file_name_pos);
 
-        size_t proto_type_name_pos = msg.find(TYPE_DELIMITER, file_name_pos + 1);
+        size_t proto_type_name_pos = msg.find(PROTO_MSG_TYPE_DELIMITER, file_name_pos + 1);
         std::string proto_type_name =
-            msg.substr(file_name_pos + TYPE_DELIMITER.length(),
-                       proto_type_name_pos - TYPE_DELIMITER.length());
+            msg.substr(file_name_pos + PROTO_MSG_TYPE_DELIMITER.length(),
+                       proto_type_name_pos - PROTO_MSG_TYPE_DELIMITER.length());
         std::string serialized_proto =
-            msg.substr(proto_type_name_pos + TYPE_DELIMITER.length());
+            msg.substr(proto_type_name_pos + PROTO_MSG_TYPE_DELIMITER.length());
 
         // Use the protobuf type as the file name, if no file name was specified in the
         // message
@@ -37,6 +37,10 @@ void ProtobufSink::sendProtobuf(g3::LogMessageMover log_entry)
         {
             file_name = "/" + proto_type_name;
         }
+
+        // In order to continue using the existing ThreadedUnixSender impl, we need to have
+        // something like this in Python based on the received protobufs!? But we wouldn't
+        // know the type until we actually bind to the udp port and receive the message.
 
         // If we don't already have a unix sender for this type, let's create it
         if (unix_senders_.count(file_name) == 0)
@@ -84,7 +88,7 @@ std::ostream& operator<<(std::ostream& os, const google::protobuf::Message& mess
     std::string serialized_any;
     any.SerializeToString(&serialized_any);
 
-    os << TYPE_DELIMITER << message.GetTypeName() << TYPE_DELIMITER
+    os << PROTO_MSG_TYPE_DELIMITER << message.GetTypeName() << PROTO_MSG_TYPE_DELIMITER
        << base64_encode(serialized_any);
     return os;
 }

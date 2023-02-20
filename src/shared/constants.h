@@ -37,6 +37,7 @@ static const short unsigned int PRIMITIVE_PORT = 42070;
 // the port the AI receives msgs from the robot
 static const short unsigned int ROBOT_STATUS_PORT = 42071;
 static const short unsigned int ROBOT_LOGS_PORT   = 42072;
+static const short unsigned int LOG_VISUALIZE_PORT   = 42073;
 
 // the port to listen to for what side of the field to defend
 static const unsigned DEFENDING_SIDE_PORT = 42073;
@@ -44,6 +45,8 @@ static const unsigned DEFENDING_SIDE_PORT = 42073;
 // maximum transfer unit of the network interface
 // this is an int to avoid Wconversion with lwip
 static const short unsigned int MAXIMUM_TRANSFER_UNIT_BYTES = 1500;
+
+static const std::string PROTO_MSG_TYPE_DELIMITER = "!!!";
 
 // This file contains all constants that are shared between our software (AI)
 // and firmware code. Since this needs to be compiled by both C and C++, everything

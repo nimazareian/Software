@@ -7,8 +7,6 @@
 #include "software/logger/custom_logging_levels.h"
 #include "software/networking/threaded_unix_sender.h"
 
-static const std::string TYPE_DELIMITER = "!!!";
-
 
 using UnixSenderMap =
     std::unordered_map<std::string, std::unique_ptr<ThreadedUnixSender>>;

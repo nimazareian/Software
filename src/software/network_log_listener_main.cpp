@@ -13,6 +13,8 @@
  * and logs them
  */
 
+// Try out this file...
+
 void logFromNetworking(TbotsProto::RobotLog log)
 {
     LEVELS level(INFO);

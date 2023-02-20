@@ -1,3 +1,4 @@
+import datetime
 import pyqtgraph as pg
 from pyqtgraph.Qt.QtWidgets import *
 import queue
@@ -73,7 +74,9 @@ class g3logWidget(QWidget):
                 and self.checkbox_widget.fatal_checkbox.isChecked()
             )
         ):
-            log_str = f"{log.created_timestamp.epoch_timestamp_seconds} {self.log_level_str_map[log.log_level]} [{log.file_name}->{log.line_number}] {log.log_msg}\n"
+            # TODO: Convert epoch time to actual datetime
+            log_time = datetime.datetime.fromtimestamp(log.created_timestamp.epoch_timestamp_seconds).strftime('%H:%M:%S')
+            log_str = f"ROBOT {log.robot_id}: {log_time} {self.log_level_str_map[log.log_level]} [{log.file_name}->{log.line_number}] {log.log_msg}\n"
             self.console_widget.write(log_str)
         else:
             return

@@ -118,9 +118,9 @@ class Session(socketserver.BaseRequestHandler):
         """
         payload = self.request[0]
         result = base64.b64decode(payload)
-        msg = self.proto_class()
+        msg = self.proto_class()  # Doesn't actually use the proto class included in the msg
 
-        any_msg = Any.FromString(result)
+        any_msg = Any.FromString(result)  # Where is the delimeter handled?
         any_msg.Unpack(msg)
         self.handle_callback(msg)
 

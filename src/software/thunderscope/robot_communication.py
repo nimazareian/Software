@@ -210,6 +210,15 @@ class RobotCommunication(object):
             True,
         )
 
+        self.receive_robot_log = HRVOVisualizationProtoListener(
+            self.multicast_channel + "%" + self.interface,
+            LOG_VISUALIZE_PORT,
+            lambda data: self.current_proto_unix_io.send_proto(HRVOVisualization, data),
+            True,
+        )
+
+        # TODO: Pull master
+
         if (
             self.current_mode == RobotCommunicationMode.FULLSYSTEM
             or self.current_mode == RobotCommunicationMode.BOTH
