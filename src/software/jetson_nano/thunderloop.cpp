@@ -226,7 +226,6 @@ Thunderloop::~Thunderloop() {}
             plotjuggler_values.insert({"tloop_motor_service", poll_time.tv_nsec / 1000000});
 
             // Update Robot Status with poll responses
-            robot_status_ = TbotsProto::RobotStatus();
             robot_status_.set_robot_id(robot_id_);
             *(robot_status_.mutable_thunderloop_status()) = thunderloop_status_;
             *(robot_status_.mutable_motor_status())       = motor_status_;
