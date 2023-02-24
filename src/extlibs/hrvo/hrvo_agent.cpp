@@ -610,6 +610,7 @@ void HRVOAgent::computePreferredVelocity(const Angle &orientation, const Angular
     output = output.rotate(-angular_vel * time_step.toSeconds() * 2.0);
     pref_velocity_ = localToGlobalVelocity(output, orientation);
     // Visualization
+    // TODO: Add HRVO Velocity
 //    Vector xy_inc_global = localToGlobalVelocity(max_accel, curr_orientation_);
 //    Vector output_global = localToGlobalVelocity(output, curr_orientation_);
 //    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff", (final_position - curr_global_position_).x()});
