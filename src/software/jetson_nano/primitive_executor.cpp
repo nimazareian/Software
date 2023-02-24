@@ -41,7 +41,8 @@ PrimitiveExecutor::PrimitiveExecutor(const double time_step,
               2.0,
               0,
               0),
-      last_pos_updated_time(std::chrono::steady_clock::now())
+      last_pos_updated_time(std::chrono::steady_clock::now()),
+      enable_velocity_feedback(false)
 {
 }
 // TODO: Tuned PD Simulation constants: X,Y => P=0.3, D=0.13 with 1*max_acceleration (2.1sec)
@@ -88,8 +89,11 @@ void PrimitiveExecutor::updateWorld(const TbotsProto::World &world_msg)
 void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
                                        const AngularVelocity &angular_velocity)
 {
-    hrvo_simulator_.updateRobotVelocity(
-            robot_id_, localToGlobalVelocity(local_velocity, curr_orientation_));
+    if (enable_velocity_feedback)
+    {
+        hrvo_simulator_.updateRobotVelocity(
+                robot_id_, localToGlobalVelocity(local_velocity, curr_orientation_));
+    }
 
     const auto now = std::chrono::steady_clock::now();
     const double time_since_last_update = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - last_pos_updated_time).count()) * SECONDS_PER_NANOSECOND;
@@ -226,6 +230,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
                                                      TbotsProto::AutoChipOrKick());
             auto output = std::make_unique<TbotsProto::DirectControlPrimitive>(
                 prim->direct_control());
+            enable_velocity_feedback = true;
             return output;
         }
         case TbotsProto::Primitive::kDirectControl:
@@ -235,6 +240,7 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
         }
         case TbotsProto::Primitive::kMove:
         {
+            enable_velocity_feedback = false;
             // Compute the target velocities
 //            Vector target_velocity = getTargetLinearVelocity(current_primitive_.move(), time_step); // PID
             Vector target_velocity = getTargetLinearVelocity(); // HRVO

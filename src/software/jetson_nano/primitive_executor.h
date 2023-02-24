@@ -104,6 +104,6 @@ class PrimitiveExecutor
     PID linear_speed_x_pid_;
     PID linear_speed_y_pid_;
 
-
     std::chrono::steady_clock::time_point last_pos_updated_time;
+    bool enable_velocity_feedback;
 };
