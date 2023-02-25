@@ -5,6 +5,7 @@ import threading
 import argparse
 import numpy
 
+from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
 from software.thunderscope.thunderscope import Thunderscope
 from software.thunderscope.binary_context_managers import *
 from proto.message_translation import tbots_protobuf
@@ -151,6 +152,11 @@ if __name__ == "__main__":
         help="Estop Baudrate",
     )
     parser.add_argument(
+        "--cost_visualization",
+        action="store_true",
+        help="show pass cost visualization layer",
+    )
+    parser.add_argument(
         "--disable_estop",
         action="store_true",
         default=False,
@@ -180,6 +186,7 @@ if __name__ == "__main__":
         tscope = Thunderscope(
             layout_path=args.layout,
             visualization_buffer_size=args.visualization_buffer_size,
+            cost_visualization=args.cost_visualization,
         )
         proto_unix_io = tscope.blue_full_system_proto_unix_io
 
@@ -189,6 +196,7 @@ if __name__ == "__main__":
             {"proto_class": Obstacles},
             {"proto_class": PathVisualization},
             {"proto_class": PassVisualization},
+            {"proto_class": CostVisualization},
             {"proto_class": NamedValue},
             {"proto_class": PrimitiveSet},
             {"proto_class": World},
@@ -229,6 +237,7 @@ if __name__ == "__main__":
             load_diagnostics=bool(args.run_diagnostics),
             load_gamecontroller=True,
             visualization_buffer_size=args.visualization_buffer_size,
+            cost_visualization=args.cost_visualization,
         )
 
         current_proto_unix_io = None
@@ -296,6 +305,7 @@ if __name__ == "__main__":
             visualization_buffer_size=args.visualization_buffer_size,
             blue_replay_log=args.blue_log,
             yellow_replay_log=args.yellow_log,
+            cost_visualization=args.cost_visualization,
         )
         tscope.show()
 
@@ -314,6 +324,7 @@ if __name__ == "__main__":
             load_yellow=True,
             layout_path=args.layout,
             visualization_buffer_size=args.visualization_buffer_size,
+            cost_visualization=args.cost_visualization,
         )
 
         def __async_sim_ticker(tick_rate_ms):
@@ -340,10 +351,20 @@ if __name__ == "__main__":
             )
             tscope.simulator_proto_unix_io.send_proto(WorldState, world_state)
 
+            simulation_state_buffer = ThreadSafeBuffer(1, SimulationState)
+            tscope.simulator_proto_unix_io.register_observer(
+                SimulationState, simulation_state_buffer
+            )
+
             # Tick Simulation
             while True:
-                tick = SimulatorTick(milliseconds=tick_rate_ms)
-                tscope.simulator_proto_unix_io.send_proto(SimulatorTick, tick)
+
+                simulation_state_message = simulation_state_buffer.get()
+
+                if simulation_state_message.is_playing:
+                    tick = SimulatorTick(milliseconds=tick_rate_ms)
+                    tscope.simulator_proto_unix_io.send_proto(SimulatorTick, tick)
+
                 time.sleep(tick_rate_ms / 1000)
 
         # Launch all binaries
