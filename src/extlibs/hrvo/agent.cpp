@@ -31,8 +31,21 @@ void Agent::update()
         new_velocity_ = new_velocity_.normalize(max_speed_);
     }
 
+
+    auto robot_constants = create2021RobotConstants();
+    float acceleration_limit;
+    if (new_velocity_.length() >= velocity_.length())
+    {
+        acceleration_limit = robot_constants.robot_max_acceleration_m_per_s_2;
+    }
+    else
+    {
+        acceleration_limit = robot_constants.robot_max_deceleration_m_per_s_2;
+    }
+//    Vector max_accel = delta_vel.normalize(std::min(delta_vel.length(), acceleration_limit * time_step.toSeconds()));
+//    velocity_ += max_accel * time_step.toSeconds();
     const Vector dv = new_velocity_ - velocity_;
-    if (dv.length() < max_accel_ * simulator_->getTimeStep() || dv.length() == 0.f)
+    if (dv.length() < acceleration_limit * simulator_->getTimeStep() || dv.length() == 0.f)
     {
         velocity_ = new_velocity_;
     }
@@ -41,7 +54,7 @@ void Agent::update()
         // Calculate the maximum velocity towards the preferred velocity, given the
         // acceleration constraint
         velocity_ =
-            velocity_ + (max_accel_ * simulator_->getTimeStep()) * (dv / dv.length());
+            velocity_ + (acceleration_limit * simulator_->getTimeStep()) * (dv / dv.length());
     }
 
     position_ += velocity_ * simulator_->time_step;

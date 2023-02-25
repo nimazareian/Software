@@ -227,7 +227,7 @@ if __name__ == "__main__":
             load_blue=bool(args.run_blue),
             load_yellow=bool(args.run_yellow),
             load_diagnostics=bool(args.run_diagnostics),
-            load_gamecontroller=False,
+            load_gamecontroller=True,
             visualization_buffer_size=args.visualization_buffer_size,
         )
 
@@ -253,7 +253,13 @@ if __name__ == "__main__":
             getRobotMulticastChannel(0),
             args.interface,
             args.disable_estop,
-        ) as robot_communication:
+        ) as robot_communication, Gamecontroller() as gamecontroller:
+
+            gamecontroller.setup_proto_unix_io(
+                current_proto_unix_io,
+                None
+            )
+
             if args.run_diagnostics:
                 tscope.control_mode_signal.connect(
                     lambda mode, robot_id: robot_communication.toggle_robot_connection(

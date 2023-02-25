@@ -41,6 +41,7 @@
 #include "software/geom/algorithms/intersection.h"
 #include "software/geom/vector.h"
 #include "software/physics/velocity_conversion_util.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 HRVOAgent::HRVOAgent(HRVOSimulator *simulator, const Vector &position,
                      float neighbor_dist, std::size_t max_neighbors, float radius,
@@ -591,10 +592,6 @@ void HRVOAgent::computePreferredVelocity(const Angle &orientation, const Angular
     if (pid_vel.length() >= curr_local_velocity_.length())
     {
         acceleration_limit = robot_constants.robot_max_acceleration_m_per_s_2;
-//        if (velocity_.length() < 0.1)
-//        {
-//            acceleration_limit *= 5;
-//        }
     }
     else
     {
@@ -611,6 +608,12 @@ void HRVOAgent::computePreferredVelocity(const Angle &orientation, const Angular
     pref_velocity_ = localToGlobalVelocity(output, orientation);
     // Visualization
     // TODO: Add HRVO Velocity
+    std::map<std::string, double> plotjuggler_values;
+    plotjuggler_values.insert({"pos_x", position_.x()});
+    plotjuggler_values.insert({"pos_y", position_.y()});
+    plotjuggler_values.insert({"max_accel", max_accel.length()});
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
+
 //    Vector xy_inc_global = localToGlobalVelocity(max_accel, curr_orientation_);
 //    Vector output_global = localToGlobalVelocity(output, curr_orientation_);
 //    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_x_diff", (final_position - curr_global_position_).x()});

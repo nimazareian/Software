@@ -103,7 +103,7 @@ static const double MILLISECONDS_PER_NANOSECOND  = 1.0 / 1000000.0;
 static const double SECONDS_PER_MINUTE           = 60.0;
 
 // The total number of robot ids on one team
-static const unsigned int MAX_ROBOT_IDS_PER_SIDE = 8;
+static const unsigned int MAX_ROBOT_IDS_PER_SIDE = 10;
 // The total number of possible robot ids between two teams
 static const unsigned int MAX_ROBOT_IDS = MAX_ROBOT_IDS_PER_SIDE * 2;
 

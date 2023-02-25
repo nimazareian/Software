@@ -108,6 +108,7 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
 
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual_local", curr_local_velocity_.x()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_actual_local", curr_local_velocity_.length()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
 }
 
@@ -119,12 +120,14 @@ Vector PrimitiveExecutor::getTargetLinearVelocity()
 
 Vector PrimitiveExecutor::getTargetLinearVelocity(const TbotsProto::MovePrimitive &move_primitive, const Duration time_step)
 {
+    return Vector(); // TODO: REEEEEMOOOOOOVVVEEEEE
+
     const Point final_position =
         createPoint(move_primitive.motion_control().path().points().at(1));
     Vector local_distance_delta = globalToLocalVelocity(final_position - curr_global_position_, curr_orientation_);
 
-    const double x = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step.toSeconds(), "x");
-    const double y = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step.toSeconds(), "y");
+    const double x = linear_speed_x_pid_.calculate(local_distance_delta.x(), 0.0, time_step.toSeconds(), "x1");
+    const double y = linear_speed_y_pid_.calculate(local_distance_delta.y(), 0.0, time_step.toSeconds(), "y1");
     Vector pid_vel = Vector(x, y);
     Vector delta_vel = pid_vel - curr_local_velocity_;
 
@@ -259,6 +262,9 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
                 current_primitive_.move().auto_chip_or_kick());
 
             plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt", target_angular_velocity.toRadians()});
+            plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_desired", target_velocity.x()});
+            plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_desired", target_velocity.y()});
+            plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_desired", target_velocity.length()});
             LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
             plotjuggler_values.clear();
 

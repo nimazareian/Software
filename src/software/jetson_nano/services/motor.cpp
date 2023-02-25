@@ -192,7 +192,7 @@ bool MotorService::checkDriverFault(uint8_t motor)
     int gstat = tmc6100_readInt(motor, TMC6100_GSTAT);
     std::bitset<32> gstat_bitset(gstat);
 
-    if (gstat_bitset.any() && !gstat_bitset[0])
+    if (gstat_bitset.any())
     {
         LOG(WARNING) << "======= Faults For Motor " << std::to_string(motor) << "=======";
     }
@@ -448,7 +448,7 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
     target_wheel_velocities = rampWheelVelocity(
         prev_wheel_velocities, target_linear_velocity,
         static_cast<double>(robot_constants_.robot_max_speed_m_per_s),
-        static_cast<double>(robot_constants_.robot_max_acceleration_m_per_s_2),
+        static_cast<double>(robot_constants_.motor_max_acceleration_m_per_s_2),
         time_elapsed_since_last_poll_s);
 
     // TODO (#2719): interleave the angular accelerations in here at some point.

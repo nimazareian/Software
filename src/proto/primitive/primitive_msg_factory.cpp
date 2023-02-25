@@ -10,7 +10,7 @@ std::unique_ptr<TbotsProto::Primitive> createMovePrimitive(
     const AutoChipOrKick& auto_chip_or_kick,
     const TbotsProto::MaxAllowedSpeedMode& max_allowed_speed_mode,
     double target_spin_rev_per_s, const RobotConstants_t& robot_constants,
-    std::optional<double> cost_override)
+    std::optional<double> cost_override, std::optional<double> robot_max_speed)
 {
     auto move_primitive_msg = std::make_unique<TbotsProto::Primitive>();
 

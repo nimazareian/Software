@@ -49,6 +49,7 @@ cc_library(
         "//software/world",
         "//software/geom/algorithms:pid",
         "//software/physics:velocity_conversion_util",
+        "//proto/message_translation:tbots_protobuf",
     ],
 )
 

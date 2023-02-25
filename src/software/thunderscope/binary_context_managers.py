@@ -465,8 +465,10 @@ class Gamecontroller(object):
             :param data: The referee command to send
 
             """
-            blue_full_system_proto_unix_io.send_proto(Referee, data)
-            yellow_full_system_proto_unix_io.send_proto(Referee, data)
+            if blue_full_system_proto_unix_io is not None:
+                blue_full_system_proto_unix_io.send_proto(Referee, data)
+            if yellow_full_system_proto_unix_io is not None:
+                yellow_full_system_proto_unix_io.send_proto(Referee, data)
 
         self.receive_referee_command = SSLRefereeProtoListener(
             Gamecontroller.REFEREE_IP, self.referee_port, __send_referee_command, True,

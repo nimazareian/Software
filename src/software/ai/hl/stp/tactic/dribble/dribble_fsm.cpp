@@ -111,7 +111,7 @@ void DribbleFSM::dribble(const Update &event)
         TbotsProto::DribblerMode::MAX_FORCE, TbotsProto::BallCollisionType::ALLOW,
         AutoChipOrKick{AutoChipOrKickMode::OFF, 0},
         TbotsProto::MaxAllowedSpeedMode::PHYSICAL_LIMIT, 0.0,
-        event.common.robot.robotConstants(), 0.0));
+        event.common.robot.robotConstants(), 0.0, 1.0));
 }
 
 void DribbleFSM::loseBall(const Update &event)
