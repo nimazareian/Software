@@ -105,6 +105,7 @@ class ColorProgressBar(QProgressBar):
         super(ColorProgressBar, self).setValue(value * self.decimals)
 
         percent = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
+        percent = min(1, max(0, percent))
 
         if percent < 0.5:
             super(ColorProgressBar, self).setStyleSheet(

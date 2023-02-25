@@ -44,12 +44,12 @@ class RobotViewComponent(QWidget):
         self.robot_info = RobotInfo(id, available_control_modes, control_mode_signal)
         self.layout.addWidget(self.robot_info)
 
-        self.robot_status = RobotStatusView()
-        self.layout.addWidget(self.robot_status)
+        # self.robot_status = RobotStatusView()
+        # self.layout.addWidget(self.robot_status)
 
-        self.robot_info.robot_status_expand.clicked.connect(
-            self.robot_status.toggle_visibility
-        )
+        # self.robot_info.robot_status_expand.clicked.connect(
+        #     self.robot_status.toggle_visibility
+        # )
 
         self.setLayout(self.layout)
 
@@ -108,6 +108,6 @@ class RobotView(QScrollArea):
             self.robot_view_widgets[robot_status.robot_id].robot_info.update(
                 robot_status.power_status, robot_status.error_code
             )
-            self.robot_view_widgets[robot_status.robot_id].robot_status.update(
-                robot_status
-            )
+            # self.robot_view_widgets[robot_status.robot_id].robot_status.update(
+            #     robot_status
+            # )
