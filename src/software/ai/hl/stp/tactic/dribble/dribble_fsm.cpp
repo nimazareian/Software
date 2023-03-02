@@ -82,16 +82,43 @@ std::tuple<Point, Angle> DribbleFSM::calculateNextDribbleDestinationAndOrientati
 
 void DribbleFSM::getPossession(const Update &event)
 {
+//    Point intercept_position =
+//        findInterceptionPoint(event.common.robot, event.common.world.ball(),
+//                              event.common.world.field()) +
+//        Vector::createFromAngle(face_ball_orientation).normalize(0.05);
     auto ball_position = event.common.world.ball().position();
-    auto face_ball_orientation =
-        (ball_position - event.common.robot.position()).orientation();
-    Point intercept_position =
-        findInterceptionPoint(event.common.robot, event.common.world.ball(),
-                              event.common.world.field()) +
-        Vector::createFromAngle(face_ball_orientation).normalize(0.05);
+    auto robot_position = event.common.robot.position();
+    auto robot_orientation = event.common.robot.orientation();
+    auto face_ball_orientation = (ball_position - robot_position).orientation();
+    double distance_threshold = 0.1;
+    Point destination = robotPositionToFaceBall(ball_position, face_ball_orientation, distance_threshold);
+    auto desired_orientation_opt = event.control_params.final_dribble_orientation;
+    if (!desired_orientation_opt.has_value())
+    {
+        std::cout << "No desired orientation" << std::endl;
+    }
+
+    // TODO: Add logic to push ball, instead of pull
+    // TODO: Dribbling backwards doesn't seem to work at the end of test (goes at an angle)
+    if (desired_orientation_opt.has_value() && (robot_position - destination).length() < distance_threshold + 0.02)
+    {
+        Angle desired_orientation = desired_orientation_opt.value();
+        Angle delta_orientation = (desired_orientation - robot_orientation).clamp();
+        const Angle max_rotation_amount = Angle::fromDegrees(15);
+        Angle rotation_amount = std::clamp(delta_orientation,
+                                           -max_rotation_amount,
+                                           max_rotation_amount);
+        if (delta_orientation < Angle::fromDegrees(3))
+        {
+            distance_threshold = 0.0;
+        }
+        destination = robotPositionToFaceBall(ball_position,
+                                              robot_orientation + rotation_amount,
+                                              distance_threshold);
+    }
 
     event.common.set_primitive(createMovePrimitive(
-        CREATE_MOTION_CONTROL(intercept_position), face_ball_orientation, 0,
+        CREATE_MOTION_CONTROL(destination), face_ball_orientation, 0,
         TbotsProto::DribblerMode::MAX_FORCE, TbotsProto::BallCollisionType::ALLOW,
         AutoChipOrKick{AutoChipOrKickMode::OFF, 0},
         TbotsProto::MaxAllowedSpeedMode::PHYSICAL_LIMIT, 0.0,

@@ -95,7 +95,7 @@ AngularVelocity Robot::angularVelocity() const
 
 bool Robot::isNearDribbler(const Point &test_point, double TOLERANCE) const
 {
-    const double POSSESSION_THRESHOLD_METERS = ROBOT_MAX_RADIUS_METERS + TOLERANCE;
+    const double POSSESSION_THRESHOLD_METERS = 0 + TOLERANCE; // TODO: Is this update correct?! BALL_TO_FRONT_OF_ROBOT_DISTANCE_WHEN_DRIBBLING doesn't include rad of robot, so maybe add back
 
     Vector vector_to_test_point = test_point - position();
     if (vector_to_test_point.length() > POSSESSION_THRESHOLD_METERS)
