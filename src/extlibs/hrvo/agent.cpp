@@ -2,6 +2,7 @@
 
 #include "extlibs/hrvo/path.h"
 #include "extlibs/hrvo/simulator.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 Agent::Agent(HRVOSimulator *simulator, const Vector &position, float radius,
              float max_radius_inflation, const Vector &velocity,
@@ -44,6 +45,7 @@ void Agent::update()
     }
 //    Vector max_accel = delta_vel.normalize(std::min(delta_vel.length(), acceleration_limit * time_step.toSeconds()));
 //    velocity_ += max_accel * time_step.toSeconds();
+    auto old_vel = velocity_;
     const Vector dv = new_velocity_ - velocity_;
     if (dv.length() < acceleration_limit * simulator_->getTimeStep() || dv.length() == 0.f)
     {
@@ -56,6 +58,11 @@ void Agent::update()
         velocity_ =
             velocity_ + (acceleration_limit * simulator_->getTimeStep()) * (dv / dv.length());
     }
+    std::map<std::string, double> plotjuggler_values;
+    plotjuggler_values.insert({"hrvo::update_new_velocity", new_velocity_.length()});
+    plotjuggler_values.insert({"hrvo::update_accel", (velocity_ - old_vel).length()});
+    plotjuggler_values.insert({"hrvo::update_accel_limit", acceleration_limit});
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
 
     position_ += velocity_ * simulator_->time_step;
 

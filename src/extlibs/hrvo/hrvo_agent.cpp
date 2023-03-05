@@ -58,13 +58,13 @@ HRVOAgent::HRVOAgent(HRVOSimulator *simulator, const Vector &position,
       ball_obstacle(std::nullopt),
       linear_speed_x_pid_(
               robot_constants.robot_max_speed_m_per_s,
-              2.0,
-              0,
+              2.25,
+              0.0,
               0),
       linear_speed_y_pid_(
               robot_constants.robot_max_speed_m_per_s,
-              2.0,
-              0,
+              2.25,
+              0.0,
               0)
 {
 }
@@ -597,21 +597,28 @@ void HRVOAgent::computePreferredVelocity(const Angle &orientation, const Angular
     {
         acceleration_limit = robot_constants.robot_max_deceleration_m_per_s_2;
     }
-    Vector max_accel = delta_vel.normalize(std::min(delta_vel.length(), acceleration_limit * time_step.toSeconds()));
-    Vector desired_output = curr_local_velocity_ + max_accel;
+    Vector max_delta_velocity = delta_vel.normalize(std::min(delta_vel.length(), acceleration_limit * time_step.toSeconds()));
+    Vector desired_output = curr_local_velocity_ + (max_delta_velocity * 1.33);
 
     // Clamp to max speed
     Vector output = desired_output.normalize(std::min(desired_output.length(), static_cast<double>(robot_constants.robot_max_speed_m_per_s)));
 
     // Compensate for angular velocity
-    output = output.rotate(-angular_vel * time_step.toSeconds() * 2.0);
+//    output = output.rotate(-angular_vel * time_step.toSeconds() * 2.0); // TODO: Tune this constant multiplier
     pref_velocity_ = localToGlobalVelocity(output, orientation);
     // Visualization
     // TODO: Add HRVO Velocity
     std::map<std::string, double> plotjuggler_values;
     plotjuggler_values.insert({"pos_x", position_.x()});
     plotjuggler_values.insert({"pos_y", position_.y()});
-    plotjuggler_values.insert({"max_accel", max_accel.length()});
+    plotjuggler_values.insert({"pid_vel", pid_vel.length()});
+    plotjuggler_values.insert({"curr_local_velocity_", curr_local_velocity_.length()});
+    plotjuggler_values.insert({"max_delta_velocity", max_delta_velocity.length() / time_step.toSeconds()});
+    plotjuggler_values.insert({"delta_vel", delta_vel.length()});
+    plotjuggler_values.insert({"pref_velocity_", pref_velocity_.length()});
+    plotjuggler_values.insert({"desired_output", desired_output.length()});
+    plotjuggler_values.insert({"addition_of_vectors", curr_local_velocity_.length() + max_delta_velocity.length()});
+    plotjuggler_values.insert({"pref::acceleration_limit", acceleration_limit});
     LOG(PLOTJUGGLER) << *createPlotJugglerValue(plotjuggler_values);
 
 //    Vector xy_inc_global = localToGlobalVelocity(max_accel, curr_orientation_);

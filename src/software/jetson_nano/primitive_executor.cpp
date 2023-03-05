@@ -104,9 +104,11 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
     curr_orientation_ += ((angular_velocity + curr_angular_velocity_) / 2) * time_since_last_update;
 
     curr_angular_velocity_ = angular_velocity;
+    auto old_local_velocity = curr_local_velocity_;
     curr_local_velocity_ = local_velocity;
 
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vx_actual_local", curr_local_velocity_.x()});
+    plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_ACCEL_2D", (old_local_velocity - local_velocity).length()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vy_actual_local", curr_local_velocity_.y()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vxy_actual_local", curr_local_velocity_.length()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
