@@ -93,6 +93,7 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
     {
         hrvo_simulator_.updateRobotVelocity(
                 robot_id_, localToGlobalVelocity(local_velocity, curr_orientation_));
+        curr_angular_velocity_ = angular_velocity;
     }
 
     const auto now = std::chrono::steady_clock::now();
@@ -101,9 +102,8 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
 
     // Update state
     curr_global_position_ += localToGlobalVelocity((local_velocity + curr_local_velocity_) / 2, curr_orientation_) * time_since_last_update;
-    curr_orientation_ += ((angular_velocity + curr_angular_velocity_) / 2) * time_since_last_update;
+//    curr_orientation_ += ((angular_velocity + curr_angular_velocity_) / 2) * time_since_last_update;
 
-    curr_angular_velocity_ = angular_velocity;
     auto old_local_velocity = curr_local_velocity_;
     curr_local_velocity_ = local_velocity;
 
@@ -205,6 +205,9 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity(
     const double desired_output = curr_angular_velocity_.toRadians() + clamped_delta_angular_velocity;
     const double max_angular_vel = static_cast<double>(robot_constants_.robot_max_ang_speed_rad_per_s);
     AngularVelocity output = AngularVelocity::fromRadians(std::clamp(desired_output, -max_angular_vel, max_angular_vel));
+
+    curr_orientation_ += ((curr_angular_velocity_ + output) / 2) * time_step.toSeconds();
+    curr_angular_velocity_ = output;
 
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_actual", curr_angular_velocity_.toRadians()});
     plotjuggler_values.insert({std::to_string(robot_id_) + team_color + "_vt_output", output.toRadians()});

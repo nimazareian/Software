@@ -604,7 +604,7 @@ void HRVOAgent::computePreferredVelocity(const Angle &orientation, const Angular
     Vector output = desired_output.normalize(std::min(desired_output.length(), static_cast<double>(robot_constants.robot_max_speed_m_per_s)));
 
     // Compensate for angular velocity
-//    output = output.rotate(-angular_vel * time_step.toSeconds() * 2.0); // TODO: Tune this constant multiplier
+    output = output.rotate(-angular_vel * time_step.toSeconds() * 1.35); // TODO: Tune this constant multiplier
     pref_velocity_ = localToGlobalVelocity(output, orientation);
     // Visualization
     // TODO: Add HRVO Velocity
