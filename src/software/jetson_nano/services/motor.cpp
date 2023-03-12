@@ -68,7 +68,7 @@ static double MECHANICAL_MPS_PER_ELECTRICAL_RPM = 0.000111;
 static double ELECTRICAL_RPM_PER_MECHANICAL_MPS = 1 / MECHANICAL_MPS_PER_ELECTRICAL_RPM;
 
 static double RUNAWAY_PROTECTION_THRESHOLD_MPS       = 2.00;
-static int DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S = 1000;
+static int DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S_2 = 10000;
 
 
 extern "C"
@@ -100,7 +100,8 @@ MotorService::MotorService(const RobotConstants_t& robot_constants,
       driver_control_enable_gpio(DRIVER_CONTROL_ENABLE_GPIO, GpioDirection::OUTPUT,
                                  GpioState::HIGH),
       reset_gpio(MOTOR_DRIVER_RESET_GPIO, GpioDirection::OUTPUT, GpioState::HIGH),
-      euclidean_to_four_wheel(robot_constants)
+      euclidean_to_four_wheel(robot_constants),
+      ramp_rpm(0)
 {
     robot_constants_ = robot_constants;
 
@@ -413,7 +414,6 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
     EuclideanSpace_t target_linear_velocity  = {0.0, 0.0, 0.0};
     EuclideanSpace_t target_angular_velocity = {0.0, 0.0, 0.0};
     int target_dribbler_rpm                  = motor.dribbler_speed_rpm();
-    static int ramp_rpm                      = 0;
 
     switch (motor.drive_control_case())
     {
@@ -472,23 +472,21 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         static_cast<int>(target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX] *
                          ELECTRICAL_RPM_PER_MECHANICAL_MPS));
 
-    // If the dribbler only needs to change by DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S,
+    // If the dribbler only needs to change by DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S_2,
     // just set the value
-    if (std::abs(target_dribbler_rpm - ramp_rpm) <=
-        DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S)
-    {
-        tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, target_dribbler_rpm);
-    }
-    else if (target_dribbler_rpm > ramp_rpm + DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S)
-    {
-        ramp_rpm += DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S;
-        tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, ramp_rpm);
-    }
-    else if (target_dribbler_rpm < ramp_rpm - DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S)
-    {
-        ramp_rpm -= DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S;
-        tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, ramp_rpm);
-    }
+    int max_dribbler_delta_vel = static_cast<int>(DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S_2 * time_elapsed_since_last_poll_s);
+    LOG(DEBUG) << "target_dribbler_rpm=" << target_dribbler_rpm;
+    LOG(DEBUG) << "max_dribbler_delta_vel=" << max_dribbler_delta_vel;
+
+    int delta_vel = std::clamp(target_dribbler_rpm - ramp_rpm, -max_dribbler_delta_vel, max_dribbler_delta_vel);
+    LOG(DEBUG) << "delta_vel=" << delta_vel;
+    LOG(DEBUG) << "target_dribbler_rpm - ramp_rpm=" << target_dribbler_rpm - ramp_rpm;
+    ramp_rpm += delta_vel;
+
+    int max_dribbler_vel = std::abs(static_cast<int>(robot_constants_.max_force_dribbler_speed_rpm));
+    ramp_rpm = std::clamp(ramp_rpm, -max_dribbler_vel, max_dribbler_vel);
+//    tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, ramp_rpm); // TODO: Double check that this works...
+    LOG(DEBUG) << "ramp_rpm=" << ramp_rpm;
 
     return motor_status;
 }

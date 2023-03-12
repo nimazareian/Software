@@ -221,4 +221,6 @@ class MotorService
     // Previous wheel velocities
     WheelSpace_t prev_wheel_velocities;
     std::map<std::string, double> plotjuggler_values;
+
+    int ramp_rpm;
 };

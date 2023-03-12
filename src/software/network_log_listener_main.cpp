@@ -73,10 +73,10 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    if (vm["interface"] == "")
-    {
-        LOG(FATAL) << "No interface was provided. Run 'ifconfig' and choose an appropriate network interface";
-    }
+//    if (vm["interface"] == "")
+//    {
+//        LOG(FATAL) << "No interface was provided. Run 'ifconfig' and choose an appropriate network interface";
+//    }
 
     if (!vm["connected_robots"].empty())
     {

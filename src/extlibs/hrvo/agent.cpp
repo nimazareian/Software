@@ -174,5 +174,5 @@ void Agent::setRadius(float radius)
 void Agent::updateRadiusFromVelocity()
 {
     // Linearly increase radius based on the current agent velocity
-    radius_ = min_radius_ + max_radius_inflation_ * (velocity_.length() / max_speed_);
+    radius_ = min_radius_ + max_radius_inflation_ * (velocity_.length() / 1.0);
 }

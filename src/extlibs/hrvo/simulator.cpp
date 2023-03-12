@@ -204,7 +204,7 @@ std::size_t HRVOSimulator::addHRVORobotAgent(const Robot &robot)
     AgentPath path =
         AgentPath({PathPoint(destination_point, speed_at_goal)}, path_radius);
 
-    return addHRVOAgent(position, ROBOT_MAX_RADIUS_METERS * 1.5,
+    return addHRVOAgent(position, ROBOT_MAX_RADIUS_METERS,
                         FRIENDLY_ROBOT_RADIUS_MAX_INFLATION, velocity, max_speed,
                         max_accel, path, MAX_NEIGHBOR_SEARCH_DIST, MAX_NEIGHBORS);
 }
@@ -221,7 +221,7 @@ std::size_t HRVOSimulator::addLinearVelocityRobotAgent(const Robot &robot,
     float path_radius = (max_speed * time_step) / 2;
 
     AgentPath path = AgentPath({PathPoint(destination, 0.0f)}, path_radius);
-    return addLinearVelocityAgent(position, ROBOT_MAX_RADIUS_METERS * 1.5,
+    return addLinearVelocityAgent(position, ROBOT_MAX_RADIUS_METERS,
                                   ENEMY_ROBOT_RADIUS_MAX_INFLATION, velocity, max_speed,
                                   max_accel, path);
 }
@@ -353,11 +353,11 @@ void HRVOSimulator::visualize(unsigned int robot_id) const
 
     if (friendly_team_colour == TeamColour::YELLOW)
     {
-        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
+        LOG(VISUALIZE) << hrvo_visualization;
     }
     else
     {
-        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
+        LOG(VISUALIZE) << hrvo_visualization;
     }
 }
 
