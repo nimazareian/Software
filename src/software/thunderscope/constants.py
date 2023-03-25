@@ -10,14 +10,16 @@ class IndividualRobotMode(IntEnum):
 
     NONE = 0
     MANUAL = 1
-    AI = 3
+    AI = 2
 
 
 LINE_WIDTH = 3
 SPEED_LINE_WIDTH = 2
-SPEED_SEGMENT_SCALE = 1.0
+SPEED_SEGMENT_SCALE = 0.2
 
 ROBOT_RADIUS = 25
+
+BALL_HEIGHT_EFFECT_MULTIPLIER = 3
 
 # Mapping between RobotStatus Error Codes and their dialog messages
 ERROR_CODE_MESSAGES = {
@@ -41,7 +43,6 @@ class Colors(object):
     TRANSPARENT = QtGui.QColor(0, 0, 0, 0)
     DESIRED_ROBOT_LOCATION_OUTLINE = QtGui.QColor(255, 0, 0, 150)
     SPEED_VECTOR_COLOR = QtGui.QColor(255, 0, 255, 100)
-    DESIRED_SPEED_COLOR = QtGui.QColor(255, 0, 0, 200)
 
     ROBOT_MIDDLE_BLUE = "blue"
     ROBOT_SPEED_SLOW_COLOR = "black"

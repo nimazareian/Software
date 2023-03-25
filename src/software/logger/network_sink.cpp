@@ -61,6 +61,15 @@ void NetworkSink::sendToNetwork(g3::LogMessageMover log_entry)
             static_cast<uint32_t>(std::stoul(log_entry.get().line())));
         *(log_msg_proto.mutable_created_timestamp()) = *createCurrentTimestamp(); // This epoch timestamp might not have the correct format for python ...
 
-        log_output->sendProto(log_msg_proto);
+        TbotsProto::Timestamp timestamp;
+        const auto current_time_ms =
+            std::chrono::time_point_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now());
+        timestamp.set_epoch_timestamp_seconds(
+            static_cast<double>(current_time_ms.time_since_epoch().count()) /
+            MILLISECONDS_PER_SECOND);
+        *(log_msg_proto->mutable_created_timestamp()) = timestamp;
+
+        log_output->sendProto(*log_msg_proto);
     }
 }

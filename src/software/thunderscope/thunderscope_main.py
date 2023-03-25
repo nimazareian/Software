@@ -1,4 +1,3 @@
-import math
 import os
 import time
 import threading
@@ -237,7 +236,7 @@ if __name__ == "__main__":
             load_blue=bool(args.run_blue),
             load_yellow=bool(args.run_yellow),
             load_diagnostics=bool(args.run_diagnostics),
-            load_gamecontroller=True,
+            load_gamecontroller=False,
             visualization_buffer_size=args.visualization_buffer_size,
             cost_visualization=args.cost_visualization,
         )
@@ -264,13 +263,7 @@ if __name__ == "__main__":
             getRobotMulticastChannel(0),
             args.interface,
             args.disable_estop,
-        ) as robot_communication, Gamecontroller() as gamecontroller:
-
-            gamecontroller.setup_proto_unix_io(
-                current_proto_unix_io,
-                None
-            )
-
+        ) as robot_communication:
             if args.run_diagnostics:
                 tscope.control_mode_signal.connect(
                     lambda mode, robot_id: robot_communication.toggle_robot_connection(
@@ -338,23 +331,33 @@ if __name__ == "__main__":
             :param tick_rate_ms: The tick rate of the simulation
 
             """
-            world_state = tbots_protobuf.create_world_state(
-                blue_robot_states=[
-                    RobotState(
-                        global_position=Point(x_meters=-3.0, y_meters=y),
-                        global_orientation=Angle(radians=0.0),
-                    ) for y in numpy.linspace(-2, 2, NUM_ROBOTS)
-                ],
-                yellow_robot_states=[
-                    RobotState(
-                        global_position=Point(x_meters=3.0, y_meters=y),
-                        global_orientation=Angle(radians=math.pi),
-                    ) for y in numpy.linspace(-2, 2, NUM_ROBOTS)
-                ],
-                ball_location=cpp_bindings.Point(0, 0),
-                ball_velocity=cpp_bindings.Vector(0, 0),
+            world_state_received_buffer = ThreadSafeBuffer(1, WorldStateReceivedTrigger)
+            tscope.simulator_proto_unix_io.register_observer(
+                WorldStateReceivedTrigger, world_state_received_buffer
             )
-            tscope.simulator_proto_unix_io.send_proto(WorldState, world_state)
+
+            while True:
+                world_state_received = world_state_received_buffer.get(
+                    block=False, return_cached=False
+                )
+                if not world_state_received:
+                    world_state = tbots_protobuf.create_world_state(
+                        blue_robot_locations=[
+                            cpp_bindings.Point(-3, y)
+                            for y in numpy.linspace(-2, 2, NUM_ROBOTS)
+                        ],
+                        yellow_robot_locations=[
+                            cpp_bindings.Point(3, y)
+                            for y in numpy.linspace(-2, 2, NUM_ROBOTS)
+                        ],
+                        ball_location=cpp_bindings.Point(0, 0),
+                        ball_velocity=cpp_bindings.Vector(0, 0),
+                    )
+                    tscope.simulator_proto_unix_io.send_proto(WorldState, world_state)
+                else:
+                    break
+
+                time.sleep(0.01)
 
             simulation_state_buffer = ThreadSafeBuffer(1, SimulationState)
             tscope.simulator_proto_unix_io.register_observer(
