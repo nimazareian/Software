@@ -68,8 +68,8 @@ void NetworkSink::sendToNetwork(g3::LogMessageMover log_entry)
         timestamp.set_epoch_timestamp_seconds(
             static_cast<double>(current_time_ms.time_since_epoch().count()) /
             MILLISECONDS_PER_SECOND);
-        *(log_msg_proto->mutable_created_timestamp()) = timestamp;
+        *(log_msg_proto.mutable_created_timestamp()) = timestamp;
 
-        log_output->sendProto(*log_msg_proto);
+        log_output->sendProto(log_msg_proto);
     }
 }

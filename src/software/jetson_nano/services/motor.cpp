@@ -472,21 +472,18 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         static_cast<int>(target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX] *
                          ELECTRICAL_RPM_PER_MECHANICAL_MPS));
 
-    // If the dribbler only needs to change by DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S_2,
-    // just set the value
+    // Ramp the dribbler velocity
+    // Clamp the max acceleration
     int max_dribbler_delta_vel = static_cast<int>(DRIBBLER_ACCELERATION_THRESHOLD_RPM_PER_S_2 * time_elapsed_since_last_poll_s);
-    LOG(DEBUG) << "target_dribbler_rpm=" << target_dribbler_rpm;
-    LOG(DEBUG) << "max_dribbler_delta_vel=" << max_dribbler_delta_vel;
-
     int delta_vel = std::clamp(target_dribbler_rpm - ramp_rpm, -max_dribbler_delta_vel, max_dribbler_delta_vel);
-    LOG(DEBUG) << "delta_vel=" << delta_vel;
-    LOG(DEBUG) << "target_dribbler_rpm - ramp_rpm=" << target_dribbler_rpm - ramp_rpm;
     ramp_rpm += delta_vel;
 
+    // Clamp the max speed
     int max_dribbler_vel = std::abs(static_cast<int>(robot_constants_.max_force_dribbler_speed_rpm));
     ramp_rpm = std::clamp(ramp_rpm, -max_dribbler_vel, max_dribbler_vel);
-//    tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, ramp_rpm); // TODO: Double check that this works...
-    LOG(DEBUG) << "ramp_rpm=" << ramp_rpm;
+
+    tmc4671_setTargetVelocity(DRIBBLER_MOTOR_CHIP_SELECT, ramp_rpm);
+    motor_status.mutable_dribbler()->set_dribbler_rpm(float(ramp_rpm));
 
     return motor_status;
 }

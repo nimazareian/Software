@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
 #ifdef PLATFORMIO_BUILD
 #include <power_frame_msg_platformio.h>
@@ -208,10 +209,12 @@ bool inline unmarshalUartPacket(const std::vector<uint8_t>& data,
     std::vector<uint8_t> decoded;
     if (!cobsDecoding(data, decoded))
     {
+        std::cout << "!cobsDecoding(data, decoded)" << std::endl;
         return false;
     }
     if (decoded.size() != TbotsProto_PowerFrame_size)
     {
+        std::cout << "decoded.size() != TbotsProto_PowerFrame_siz" << std::endl;
         return false;
     }
     frame = TbotsProto_PowerFrame_init_default;
@@ -219,6 +222,7 @@ bool inline unmarshalUartPacket(const std::vector<uint8_t>& data,
         pb_istream_from_buffer(static_cast<uint8_t*>(decoded.data()), decoded.size());
     if (!pb_decode(&stream, TbotsProto_PowerFrame_fields, &frame))
     {
+        std::cout << "decoded.size() != TbotsProto_PowerFrame_siz" << std::endl;
         return false;
     }
     return verifyLengthAndCrc(frame);

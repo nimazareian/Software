@@ -503,7 +503,7 @@ class WorldLayer(FieldLayer):
         :param painter: The painter
 
         """
-        painter.setPen(pg.mkPen(Colors.DESIRED_SPEED_COLOR, width=3))
+        painter.setPen(pg.mkPen(Colors.SPEED_VECTOR_COLOR, width=3))
 
         for _ in range(self.desired_speeds.queue.qsize()):
             segment = self.desired_speeds.get(block=False)

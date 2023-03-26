@@ -189,7 +189,7 @@ Thunderloop::~Thunderloop() {}
                                MILLISECONDS_PER_NANOSECOND;
                 }
 
-                direct_control_ = *primitive_executor_.stepPrimitive();
+                direct_control_ = *primitive_executor_.stepPrimitive(Duration::fromSeconds(loop_duration_seconds));
             }
 
             thunderloop_status_.set_primitive_executor_step_time_ms(
@@ -201,6 +201,7 @@ Thunderloop::~Thunderloop() {}
                 power_status_ =
                     power_service_->poll(direct_control_.power_control(), kick_slope_,
                                          kick_constant_, chip_pulse_width_);
+                std::cout << "power_status_ = " << power_status_.DebugString() << std::endl;
             }
             thunderloop_status_.set_power_service_poll_time_ms(
                 getMilliseconds(poll_time));
