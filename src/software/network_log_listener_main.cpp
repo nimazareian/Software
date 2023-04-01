@@ -15,9 +15,9 @@
 // TODO: Switch robotCommunication multicast channel for robotstatus + logs + world + primitiveset
 void logFromNetworking(TbotsProto::RobotLog log)
 {
-    if (log.robot_id() != 5) {
-        return;
-    }
+//    if (log.robot_id() != 5) {
+//        return;
+//    }
     LEVELS level(INFO);
 
     if (TbotsProto::LogLevel_Name(log.log_level()) == "DEBUG")
@@ -44,8 +44,8 @@ int main(int argc, char **argv)
     {
         bool help = false;
         std::string interface;
-        int channel = 0;
-        std::vector<int> connected_robots;
+//        int channel = 0;
+//        std::vector<int> connected_robots;
     };
 
     CommandLineArgs args;
@@ -56,16 +56,16 @@ int main(int argc, char **argv)
     desc.add_options()("interface",
                        boost::program_options::value<std::string>(&args.interface),
                        "Which network interface to listen for messages from");
-    desc.add_options()("channel",
-                       boost::program_options::value<int>(&args.channel),
-                       "Multicast channel to listen on connect to");
-    desc.add_options()("connected_robots",
-                       boost::program_options::value<std::vector<int>>()->multitoken(),
-                       "Robots to show logs from. If empty, logs from all robots are shown");
+//    desc.add_options()("channel",
+//                       boost::program_options::value<int>(&args.channel),
+//                       "Multicast channel to listen on connect to");
+//    desc.add_options()("connected_robots",
+//                       boost::program_options::value<std::vector<int>>()->multitoken(),
+//                       "Robots to show logs from. If empty, logs from all robots are shown");
 
-    boost::program_options::variables_map vm;
-    boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
-    boost::program_options::notify(vm);
+//    boost::program_options::variables_map vm;
+//    boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+//    boost::program_options::notify(vm);
 
     if (args.help)
     {
@@ -78,16 +78,16 @@ int main(int argc, char **argv)
 //        LOG(FATAL) << "No interface was provided. Run 'ifconfig' and choose an appropriate network interface";
 //    }
 
-    if (!vm["connected_robots"].empty())
-    {
-        args.connected_robots = vm["connected_robots"].as<std::vector<int>>();
-    }
-
-    std::cout << "Connected: " << std::endl;
-    for (auto i : args.connected_robots)
-    {
-        std::cout << args.connected_robots[i] << std::endl;
-    }
+//    if (!vm["connected_robots"].empty())
+//    {
+//        args.connected_robots = vm["connected_robots"].as<std::vector<int>>();
+//    }
+//
+//    std::cout << "Connected: " << std::endl;
+//    for (auto i : args.connected_robots)
+//    {
+//        std::cout << args.connected_robots[i] << std::endl;
+//    }
 
     auto logWorker               = g3::LogWorker::createLogWorker();
     auto colour_cout_sink_handle = logWorker->addSink(
@@ -95,12 +95,12 @@ int main(int argc, char **argv)
     g3::initializeLogging(logWorker.get());
 
     auto log_input = std::make_unique<ThreadedProtoUdpListener<TbotsProto::RobotLog>>(
-            std::string(ROBOT_MULTICAST_CHANNELS.at(args.channel)) + "%" + args.interface,
+            std::string(ROBOT_MULTICAST_CHANNELS.at(0)) + "%wlp2s0",
             ROBOT_LOGS_PORT, std::function(logFromNetworking), true);
 
 
     LOG(INFO) << "Network logger listening on channel "
-              << ROBOT_MULTICAST_CHANNELS.at(args.channel) << " and interface "
+              << ROBOT_MULTICAST_CHANNELS.at(0) << " and interface "
               << args.interface << std::endl;
 
     // This blocks forever without using the CPU
