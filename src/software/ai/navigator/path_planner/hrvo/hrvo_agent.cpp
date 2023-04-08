@@ -359,9 +359,8 @@ void HRVOAgent::computeNewVelocity(
     // Based on The Hybrid Reciprocal Velocity Obstacle paper:
     // https://gamma.cs.unc.edu/HRVO/HRVO-T-RO.pdf
 
-    computeVelocityObstacles(agents);
-
     const auto pref_velocity = computePreferredVelocity(time_step);
+    computeVelocityObstacles(agents);
 
     // key is difference in length squared between PREFERRED and ACTUAL velocity
     std::multimap<double, CandidateVelocity> candidates;
@@ -705,20 +704,54 @@ Vector HRVOAgent::computePreferredVelocity(Duration time_step)
         return Vector();
     }
 
+    Point dest  = path_point_opt.value().getPosition();
+    if(velocity.length() <= 0.10) {
+        return (dest - position).normalize(max_accel * time_step.toSeconds());
+    }
+
+    Vector dest_vector = (dest - position).normalize(velocity.length());
+    Vector velocity_diff = dest_vector - velocity;
+    Vector preferred_final;
+    if (velocity_diff.length() >= max_accel * time_step.toSeconds() && velocity.length() >= 0.01) {
+        double a = velocity.length();
+        double c = max_accel * time_step.toSeconds();
+        double y = dest_vector.orientation().minDiff(velocity.orientation()).toRadians();
+        double final_speed = a * std::cos(y) + std::sqrt(std::pow(c, 2) - std::pow(a, 2) * std::pow(std::sin(y), 2));
+        preferred_final = dest_vector.normalize(final_speed);
+    } else {
+        preferred_final = velocity + velocity_diff.normalize(max_accel*time_step.toSeconds());
+    }
+
+
+    return preferred_final;
+
+
+
+
+
     Point destination  = path_point_opt.value().getPosition();
-    Vector local_error = globalToLocalVelocity(destination - position, orientation);
+    Vector local_error = destination - position;
+    Vector pid_vel = local_error * config.linear_velocity_kp();
+    if (pid_vel.length() > velocity.length()) {
+        pid_vel = pid_vel.normalize(velocity.length() + max_accel * time_step.toSeconds());
+    }
+
+//    Vector local_error = globalToLocalVelocity(destination - position, orientation);
 
     // We calculate the new desired velocity based on two proportional controllers,
     // one for each axis in the local frame.
-    const double vx = local_error.x() * config.linear_velocity_kp();
-    const double vy = local_error.y() * config.linear_velocity_kp();
-    Vector pid_vel = Vector(vx, vy);
-    Vector curr_local_velocity = globalToLocalVelocity(velocity, orientation);
-    Vector delta_velocity = pid_vel - curr_local_velocity;
+//    const double vx = local_error.x() * config.linear_velocity_kp();
+//    const double vy = local_error.y() * config.linear_velocity_kp();
+//    Vector pid_vel = Vector(vx, vy);
+
+
+//    Vector curr_local_velocity = globalToLocalVelocity(velocity, orientation);
+//    Vector delta_velocity = pid_vel - curr_local_velocity;
+    Vector delta_velocity = pid_vel - velocity;
 
     // Clamp to max acceleration
     double acceleration_limit;
-    if (pid_vel.length() >= curr_local_velocity.length())
+    if (pid_vel.length() >= velocity.length())
     {
         // Robot is accelerating
         acceleration_limit = max_accel;
