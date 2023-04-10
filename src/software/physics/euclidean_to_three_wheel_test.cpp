@@ -37,9 +37,9 @@ TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_positive_x)
         euclidean_to_three_wheel.getWheelVelocity(target_euclidean_velocity);
 
     // Front wheels must be - velocity, back wheels must be + velocity.
-    EXPECT_LT(calculated_wheel_speeds[FRONT_THREE_WHEEL_SPACE_INDEX], 0);
-    EXPECT_GT(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX], 0);
-    EXPECT_GT(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_GT(calculated_wheel_speeds[BACK_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_LT(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_LT(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX], 0);
 }
 
 TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_negative_x)
@@ -50,9 +50,9 @@ TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_negative_x)
         euclidean_to_three_wheel.getWheelVelocity(target_euclidean_velocity);
 
     // Front wheels must be + velocity, back wheels must be - velocity.
-    EXPECT_GT(calculated_wheel_speeds[FRONT_THREE_WHEEL_SPACE_INDEX], 0);
-    EXPECT_LT(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX], 0);
-    EXPECT_LT(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_LT(calculated_wheel_speeds[BACK_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_GT(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_GT(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX], 0);
 }
 
 TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_positive_y)
@@ -63,13 +63,13 @@ TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_positive_y)
         euclidean_to_three_wheel.getWheelVelocity(target_euclidean_velocity);
 
     // Right wheels must be + velocity, Left wheels must be - velocity.
-    EXPECT_GT(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], 0);
     EXPECT_LT(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX], 0);
-    EXPECT_EQ(calculated_wheel_speeds[FRONT_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_GT(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_EQ(calculated_wheel_speeds[BACK_THREE_WHEEL_SPACE_INDEX], 0);
 
     // Right wheel must have same velocity magnitude as left wheel, but opposite sign.
-    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX],
-                     -calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX]);
+    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX],
+                     -calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX]);
 }
 
 TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_negative_y)
@@ -80,13 +80,13 @@ TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_negative_y)
         euclidean_to_three_wheel.getWheelVelocity(target_euclidean_velocity);
 
     // Right wheels must be + velocity, Left wheels must be - velocity.
-    EXPECT_LT(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], 0);
     EXPECT_GT(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX], 0);
-    EXPECT_EQ(calculated_wheel_speeds[FRONT_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_LT(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], 0);
+    EXPECT_EQ(calculated_wheel_speeds[BACK_THREE_WHEEL_SPACE_INDEX], 0);
 
     // Right wheel must have same velocity magnitude as left wheel, but opposite sign.
-    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX],
-                     -calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX]);
+    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX],
+                     -calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX]);
 }
 
 TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_positive_w)
@@ -99,10 +99,10 @@ TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_positive_w)
     // Formula for the length of a segment: length = radius * angle
     // Since angle = 1rad, the length of the segment is equal to the radius.
     // Therefore, all wheel speeds must be equal to the robot radius.
-    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[FRONT_THREE_WHEEL_SPACE_INDEX],
+    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[BACK_THREE_WHEEL_SPACE_INDEX],
                      robot_radius);
-    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX], robot_radius);
-    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX],
+    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX], robot_radius);
+    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX],
                      robot_radius);
 }
 
@@ -117,11 +117,11 @@ TEST_F(EuclideanToThreeWheelTest, test_target_wheel_speeds_negative_w)
     // Since angle = -1rad, the length of the segment is equal to the -radius.
     // Therefore, all wheel speeds (=length of segment/sec) must be equal to the robot
     // radius.
-    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[FRONT_THREE_WHEEL_SPACE_INDEX],
-                     -robot_radius);
-    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX],
+    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[BACK_THREE_WHEEL_SPACE_INDEX],
                      -robot_radius);
     EXPECT_DOUBLE_EQ(calculated_wheel_speeds[RIGHT_THREE_WHEEL_SPACE_INDEX],
+                     -robot_radius);
+    EXPECT_DOUBLE_EQ(calculated_wheel_speeds[LEFT_THREE_WHEEL_SPACE_INDEX],
                      -robot_radius);
 }
 

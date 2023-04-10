@@ -8,15 +8,15 @@
 /**
  * Vector representation of the robot wheel space.
  *
- * 0: Front
- * 1: Back Left
- * 2: Back Right
+ * 0: Back
+ * 1: Front Right
+ * 2: Front Left
  */
 typedef Eigen::Vector3d ThreeWheelSpace_t;
 
-static constexpr int FRONT_THREE_WHEEL_SPACE_INDEX = 0;
-static constexpr int LEFT_THREE_WHEEL_SPACE_INDEX  = 1;
-static constexpr int RIGHT_THREE_WHEEL_SPACE_INDEX = 2;
+static constexpr int BACK_THREE_WHEEL_SPACE_INDEX = 0;
+static constexpr int RIGHT_THREE_WHEEL_SPACE_INDEX  = 1;
+static constexpr int LEFT_THREE_WHEEL_SPACE_INDEX = 2;
 
 class EuclideanToThreeWheel
 {
