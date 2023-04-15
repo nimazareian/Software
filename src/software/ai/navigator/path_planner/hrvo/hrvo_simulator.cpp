@@ -294,7 +294,7 @@ AngularVelocity HRVOSimulator::getRobotAngularVelocity(unsigned int robot_id) co
     }
     LOG(WARNING) << "Angular velocity for robot " << robot_id
                  << " can not be found since it does not exist in HRVO Simulator"
-                 << std::endl;
+                 << std::endl; // TODO: Send stop primitive to avoid this from getting spammed during diagnostics
     return AngularVelocity();
 }
 

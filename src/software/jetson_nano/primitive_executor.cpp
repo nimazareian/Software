@@ -61,23 +61,24 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
 {
     // To allow robots to accelerate smoothly, we only update their simulated velocity if
     // it is significantly different from the actual robot velocity
-    Vector curr_hrvo_velocity = hrvo_simulator_.getRobotVelocity(robot_id_);
-    Vector actual_global_velocity =
-        localToGlobalVelocity(local_velocity, curr_orientation_);
-    if ((curr_hrvo_velocity - actual_global_velocity).length() >
-        LINEAR_VELOCITY_FEEDBACK_THRESHOLD_M_PER_S)
-    {
-        hrvo_simulator_.updateRobotVelocity(
-            robot_id_, localToGlobalVelocity(local_velocity, curr_orientation_));
-    }
-
-    AngularVelocity curr_angular_velocity =
-        hrvo_simulator_.getRobotAngularVelocity(robot_id_);
-    if (angular_velocity.minDiff(curr_angular_velocity).toDegrees() >
-        ANGULAR_VELOCITY_FEEDBACK_THRESHOLD_DEG_PER_S)
-    {
-        hrvo_simulator_.updateRobotAngularVelocity(robot_id_, angular_velocity);
-    }
+//    Vector curr_hrvo_velocity = hrvo_simulator_.getRobotVelocity(robot_id_);
+//    Vector actual_global_velocity =
+//        localToGlobalVelocity(local_velocity, curr_orientation_);
+//    if ((curr_hrvo_velocity - actual_global_velocity).length() >
+//        LINEAR_VELOCITY_FEEDBACK_THRESHOLD_M_PER_S)
+//    {
+//        LOG(DEBUG) << "Primitive executor velocity feedback";
+//        hrvo_simulator_.updateRobotVelocity(
+//            robot_id_, localToGlobalVelocity(local_velocity, curr_orientation_));
+//    }
+//
+//    AngularVelocity curr_angular_velocity =
+//        hrvo_simulator_.getRobotAngularVelocity(robot_id_);
+//    if (angular_velocity.minDiff(curr_angular_velocity).toDegrees() >
+//        ANGULAR_VELOCITY_FEEDBACK_THRESHOLD_DEG_PER_S)
+//    {
+//        hrvo_simulator_.updateRobotAngularVelocity(robot_id_, angular_velocity);
+//    }
 }
 
 Vector PrimitiveExecutor::getTargetLinearVelocity()

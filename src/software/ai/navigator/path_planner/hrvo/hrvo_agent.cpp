@@ -635,35 +635,26 @@ Vector HRVOAgent::computePreferredVelocity(Duration time_step)
 //        kp                     = 5.0 / (distance_for_kp + 0.4) + 1.2;
 //        previous_destination   = destination;
 //    }
+
+    // We calculate the new desired velocity based on two proportional controllers (x, y),
+    // in the local frame.
+//    kp = 2.0;
+    Vector pid_vel = local_error * config.linear_velocity_kp();
+
+//    // Keep accelerating, until the velocity is greater than deceleration speed
+//    double accel_pref_speed = velocity.length() + max_accel * time_step.toSeconds();
 //
-//    // We calculate the new desired velocity based on two proportional controllers (x, y),
-//    // in the local frame.
-//    Vector pid_vel = local_error * kp;
-
-    // Keep accelerating, until the velocity is greater than deceleration speed
-    double accel_pref_speed = velocity.length() + max_accel * time_step.toSeconds();
-
-    // d = (Vf^2 - Vi^2) / 2a
-    double speed_at_goal = 0.0;
-    double decel_pref_speed = std::sqrt(std::pow(speed_at_goal, 2) + 2 * max_decel * local_error.length());
-
-    Vector pid_vel;
-    if (accel_pref_speed > decel_pref_speed)
-    {
-        // We can decelerate to the goal
-        pid_vel = local_error.normalize(decel_pref_speed);
-    }
-    else
-    {
-        // We can accelerate to the goal
-        pid_vel = local_error.normalize(accel_pref_speed);
-    }
+//    // d = (Vf^2 - Vi^2) / 2a
+//    double speed_at_goal = 0.0;
+//    double decel_pref_speed = std::sqrt(std::pow(speed_at_goal, 2) + 2 * max_decel * local_error.length());
+//
+//    Vector pid_vel = local_error.normalize(std::min(decel_pref_speed, accel_pref_speed));
 
     // Scale down the PID velocity from being excessively high as it causes the
     // robot to swing around the destination. This causes the velocity to point
     // towards the destination as fast as possible.
     Vector realistic_pid_vel   = pid_vel.normalize(std::min(
-        pid_vel.length(), velocity.length() + config.linear_velocity_max_pid_offset()));
+        pid_vel.length(), velocity.length() + 2.0)); // config.linear_velocity_max_pid_offset()
     Vector curr_local_velocity = globalToLocalVelocity(velocity, orientation);
     Vector delta_velocity      = realistic_pid_vel - curr_local_velocity;
 
@@ -698,6 +689,9 @@ Vector HRVOAgent::computePreferredVelocity(Duration time_step)
             {std::to_string(robot_id) + "_output_vy", output.y()},
             {std::to_string(robot_id) + "_pid_vx", pid_vel.x()},
             {std::to_string(robot_id) + "_pid_vy", pid_vel.y()},
+            {std::to_string(robot_id) + "_lin_kp", config.linear_velocity_kp()},
+//            {std::to_string(robot_id) + "_decel_pref_speed", decel_pref_speed},
+//            {std::to_string(robot_id) + "_accel_pref_speed", accel_pref_speed},
             {std::to_string(robot_id) + "_realistic_pid_vx", realistic_pid_vel.x()},
             {std::to_string(robot_id) + "_realistic_pid_vy", realistic_pid_vel.y()},
             {std::to_string(robot_id) + "_local_error_x", local_error.x()},
@@ -755,12 +749,13 @@ void HRVOAgent::visualize(TeamColour friendly_team_colour)
     // TODO (#2838): For HRVOVisualization logs to be sent properly from the robot, no
     // path should be passed as a second argument to LOG
     //    i.e. LOG(VISUALIZE) << hrvo_visualization;
-    if (friendly_team_colour == TeamColour::YELLOW)
-    {
-        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
-    }
-    else
-    {
-        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
-    }
+    LOG(VISUALIZE) << hrvo_visualization;
+//    if (friendly_team_colour == TeamColour::YELLOW)
+//    {
+//        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
+//    }
+//    else
+//    {
+//        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
+//    }
 }

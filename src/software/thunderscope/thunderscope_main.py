@@ -236,7 +236,7 @@ if __name__ == "__main__":
             load_blue=bool(args.run_blue),
             load_yellow=bool(args.run_yellow),
             load_diagnostics=bool(args.run_diagnostics),
-            load_gamecontroller=False,
+            load_gamecontroller=True,
             visualization_buffer_size=args.visualization_buffer_size,
             cost_visualization=args.cost_visualization,
         )
@@ -280,10 +280,15 @@ if __name__ == "__main__":
                 )
                 with ProtoLogger(full_system_runtime_dir,) as logger, FullSystem(
                     runtime_dir, debug, friendly_colour_yellow
-                ) as full_system:
+                ) as full_system, Gamecontroller() as gamecontroller:
 
                     current_proto_unix_io.register_to_observe_everything(logger.buffer)
                     full_system.setup_proto_unix_io(current_proto_unix_io)
+
+                    gamecontroller.setup_proto_unix_io(
+                        tscope.blue_full_system_proto_unix_io,
+                        tscope.yellow_full_system_proto_unix_io,
+                    )
 
                     tscope.show()
             else:

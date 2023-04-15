@@ -185,6 +185,7 @@ bool MotorService::checkDriverFault(uint8_t motor)
     int gstat = tmc6100_readInt(motor, TMC6100_GSTAT);
     std::bitset<32> gstat_bitset(gstat);
 
+    gstat_bitset[0] = 0;
     if (gstat_bitset.any())
     {
         LOG(WARNING) << "======= Faults For Motor " << std::to_string(motor) << "=======";
@@ -311,6 +312,13 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
             endEncoderCalibration(motor);
         }
     }
+
+    // TODO: remove this once we have a better way to check for faults
+    for (uint8_t motor = 0; motor < NUM_DRIVE_MOTORS; motor++)
+    {
+        checkDriverFault(motor);
+    }
+    checkDriverFault(DRIBBLER_MOTOR_CHIP_SELECT);
 
     CHECK(encoder_calibrated_[FRONT_LEFT_MOTOR_CHIP_SELECT] &&
           encoder_calibrated_[FRONT_RIGHT_MOTOR_CHIP_SELECT] &&
