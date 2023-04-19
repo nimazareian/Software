@@ -628,39 +628,21 @@ Vector HRVOAgent::computePreferredVelocity(Duration time_step)
     Point destination  = path_point_opt.value().getPosition();
     Vector local_error = globalToLocalVelocity(destination - position, orientation);
 
-//    if (distance(destination, previous_destination) > 0.1)
-//    {
-//        // Destination has significantly changed, so we will update the kp
-//        double distance_for_kp = std::clamp(local_error.length(), 0.25, 6.0);
-//        kp                     = 5.0 / (distance_for_kp + 0.4) + 1.2;
-//        previous_destination   = destination;
-//    }
-
     // We calculate the new desired velocity based on two proportional controllers (x, y),
     // in the local frame.
-//    kp = 2.0;
     Vector pid_vel = local_error * config.linear_velocity_kp();
-
-//    // Keep accelerating, until the velocity is greater than deceleration speed
-//    double accel_pref_speed = velocity.length() + max_accel * time_step.toSeconds();
-//
-//    // d = (Vf^2 - Vi^2) / 2a
-//    double speed_at_goal = 0.0;
-//    double decel_pref_speed = std::sqrt(std::pow(speed_at_goal, 2) + 2 * max_decel * local_error.length());
-//
-//    Vector pid_vel = local_error.normalize(std::min(decel_pref_speed, accel_pref_speed));
 
     // Scale down the PID velocity from being excessively high as it causes the
     // robot to swing around the destination. This causes the velocity to point
     // towards the destination as fast as possible.
     Vector realistic_pid_vel   = pid_vel.normalize(std::min(
-        pid_vel.length(), velocity.length() + 2.0)); // config.linear_velocity_max_pid_offset()
+        pid_vel.length(), velocity.length() + config.linear_velocity_max_pid_offset()));
     Vector curr_local_velocity = globalToLocalVelocity(velocity, orientation);
     Vector delta_velocity      = realistic_pid_vel - curr_local_velocity;
 
     // Clamp to max acceleration
     double acceleration_limit;
-    if (realistic_pid_vel.length() >= curr_local_velocity.length()) // TODO: check If directions are opposite
+    if (realistic_pid_vel.length() >= curr_local_velocity.length())
     {
         // Robot is accelerating
         acceleration_limit = max_accel;
@@ -683,22 +665,6 @@ Vector HRVOAgent::computePreferredVelocity(Duration time_step)
     // in the opposite direction
     output = output.rotate(-angular_velocity * time_step.toSeconds() *
                            config.angular_velocity_compensation());
-
-        LOG(PLOTJUGGLER) << *createPlotJugglerValue({
-            {std::to_string(robot_id) + "_output_vx", output.x()},
-            {std::to_string(robot_id) + "_output_vy", output.y()},
-            {std::to_string(robot_id) + "_pid_vx", pid_vel.x()},
-            {std::to_string(robot_id) + "_pid_vy", pid_vel.y()},
-            {std::to_string(robot_id) + "_lin_kp", config.linear_velocity_kp()},
-//            {std::to_string(robot_id) + "_decel_pref_speed", decel_pref_speed},
-//            {std::to_string(robot_id) + "_accel_pref_speed", accel_pref_speed},
-            {std::to_string(robot_id) + "_realistic_pid_vx", realistic_pid_vel.x()},
-            {std::to_string(robot_id) + "_realistic_pid_vy", realistic_pid_vel.y()},
-            {std::to_string(robot_id) + "_local_error_x", local_error.x()},
-            {std::to_string(robot_id) + "_local_error_y", local_error.y()},
-            {std::to_string(robot_id) + "_local_vx", curr_local_velocity.x()},
-            {std::to_string(robot_id) + "_local_vy", curr_local_velocity.y()},
-        });
 
     return localToGlobalVelocity(output, orientation);
 }
@@ -749,13 +715,12 @@ void HRVOAgent::visualize(TeamColour friendly_team_colour)
     // TODO (#2838): For HRVOVisualization logs to be sent properly from the robot, no
     // path should be passed as a second argument to LOG
     //    i.e. LOG(VISUALIZE) << hrvo_visualization;
-    LOG(VISUALIZE) << hrvo_visualization;
-//    if (friendly_team_colour == TeamColour::YELLOW)
-//    {
-//        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
-//    }
-//    else
-//    {
-//        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
-//    }
+    if (friendly_team_colour == TeamColour::YELLOW)
+    {
+        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
+    }
+    else
+    {
+        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
+    }
 }
