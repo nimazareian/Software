@@ -13,6 +13,7 @@ HRVOAgent::HRVOAgent(RobotId robot_id, const RobotState &robot_state,
       neighbours(),
       config()
 {
+    config.set_linear_velocity_kp(2.5);
 }
 
 void HRVOAgent::updatePrimitive(const TbotsProto::Primitive &new_primitive,
@@ -628,9 +629,17 @@ Vector HRVOAgent::computePreferredVelocity(Duration time_step)
     Point destination  = path_point_opt.value().getPosition();
     Vector local_error = globalToLocalVelocity(destination - position, orientation);
 
+    if (distance(destination, previous_destination) > 0.1)
+    {
+        // Destination has significantly changed, so we will update the kp
+        double distance_for_kp = std::clamp(local_error.length(), 0.25, 2.0);
+        kp                     = 2.3 / (distance_for_kp + 0.4) + 1.5;
+        previous_destination   = destination;
+    }
+
     // We calculate the new desired velocity based on two proportional controllers (x, y),
     // in the local frame.
-    Vector pid_vel = local_error * config.linear_velocity_kp();
+    Vector pid_vel = local_error * kp;
 
     // Scale down the PID velocity from being excessively high as it causes the
     // robot to swing around the destination. This causes the velocity to point
@@ -664,7 +673,19 @@ Vector HRVOAgent::computePreferredVelocity(Duration time_step)
     // will compensate for the current angular velocity by rotating the velocity
     // in the opposite direction
     output = output.rotate(-angular_velocity * time_step.toSeconds() *
-                           config.angular_velocity_compensation());
+                           config.angular_velocity_compensation_multiplier());
+
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue({
+        {std::to_string(robot_id) + "_local_error_x", local_error.x()},
+        {std::to_string(robot_id) + "_local_error_y", local_error.y()},
+        {std::to_string(robot_id) + "_pid_vx", pid_vel.x()},
+        {std::to_string(robot_id) + "_pid_vy", pid_vel.y()},
+        {std::to_string(robot_id) + "_kp", kp},
+        {std::to_string(robot_id) + "_output_vx", output.x()},
+        {std::to_string(robot_id) + "_output_vy", output.y()},
+        {std::to_string(robot_id) + "_local_vx", velocity.x()},
+        {std::to_string(robot_id) + "_local_vy", velocity.y()},
+    });
 
     return localToGlobalVelocity(output, orientation);
 }
@@ -715,12 +736,13 @@ void HRVOAgent::visualize(TeamColour friendly_team_colour)
     // TODO (#2838): For HRVOVisualization logs to be sent properly from the robot, no
     // path should be passed as a second argument to LOG
     //    i.e. LOG(VISUALIZE) << hrvo_visualization;
-    if (friendly_team_colour == TeamColour::YELLOW)
-    {
-        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
-    }
-    else
-    {
-        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
-    }
+    LOG(VISUALIZE) << hrvo_visualization;
+//    if (friendly_team_colour == TeamColour::YELLOW)
+//    {
+//        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
+//    }
+//    else
+//    {
+//        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
+//    }
 }
