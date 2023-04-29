@@ -13,7 +13,9 @@ HRVOAgent::HRVOAgent(RobotId robot_id, const RobotState &robot_state,
       neighbours(),
       config()
 {
-    config.set_linear_velocity_kp(2.5);
+    auto obstacle_config = TbotsProto::RobotNavigationObstacleConfig();
+    obstacle_config.set_robot_obstacle_inflation_factor(0.5); // TODO: make this constnat
+    obstacle_factory = RobotNavigationObstacleFactory(obstacle_config);
 }
 
 void HRVOAgent::updatePrimitive(const TbotsProto::Primitive &new_primitive,
@@ -43,7 +45,7 @@ void HRVOAgent::updatePrimitive(const TbotsProto::Primitive &new_primitive,
         auto destination = motion_control.path().points().at(1);
 
         // TODO: Added for testing
-        Point destination_point = Point(std::min(0.0, destination.x_meters()), destination.y_meters());
+        Point destination_point = Point(destination.x_meters(), destination.y_meters());
 
         // Max distance which the robot can travel in one time step + scaling
         // TODO (#2370): This constant is calculated multiple times.
@@ -77,6 +79,12 @@ void HRVOAgent::updatePrimitive(const TbotsProto::Primitive &new_primitive,
                 static_obstacles.insert(static_obstacles.end(), new_obstacles.begin(),
                                         new_obstacles.end());
             }
+        }
+
+        if (move_primitive.ball_collision_type() == TbotsProto::AVOID)
+        {
+//            auto avoid_ball_obstacle = std::make_shared<GeomObstacle<Circle>>(Circle(world.ball().position(), 1.5 * BALL_MAX_RADIUS_METERS));
+            static_obstacles.push_back(obstacle_factory.createFromBallPosition(world.ball().position()));
         }
     }
     this->path = path;
