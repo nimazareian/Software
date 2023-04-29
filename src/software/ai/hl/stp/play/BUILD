@@ -120,6 +120,25 @@ cc_library(
 )
 
 cc_library(
+    name = "example_passing_play",
+    srcs = ["example_passing_play.cpp"],
+    hdrs = ["example_passing_play.h"],
+    deps = [
+        ":play",
+        "//shared:constants",
+        "//software/ai/hl/stp/tactic/attacker:attacker_tactic",
+        "//software/ai/hl/stp/tactic/receiver:receiver_tactic",
+        "//software/logger",
+        "//software/util/generic_factory",
+        "//software/ai/passing:eighteen_zone_pitch_division",
+        "//software/ai/passing:pass_generator",
+        "//software/ai/hl/stp/tactic/stop:stop_tactic",
+    ],
+    alwayslink = True,
+)
+
+
+cc_library(
     name = "halt_play",
     srcs = ["halt_play.cpp"],
     hdrs = ["halt_play.h"],
@@ -322,6 +341,7 @@ cc_library(
         "//software/ai/hl/stp/play/offense:offense_play",
         "//software/ai/hl/stp/play/penalty_kick:penalty_kick_play",
         "//software/ai/hl/stp/play/shoot_or_pass:shoot_or_pass_play",
+        ":example_passing_play",
     ],
 )
 
@@ -569,7 +589,7 @@ py_test(
 )
 
 cc_test(
-    name = "shoot_or_chip_play_test",
+    name = "shoot_or_chip_play_cpp_test",
     srcs = ["shoot_or_chip_play_test.cpp"],
     deps = [
         "//shared/test_util:tbots_gtest_main",
@@ -579,6 +599,18 @@ cc_test(
         "//software/test_util",
         "//software/time:duration",
         "//software/world",
+    ],
+)
+
+py_test(
+    name = "shoot_or_chip_play_test",
+    srcs = [
+        "shoot_or_chip_play_test.py",
+    ],
+    deps = [
+        "//software/simulated_tests:simulated_test_fixture",
+        "//software/simulated_tests:validation",
+        requirement("pytest"),
     ],
 )
 

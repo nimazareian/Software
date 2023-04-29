@@ -59,6 +59,7 @@ void AttackerTactic::updatePrimitive(const TacticUpdate& tactic_update, bool res
         // reject shots that have an open angle below the minimum
         shot = std::nullopt;
     }
+    shot = std::nullopt;
 
     AttackerFSM::ControlParams control_params{.best_pass_so_far = best_pass_so_far,
                                               .pass_committed   = pass_committed,

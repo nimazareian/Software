@@ -65,9 +65,18 @@ void MotionConstraintVisitor::visit(const PenaltySetupTactic &tactic)
         TbotsProto::MotionConstraint::HALF_METER_AROUND_BALL);
 }
 
-void MotionConstraintVisitor::visit(const ReceiverTactic &tactic) {}
+void MotionConstraintVisitor::visit(const ReceiverTactic &tactic) {
+    current_motion_constraints.erase(TbotsProto::MotionConstraint::FRIENDLY_DEFENSE_AREA);
+    current_motion_constraints.erase(
+            TbotsProto::MotionConstraint::HALF_METER_AROUND_BALL);
+}
 
-void MotionConstraintVisitor::visit(const AttackerTactic &tactic) {}
+void MotionConstraintVisitor::visit(const AttackerTactic &tactic) {
+    // TODO: don' t commit
+    current_motion_constraints.erase(TbotsProto::MotionConstraint::FRIENDLY_DEFENSE_AREA);
+    current_motion_constraints.erase(
+            TbotsProto::MotionConstraint::HALF_METER_AROUND_BALL);
+}
 
 void MotionConstraintVisitor::visit(const DefenseShadowEnemyTactic &tactic) {}
 

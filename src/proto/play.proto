@@ -29,6 +29,7 @@ enum PlayName
     PassEndurancePlay                  = 23;
     MoveToDestPlay                     = 24;
     MoveToDestAndOrientPlay            = 25;
+    ExamplePassingPlay                 = 26;
 }
 
 message Play

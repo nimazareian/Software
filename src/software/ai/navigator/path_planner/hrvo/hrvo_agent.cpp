@@ -42,7 +42,8 @@ void HRVOAgent::updatePrimitive(const TbotsProto::Primitive &new_primitive,
 
         auto destination = motion_control.path().points().at(1);
 
-        Point destination_point = Point(destination.x_meters(), destination.y_meters());
+        // TODO: Added for testing
+        Point destination_point = Point(std::min(0.0, destination.x_meters()), destination.y_meters());
 
         // Max distance which the robot can travel in one time step + scaling
         // TODO (#2370): This constant is calculated multiple times.
