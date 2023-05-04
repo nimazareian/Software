@@ -33,11 +33,9 @@ void NetworkSink::sendToNetwork(g3::LogMessageMover log_entry)
         unsigned int delimiter_length = strlen(PROTO_MSG_TYPE_DELIMITER);
         size_t proto_type_name_pos =
             msg.find(PROTO_MSG_TYPE_DELIMITER, file_name_pos + 1);
-        std::string proto_type_name =
-            msg.substr(file_name_pos + delimiter_length,
-                       proto_type_name_pos - delimiter_length);
-        std::string serialized_proto =
-            msg.substr(proto_type_name_pos + delimiter_length);
+        std::string proto_type_name  = msg.substr(file_name_pos + delimiter_length,
+                                                 proto_type_name_pos - delimiter_length);
+        std::string serialized_proto = msg.substr(proto_type_name_pos + delimiter_length);
 
         // TODO (#2838): Rewrite the following code to be generalized and work for all
         // LOG(VISUALIZE) protobuf types
