@@ -92,6 +92,11 @@ void HRVOAgent::updatePrimitive(const TbotsProto::Primitive &new_primitive,
         }
     }
     this->path = path;
+
+
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue({
+            {std::to_string(robot_id) + "_ball_speed", world.ball().velocity().length()},
+    });
 }
 
 std::vector<RobotId> HRVOAgent::computeNeighbors(
@@ -109,6 +114,8 @@ std::vector<RobotId> HRVOAgent::computeNeighbors(
     double dist_to_obstacle_threshold_squared =
         std::min(std::pow(MAX_NEIGHBOR_SEARCH_DIST, 2),
                  (position - current_destination).lengthSquared());
+    // Added so adjacent friendly robots
+    dist_to_obstacle_threshold_squared = std::max(std::pow(2.5 * ROBOT_MAX_RADIUS_METERS, 2.0), dist_to_obstacle_threshold_squared);
 
     auto compare = [&](const std::pair<RobotId, Point> &r1,
                        const std::pair<RobotId, Point> &r2) {

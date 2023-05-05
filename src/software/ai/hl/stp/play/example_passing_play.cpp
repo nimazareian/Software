@@ -20,7 +20,7 @@ void ExamplePassingPlay::getNextTactics(TacticCoroutine::push_type &yield, const
         {
             //PassEvaluation<EighteenZoneId> pass_eval = pass_gen.generatePassEvaluation(world);
             //PassWithRating best_pass = pass_eval.getBestPassInZones(std::unordered_set<EighteenZoneId>({EighteenZoneId::ZONE_4, EighteenZoneId::ZONE_5, EighteenZoneId::ZONE_6}));
-            Pass pass = Pass(Point(0.8, -1), Point(0.7, 1), ai_config.passing_config().max_pass_speed_m_per_s());
+            Pass pass = Pass(Point(-0.8, -1), Point(-0.7, 0.8), ai_config.passing_config().max_pass_speed_m_per_s());
             attacker_tactic->updateControlParams(pass, true);
             receiver_tactic->updateControlParams(std::make_optional<Pass>(pass), false);
             TacticVector result = { attacker_tactic, receiver_tactic };

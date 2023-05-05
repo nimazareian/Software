@@ -53,6 +53,9 @@ int main(int argc, char** argv)
     if (!args.help)
     {
         LoggerSingleton::initializeLogger(args.runtime_dir);
+
+        std::cout << args.runtime_dir << std::endl;
+        std::cout << args.friendly_colour_yellow << std::endl;
         TbotsProto::ThunderbotsConfig tbots_proto;
 
         // Override friendly color
