@@ -48,6 +48,10 @@ void SensorFusion::processSensorProto(const SensorProto &sensor_msg)
 {
     if (sensor_msg.has_ssl_vision_msg())
     {
+        if (sensor_msg.ssl_vision_msg().detection().frame_number() % 300 == 0)
+        {
+            LOG(DEBUG) << "Sensor Fusion Frame: " << sensor_msg.ssl_vision_msg().detection().frame_number();
+        }
         updateWorld(sensor_msg.ssl_vision_msg());
     }
 
