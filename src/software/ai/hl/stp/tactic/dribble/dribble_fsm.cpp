@@ -136,32 +136,32 @@ void DribbleFSM::dribble(const Update &event)
             event.control_params.dribble_destination,
             event.control_params.final_dribble_orientation);
 
-    Point dribble_destination = getDribbleBallDestination(
-        event.common.world.ball().position(), event.control_params.dribble_destination);
-
-    // when we have the ball in the dribbler, only then we pivot around the ball
-    // if (distance(event.common.robot.position(), event.common.world.ball().position()) <
-    // 0.088)
-    if (event.common.robot.isNearDribbler(event.common.world.ball().position()))
-    {
-        Angle ang_1 = event.common.robot.orientation() + Angle::fromDegrees(40);
-        Angle ang_2 = event.common.robot.orientation() - Angle::fromDegrees(40);
-        // find the closer angle to the target orientation
-        Angle target_angle = (ang_1 - target_orientation).clamp().abs() <
-                                     (ang_2 - target_orientation).clamp().abs()
-                                 ? ang_1
-                                 : ang_2;
-        if ((target_angle - target_orientation).clamp().abs() < Angle::fromDegrees(40))
-        {
-            target_angle = target_orientation;
-        }
-        Point target_coords =
-            dribble_destination -
-            (ROBOT_MAX_RADIUS_METERS * Vector::createFromAngle(target_angle));
-
-        target_destination = target_coords;
-        target_orientation = target_angle;
-    }
+//    Point dribble_destination = getDribbleBallDestination(
+//        event.common.world.ball().position(), event.control_params.dribble_destination);
+//
+//    // when we have the ball in the dribbler, only then we pivot around the ball
+//    // if (distance(event.common.robot.position(), event.common.world.ball().position()) <
+//    // 0.088)
+//    if (event.common.robot.isNearDribbler(event.common.world.ball().position()))
+//    {
+//        Angle ang_1 = event.common.robot.orientation() + Angle::fromDegrees(40);
+//        Angle ang_2 = event.common.robot.orientation() - Angle::fromDegrees(40);
+//        // find the closer angle to the target orientation
+//        Angle target_angle = (ang_1 - target_orientation).clamp().abs() <
+//                                     (ang_2 - target_orientation).clamp().abs()
+//                                 ? ang_1
+//                                 : ang_2;
+//        if ((target_angle - target_orientation).clamp().abs() < Angle::fromDegrees(40))
+//        {
+//            target_angle = target_orientation;
+//        }
+//        Point target_coords =
+//            dribble_destination -
+//            (ROBOT_MAX_RADIUS_METERS * Vector::createFromAngle(target_angle));
+//
+//        target_destination = target_coords;
+//        target_orientation = target_angle;
+//    }
 
     event.common.set_primitive(createMovePrimitive(
         CREATE_MOTION_CONTROL(target_destination), target_orientation, 0,
