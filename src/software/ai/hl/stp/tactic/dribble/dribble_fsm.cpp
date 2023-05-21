@@ -90,35 +90,35 @@ void DribbleFSM::getPossession(const Update &event)
                               event.common.world.field()) +
         Vector::createFromAngle(face_ball_orientation).normalize(0.05);
 
-    // if close to ball, pivot smartly
-    if (distance(event.common.robot.position(), ball_position) <
-        ROBOT_MAX_RADIUS_METERS * 5)
-    {
-        // find the target destination and orientation after the dribble
-        auto [target_destination, target_orientation] =
-            calculateNextDribbleDestinationAndOrientation(
-                event.common.world.ball(), event.common.robot,
-                event.control_params.dribble_destination,
-                event.control_params.final_dribble_orientation);
-
-        // if the target orientation is not close to the face ball orientation
-        // then we pivot around the ball
-        if ((target_orientation - event.common.robot.orientation()).clamp().abs() >
-            Angle::fromDegrees(20))
-        {
-            Angle target_angle;
-            Angle ang_1  = event.common.robot.orientation() + Angle::fromDegrees(30);
-            Angle ang_2  = event.common.robot.orientation() - Angle::fromDegrees(30);
-            target_angle = (ang_1 - target_orientation).clamp().abs() <
-                                   (ang_2 - target_orientation).clamp().abs()
-                               ? ang_1
-                               : ang_2;
-
-            Vector target_vector =
-                ROBOT_MAX_RADIUS_METERS * Vector::createFromAngle(target_angle);
-            intercept_position -= target_vector;
-        }
-    }
+//    // if close to ball, pivot smartly
+//    if (distance(event.common.robot.position(), ball_position) <
+//        ROBOT_MAX_RADIUS_METERS * 5)
+//    {
+//        // find the target destination and orientation after the dribble
+//        auto [target_destination, target_orientation] =
+//            calculateNextDribbleDestinationAndOrientation(
+//                event.common.world.ball(), event.common.robot,
+//                event.control_params.dribble_destination,
+//                event.control_params.final_dribble_orientation);
+//
+//        // if the target orientation is not close to the face ball orientation
+//        // then we pivot around the ball
+//        if ((target_orientation - event.common.robot.orientation()).clamp().abs() >
+//            Angle::fromDegrees(20))
+//        {
+//            Angle target_angle;
+//            Angle ang_1  = event.common.robot.orientation() + Angle::fromDegrees(30);
+//            Angle ang_2  = event.common.robot.orientation() - Angle::fromDegrees(30);
+//            target_angle = (ang_1 - target_orientation).clamp().abs() <
+//                                   (ang_2 - target_orientation).clamp().abs()
+//                               ? ang_1
+//                               : ang_2;
+//
+//            Vector target_vector =
+//                ROBOT_MAX_RADIUS_METERS * Vector::createFromAngle(target_angle);
+//            intercept_position -= target_vector;
+//        }
+//    }
 
     event.common.set_primitive(createMovePrimitive(
         CREATE_MOTION_CONTROL(intercept_position), face_ball_orientation, 0,

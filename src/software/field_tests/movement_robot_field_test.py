@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 import software.python_bindings as tbots
@@ -76,7 +78,7 @@ logger = createLogger(__name__)
 
 # this test can only be run on the field
 def test_basic_rotation(field_test_runner):
-    test_angles = [0, 45, 90, 180, 270, 0]
+    test_angles = [0, math.pi, 0, math.pi / 2, math.pi, math.pi / 2, 0, math.pi / 4, math.pi / 2, math.pi / 4, 0]
     id = 6
 
     # current position
@@ -108,7 +110,7 @@ def test_basic_rotation(field_test_runner):
         field_test_runner.run_test(
             always_validation_sequence_set=[[]],
             eventually_validation_sequence_set=[[]],
-            test_timeout_s=5,
+            test_timeout_s=3,
         )
         # Send a stop tactic after the test finishes
         stop_tactic = StopTactic()
@@ -118,7 +120,7 @@ def test_basic_rotation(field_test_runner):
         # validate by eye
         logger.info(f"robot set to {angle} orientation")
 
-        time.sleep(2)
+        # time.sleep(1)
 
 
 if __name__ == "__main__":

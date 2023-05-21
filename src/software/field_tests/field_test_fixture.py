@@ -553,19 +553,20 @@ def field_test_runner():
         multicast_channel=getRobotMulticastChannel(0),
         interface=args.interface,
         disable_estop=False,
-    ) as rc_blue, RobotCommunication(
-        current_proto_unix_io=yellow_full_system_proto_unix_io,
-        multicast_channel=getRobotMulticastChannel(0),
-        interface=args.interface,
-        disable_estop=False,
-    ) as rc_yellow:
+    ) as rc_blue:
+    #     RobotCommunication(
+    #     current_proto_unix_io=yellow_full_system_proto_unix_io,
+    #     multicast_channel=getRobotMulticastChannel(0),
+    #     interface=args.interface,
+    #     disable_estop=False,
+    # ) as rc_yellow:
         with Gamecontroller(
             supress_logs=(not args.show_gamecontroller_logs), ci_mode=True
         ) as gamecontroller:
             blue_fs.setup_proto_unix_io(blue_full_system_proto_unix_io)
             yellow_fs.setup_proto_unix_io(yellow_full_system_proto_unix_io)
             rc_blue.setup_for_fullsystem()
-            rc_yellow.setup_for_fullsystem()
+            # rc_yellow.setup_for_fullsystem()
 
             gamecontroller.setup_proto_unix_io(
                 blue_full_system_proto_unix_io, yellow_full_system_proto_unix_io,
