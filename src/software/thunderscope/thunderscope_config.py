@@ -485,13 +485,7 @@ def configure_ai_or_diagnostics(
         return extra_widgets
 
     proto_unix_io_map = {ProtoUnixIOTypes.SIM: ProtoUnixIO()}
-    tabs = [
-        TScopeWebTab(
-            name="Gamecontroller",
-            key=TabNames.GAMECONTROLLER,
-            url=GAME_CONTROLLER_URL,
-        ),
-    ]
+    tabs = []
 
     # Must be called before widgets are initialized below
     initialize_application()
@@ -569,5 +563,13 @@ def configure_ai_or_diagnostics(
                 ),
             )
         )
+
+    tabs.append(
+        TScopeWebTab(
+            name="Gamecontroller",
+            key=TabNames.GAMECONTROLLER,
+            url=GAME_CONTROLLER_URL,
+        )
+    )
 
     return TScopeConfig(proto_unix_io_map=proto_unix_io_map, tabs=tabs)
