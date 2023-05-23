@@ -124,32 +124,82 @@ logger = createLogger(__name__)
 
 
 
-def test_pivot_kick(field_test_runner):
-    id = 6
+# def test_pivot_kick(field_test_runner):
+#     id = 6
+#
+#     world = field_test_runner.world_buffer.get(block=True, timeout=WORLD_BUFFER_TIMEOUT)
+#     print("Here are the robots:")
+#     print([robot.current_state.global_position for robot in world.friendly_team.team_robots])
+#
+#     params = AssignedTacticPlayControlParams()
+#     params.assigned_tactics[id].pivot_kick.CopyFrom(
+#         PivotKickTactic(
+#             kick_origin = Point(x_meters=-1.13, y_meters=0.75),
+#             kick_direction = Angle(radians=-math.pi/2),
+#             auto_chip_or_kick = AutoChipOrKick(autokick_speed_m_per_s=5.0)
+#         )
+#     )
+#
+#     field_test_runner.set_tactics(params, True)
+#     field_test_runner.run_test(
+#         always_validation_sequence_set=[[]],
+#         eventually_validation_sequence_set=[[]],
+#         test_timeout_s=20,
+#     )
+#     # Send a stop tactic after the test finishes
+#     stop_tactic = StopTactic()
+#     params = AssignedTacticPlayControlParams()
+#     params.assigned_tactics[id].stop.CopyFrom(stop_tactic)
+
+
+def test_two_robots_obstacle_avoidance(field_test_runner):
+    id1 = 6
+    id2 = 5
 
     world = field_test_runner.world_buffer.get(block=True, timeout=WORLD_BUFFER_TIMEOUT)
     print("Here are the robots:")
     print([robot.current_state.global_position for robot in world.friendly_team.team_robots])
 
-    params = AssignedTacticPlayControlParams()
-    params.assigned_tactics[id].pivot_kick.CopyFrom(
-        PivotKickTactic(
-            kick_origin = Point(x_meters=-1.13, y_meters=0.75),
-            kick_direction = Angle(radians=-math.pi/2),
-            auto_chip_or_kick = AutoChipOrKick(autokick_speed_m_per_s=5.0)
-        )
+    id1_pos_y = True
+    tactic_pos_y = MoveTactic(
+        destination=Point(x_meters=-1.5, y_meters=0.7),
+        final_speed=0.0,
+        dribbler_mode=DribblerMode.OFF,
+        final_orientation=Angle(radians=-math.pi/2),
+        ball_collision_type=BallCollisionType.AVOID,
+        auto_chip_or_kick=AutoChipOrKick(autokick_speed_m_per_s=0.0),
+        max_allowed_speed_mode=MaxAllowedSpeedMode.PHYSICAL_LIMIT,
+        target_spin_rev_per_s=0.0
+    )
+    tactic_neg_y = MoveTactic(
+        destination=Point(x_meters=-1.5, y_meters=-0.7),
+        final_speed=0.0,
+        dribbler_mode=DribblerMode.OFF,
+        final_orientation=Angle(radians=-math.pi/2),
+        ball_collision_type=BallCollisionType.AVOID,
+        auto_chip_or_kick=AutoChipOrKick(autokick_speed_m_per_s=0.0),
+        max_allowed_speed_mode=MaxAllowedSpeedMode.PHYSICAL_LIMIT,
+        target_spin_rev_per_s=0.0
     )
 
-    field_test_runner.set_tactics(params, True)
-    field_test_runner.run_test(
-        always_validation_sequence_set=[[]],
-        eventually_validation_sequence_set=[[]],
-        test_timeout_s=20,
-    )
+    for test_id in range(2):
+        params = AssignedTacticPlayControlParams()
+        params.assigned_tactics[id1 if id1_pos_y else id2].pivot_kick.CopyFrom(tactic_pos_y)
+        params.assigned_tactics[id2 if id1_pos_y else id1].pivot_kick.CopyFrom(tactic_neg_y)
+
+        field_test_runner.set_tactics(params, True)
+        field_test_runner.run_test(
+            always_validation_sequence_set=[[]],
+            eventually_validation_sequence_set=[[]],
+            test_timeout_s=10,
+        )
+
+
     # Send a stop tactic after the test finishes
     stop_tactic = StopTactic()
     params = AssignedTacticPlayControlParams()
-    params.assigned_tactics[id].stop.CopyFrom(stop_tactic)
+    params.assigned_tactics[id1].stop.CopyFrom(stop_tactic)
+    params.assigned_tactics[id2].stop.CopyFrom(stop_tactic)
 
 
 if __name__ == "__main__":

@@ -11,9 +11,11 @@ from proto.import_all_protos import *
 from pyqtgraph.Qt import QtCore, QtGui
 
 from software.networking.threaded_unix_sender import ThreadedUnixSender
+import software.thunderscope.thunderscope_config as config
 from software.simulated_tests.robot_enters_region import RobotEntersRegion
 
 from software.simulated_tests import validation
+from software.thunderscope.constants import ProtoUnixIOTypes
 from software.thunderscope.thunderscope import Thunderscope
 from software.thunderscope.proto_unix_io import ProtoUnixIO
 from software.py_constants import MILLISECONDS_PER_SECOND
@@ -524,10 +526,23 @@ def field_test_runner():
     Runs a field test
     :return: yields the runner to the test fixture
     """
-    simulator_proto_unix_io = ProtoUnixIO()
-    yellow_full_system_proto_unix_io = ProtoUnixIO()
-    blue_full_system_proto_unix_io = ProtoUnixIO()
+
+    # If we want to run thunderscope, inject the proto unix ios
+    # and start the test
     args = load_command_line_arguments()
+
+    if args.enable_thunderscope:
+        tscope = Thunderscope(
+            config=config.configure_two_ai_gamecontroller_view(),
+        )
+        simulator_proto_unix_io = tscope.proto_unix_io_map[ProtoUnixIOTypes.SIM]
+        yellow_full_system_proto_unix_io = tscope.proto_unix_io_map[ProtoUnixIOTypes.YELLOW]
+        blue_full_system_proto_unix_io = tscope.proto_unix_io_map[ProtoUnixIOTypes.BLUE]
+    else:
+        simulator_proto_unix_io = ProtoUnixIO()
+        yellow_full_system_proto_unix_io = ProtoUnixIO()
+        blue_full_system_proto_unix_io = ProtoUnixIO()
+
 
     # Grab the current test name to store the proto log for the test case
     current_test = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
@@ -571,18 +586,7 @@ def field_test_runner():
             gamecontroller.setup_proto_unix_io(
                 blue_full_system_proto_unix_io, yellow_full_system_proto_unix_io,
             )
-            # If we want to run thunderscope, inject the proto unix ios
-            # and start the test
-            if args.enable_thunderscope:
-                tscope = Thunderscope(
-                    simulator_proto_unix_io=simulator_proto_unix_io,
-                    blue_full_system_proto_unix_io=blue_full_system_proto_unix_io,
-                    yellow_full_system_proto_unix_io=yellow_full_system_proto_unix_io,
-                    layout_path=None,
-                    visualization_buffer_size=args.visualization_buffer_size,
-                    load_blue=True,
-                    load_yellow=False,
-                )
+
             time.sleep(LAUNCH_DELAY_S)
             runner = FieldTestRunner(
                 test_name=current_test,

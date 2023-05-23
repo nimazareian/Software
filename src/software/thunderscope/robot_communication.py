@@ -195,8 +195,8 @@ class RobotCommunication(object):
                 )
             ):
                 self.send_primitive_set.send_proto(primitive_set)
-                print(primitive_set)
-                print("==============")
+                # print(primitive_set)
+                # print("==============")
 
             # sleep if not running fullsystem
             if not self.robots_connected_to_fullsystem:
