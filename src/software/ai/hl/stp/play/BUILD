@@ -341,7 +341,6 @@ cc_library(
         "//software/ai/hl/stp/play/offense:offense_play",
         "//software/ai/hl/stp/play/penalty_kick:penalty_kick_play",
         "//software/ai/hl/stp/play/shoot_or_pass:shoot_or_pass_play",
-        ":example_passing_play",
     ],
 )
 
