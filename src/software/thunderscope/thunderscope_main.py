@@ -239,7 +239,7 @@ if __name__ == "__main__":
             args.visualization_buffer_size,
             args.cost_visualization,
         )
-        tscope = Thunderscope(config=tscope_config, layout_path=args.layout,)
+        tscope = Thunderscope(config=tscope_config, layout_path=args.layout)
 
         current_proto_unix_io = None
 
@@ -284,7 +284,15 @@ if __name__ == "__main__":
                 )
                 with ProtoLogger(full_system_runtime_dir,) as logger, FullSystem(
                     runtime_dir, debug, friendly_colour_yellow
-                ) as full_system:
+                ) as full_system, Gamecontroller() as gamecontroller:
+
+                    current_proto_unix_io.register_to_observe_everything(logger.buffer)
+                    full_system.setup_proto_unix_io(current_proto_unix_io)
+
+                    gamecontroller.setup_proto_unix_io(
+                        tscope.proto_unix_io_map[ProtoUnixIOTypes.BLUE],
+                        None
+                    )
 
                     current_proto_unix_io.register_to_observe_everything(logger.buffer)
                     full_system.setup_proto_unix_io(current_proto_unix_io)
