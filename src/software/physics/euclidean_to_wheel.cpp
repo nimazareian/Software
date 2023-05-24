@@ -7,6 +7,7 @@
 #include "shared/2021_robot_constants.h"
 #include "software/geom/angular_velocity.h"
 #include "software/geom/vector.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 EuclideanToWheel::EuclideanToWheel(const RobotConstants_t& robot_constants)
     : robot_radius_m_(robot_constants.robot_radius_m), robot_constants_(robot_constants)

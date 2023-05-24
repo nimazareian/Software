@@ -576,7 +576,7 @@ def field_test_runner():
     #     disable_estop=False,
     # ) as rc_yellow:
         with Gamecontroller(
-            supress_logs=(not args.show_gamecontroller_logs), ci_mode=True
+            supress_logs=(not args.show_gamecontroller_logs), ci_mode=False
         ) as gamecontroller:
             blue_fs.setup_proto_unix_io(blue_full_system_proto_unix_io)
             yellow_fs.setup_proto_unix_io(yellow_full_system_proto_unix_io)

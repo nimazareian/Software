@@ -24,6 +24,7 @@
 #include "shared/constants.h"
 #include "software/logger/logger.h"
 #include "software/util/scoped_timespec_timer/scoped_timespec_timer.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 extern "C"
 {
@@ -432,9 +433,27 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         target_wheel_velocities =
             euclidean_to_four_wheel.getWheelVelocity(target_euclidean_velocity);
     }
-
+    auto desired = target_wheel_velocities;
     target_wheel_velocities = euclidean_to_four_wheel.rampWheelVelocity(
         prev_wheel_velocities, target_wheel_velocities, time_elapsed_since_last_poll_s);
+
+
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue({
+            {"bl_actual", current_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX]},
+            {"br_actual", current_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX]},
+            {"fl_actual", current_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX]},
+            {"fr_actual", current_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX]},
+
+            {"bl_ramped", target_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX]},
+            {"br_ramped", target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX]},
+            {"fl_ramped", target_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX]},
+            {"fr_ramped", target_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX]},
+
+            {"bl_target", desired[BACK_LEFT_WHEEL_SPACE_INDEX]},
+            {"br_target", desired[BACK_RIGHT_WHEEL_SPACE_INDEX]},
+            {"fl_target", desired[FRONT_LEFT_WHEEL_SPACE_INDEX]},
+            {"fr_target", desired[FRONT_RIGHT_WHEEL_SPACE_INDEX]},
+    });
 
     // TODO (#2719): interleave the angular accelerations in here at some point.
     prev_wheel_velocities = target_wheel_velocities;
