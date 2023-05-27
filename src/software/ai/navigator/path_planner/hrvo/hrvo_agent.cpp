@@ -707,6 +707,8 @@ Vector HRVOAgent::computePreferredVelocity(Duration time_step)
         {std::to_string(robot_id) + "_local_vx", velocity.x()},
         {std::to_string(robot_id) + "_local_vy", velocity.y()},
         {std::to_string(robot_id) + "_orientation", orientation.toDegrees()},
+        {std::to_string(robot_id) + "_x", position.x()},
+        {std::to_string(robot_id) + "_y", position.y()},
     });
 
     return localToGlobalVelocity(output, orientation);

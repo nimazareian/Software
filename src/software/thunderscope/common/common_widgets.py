@@ -207,6 +207,7 @@ def create_slider_abs(slider, text, min_val, max_val, tick_spacing):
             QSlider object - use this to perform tasks on the button
             displays value of slider, update this when value is changed
     """
+    print(f"{min_val=} {max_val=}")
     slider.setMinimum(min_val)
     slider.setMaximum(max_val)
     slider.setTickPosition(QSlider.TickPosition.NoTicks)

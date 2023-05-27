@@ -531,6 +531,7 @@ def field_test_runner():
     # and start the test
     args = load_command_line_arguments()
 
+    tscope = None
     if args.enable_thunderscope:
         tscope = Thunderscope(
             config=config.configure_two_ai_gamecontroller_view(),
@@ -550,7 +551,6 @@ def field_test_runner():
     current_test = current_test.replace("[", "-")
 
     test_name = current_test.split("-")[0]
-    tscope = None
 
     # Launch all binaries
     with FullSystem(
