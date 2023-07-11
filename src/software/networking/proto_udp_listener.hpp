@@ -90,8 +90,8 @@ ProtoUdpListener<ReceiveProtoT>::ProtoUdpListener(
     bool multicast)
     : socket_(io_service), receive_callback(receive_callback)
 {
-    boost::asio::ip::udp::endpoint listen_endpoint(
-        boost::asio::ip::make_address(ip_address), port);
+    boost::asio::ip::address listen_addr = boost::asio::ip::make_address(ip_address);
+    boost::asio::ip::udp::endpoint listen_endpoint(listen_addr, port);
     socket_.open(listen_endpoint.protocol());
     socket_.set_option(boost::asio::socket_base::reuse_address(true));
     try
@@ -110,12 +110,13 @@ ProtoUdpListener<ReceiveProtoT>::ProtoUdpListener(
 
     if (multicast)
     {
-        if (ip_address == "224.5.23.2" || ip_address == "224.5.23.1") {
+        if (listen_addr.is_v4())
+        {
             // Join the multicast group.
             // TODO Field network (vision)
-            boost::asio::ip::address_v4 listenInterface = boost::asio::ip::address_v4::from_string("10.193.15.95");
+            boost::asio::ip::address_v4 listenInterface = boost::asio::ip::address_v4::from_string("0.0.0.0");
             socket_.set_option(boost::asio::ip::multicast::join_group(
-                    boost::asio::ip::address::from_string(ip_address).to_v4(), listenInterface));
+                    listen_addr.to_v4(), listenInterface));
         }
         else
         {
