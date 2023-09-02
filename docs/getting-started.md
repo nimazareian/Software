@@ -259,30 +259,29 @@ Now that you're setup, if you can run it on the command line, you can run it in 
       - When a robot is in Manual control mode, the commands it receives depend on the radio buttons to the top-right
         - Diagnostics Control allows us to use the on-screen sliders and buttons to control the robot
         - XBox control allows us to use a connected XBox controller to control the robots
-4. Run our SimulatedPlayTests in Thunderscope
-    - This will launch the visualizer and simulate AI Plays, allowing us to visually see the robots acting according to their roles.
-    1. For legacy C++ tests (#2581) with the visualizer:
-        1. First run Thunderscope configured for receiving protobufs over unix sockets correctly: `./tbots.py run thunderscope_main --visualize_cpp_test`
-        2. Then run `./tbots.py test [some_target_here] --run_sim_in_realtime`
-    2. For PyTests:
-        - With the visualizer: `./tbots.py test [some_target_here] -t`
-        - Without the visualizer: `./tbots.py test [some_target_here]`
-    3. For legacy C++ tests (#2581) without the visualizer:
-        - `./tbots.py test [some_target_here]`
-5. Run our SimulatedTacticTests in Thunderscope:
-    - This will launch the visualizer and simulate an AI Tactic on a single robot
+4. Run our simulated play/tactic tests
     1. For legacy C++ tests (#2581) with the visualizer:
         - First, run Thunderscope configured for receiving protobufs over unix sockets correctly: `./tbots.py run thunderscope_main --visualize_cpp_test`
-        - Then run `./tbots.py test [some_target_here] --run_sim_in_realtime`
+        - Then run `./tbots.py run [some_target_here] --run_sim_in_realtime`
     2. For PyTests:
-        - With the visualizer: `./tbots.py test [some_target_here] -t`
-        - Without the visualizer: `./tbots.py test [some_target_here]`
+        - With the visualizer: `./tbots.py run [some_target_here] -t`
+        - Without the visualizer: `./tbots.py run [some_target_here]`
     3. For legacy C++ tests (#2581) without the visualizer:
-        - `./tbots.py test [some_target_here]`
+        - `./tbots.py run [some_target_here]`
 
 ## Debugging
 
 Debugging from the command line is certainly possible, but debugging in a full IDE is *really* nice (plz trust us). 
+
+Debugging simulated C++ tests can be easily done through CLion or GDB. You can skip the rest of this section
+
+Debugging Fullsystem (our AI) or Simulator when running simulated tests written in Python or debugging AI vs AI is a bit more involved, since multiple different processes are automatically launched by `thunderscope_main`. We can debug them by manually launching the process(es) in mind under a debugger, then launching Thunderscope with an argument which tells it to use the process we've created, rather than running it's own which is not under a debugger.
+1. First you need to determine which process the code you want to debug is running in. E.g. Blue or Yellow Fullsystem, or Simulator
+2. Run that process individually in debug mode in CLion or GDB (described in the next section) with the `--runtime_dir` argument passed (Note that prior to debugging you should run your test scenario normally to have the runtime directory created):
+    - For simulated PyTests the runtime directory will be `/tmp/tbots/test/<test_name>` where test name is the name of the function that has the test, not the Bazel test name (e.g. `--runtime_dir=/tmp/tbots/test/test_corner_kick_play_bottom_left`)
+    - For
+3. Run your test with the flag `-ds <binary_to_debug>` where `binary_to_debug` can be one or a combination of `sim`, `blue` (blue Fullsystem), or `yellow` (yellow Fullsystem). This has to match the process you're running under a debugger in step 2.
+    - E.g. `./tbots.py run -ds sim corner_kick_play_test` to debug the simulator
 
 ### Debugging with CLion
 
