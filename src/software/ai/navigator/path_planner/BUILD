@@ -40,6 +40,15 @@ cc_library(
 )
 
 cc_library(
+    name = "trajectory_2d",
+    hdrs = ["trajectory_2d.h"],
+    deps = [
+        ":trajectory",
+        "//software/geom:point",
+    ],
+)
+
+cc_library(
     name = "bang_bang_trajectory_1d",
     srcs = ["bang_bang_trajectory_1d.cpp"],
     hdrs = ["bang_bang_trajectory_1d.h"],
@@ -68,6 +77,7 @@ cc_library(
     hdrs = ["bang_bang_trajectory_2d.h"],
     deps = [
         ":bang_bang_trajectory_1d",
+        ":trajectory_2d",
         "//software/geom:bounding_box",
         "//software/geom:point",
     ],
@@ -110,6 +120,7 @@ cc_library(
     deps = [
         ":kinematic_constraints",
         ":trajectory_path",
+        "//proto/message_translation:tbots_protobuf",
         "//extlibs/AABB:aabb_tree",
         "//software/ai/navigator/obstacle",
         "//software/ai/navigator/path_planner:trajectory_path_with_cost",

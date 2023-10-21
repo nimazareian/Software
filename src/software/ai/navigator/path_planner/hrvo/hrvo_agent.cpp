@@ -14,7 +14,14 @@ HRVOAgent::HRVOAgent(RobotId robot_id, const RobotState &robot_state,
       neighbours(),
       prev_dynamic_kp_destination(robot_state.position()),
       kp(2.0),
-      trajectory_path(BangBangTrajectory2D())
+      trajectory_path(std::make_shared<BangBangTrajectory2D>(), [](const KinematicConstraints &constraints,
+const Point &initial_pos,
+const Point &final_pos,
+const Vector &initial_vel) {
+return std::make_shared<BangBangTrajectory2D>(
+        initial_pos, final_pos, initial_vel, constraints.getMaxVelocity(),
+        constraints.getMaxAcceleration(), constraints.getMaxDeceleration());
+})
 {
     // Reinitialize obstacle factory with a custom inflation factor
     auto obstacle_config = TbotsProto::RobotNavigationObstacleConfig();
@@ -388,23 +395,23 @@ void HRVOAgent::computeNewVelocity(
     //                                                                            <<
     //                                                                            std::endl;
 
-    auto path_point_opt =
-        path.getCurrentPathPoint().value_or(PathPoint(Point(0, 0), 0, Angle::zero()));
-    Point destination = path_point_opt.getPosition();
-    LOG(PLOTJUGGLER) << *createPlotJugglerValue({{"vx", velocity.x()},
-                                                 {"vy", velocity.y()},
-                                                 {"v", velocity.length()},
-                                                 {"d", (position - destination).length()},
-                                                 {"px", position.x()},
-                                                 {"py", position.y()},
-                                                 {"dx", (position - destination).x()},
-                                                 {"dy", (position - destination).y()},
-                                                 {"destx", (destination).x()},
-                                                 {"desty", (destination).y()},
-                                                 {"maxv", max_speed},
-                                                 {"maxa", max_accel},
-                                                 {"vt", angular_velocity.toRadians()},
-                                                 {"t", orientation.toRadians()}});
+//    auto path_point_opt =
+//        path.getCurrentPathPoint().value_or(PathPoint(Point(0, 0), 0, Angle::zero()));
+//    Point destination = path_point_opt.getPosition();
+//    LOG(PLOTJUGGLER) << *createPlotJugglerValue({{"vx", velocity.x()},
+//                                                 {"vy", velocity.y()},
+//                                                 {"v", velocity.length()},
+//                                                 {"d", (position - destination).length()},
+//                                                 {"px", position.x()},
+//                                                 {"py", position.y()},
+//                                                 {"dx", (position - destination).x()},
+//                                                 {"dy", (position - destination).y()},
+//                                                 {"destx", (destination).x()},
+//                                                 {"desty", (destination).y()},
+//                                                 {"maxv", max_speed},
+//                                                 {"maxa", max_accel},
+//                                                 {"vt", angular_velocity.toRadians()},
+//                                                 {"t", orientation.toRadians()}});
     angular_velocity = angular_traj.getVelocity(
             time_since_traj_update.toSeconds() /*+
         Duration::fromMilliseconds(static_cast<double>(time_since_traj_start_us) *

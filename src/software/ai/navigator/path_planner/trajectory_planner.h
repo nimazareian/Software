@@ -47,6 +47,8 @@ class TrajectoryPlanner
 
     std::vector<Vector> relative_sub_destinations;
 
+    TrajectoryGenerator trajectory_generator;
+
     const double SUB_DESTINATION_STEP_INTERVAL_SEC         = 0.2;
     const double COLLISION_CHECK_STEP_INTERVAL_SEC         = 0.1;
     const double FORWARD_COLLISION_CHECK_STEP_INTERVAL_SEC = 0.05;
