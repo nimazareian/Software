@@ -68,14 +68,15 @@ TrajectoryPath TrajectoryPlanner::findTrajectory(
         tree.insertParticle(i, aabb_lower, aabb_upper);
     }
 
-    TrajectoryPathWithCost best_traj_with_cost = getDirectTrajectoryWithCost(
-        start, destination, initial_velocity, constraints, tree, obstacles);
-
     TbotsProto::Circle circle_obstacle;
     if (!obstacles.empty())
     {
         circle_obstacle = obstacles[0]->createObstacleProto().circle(0);
     }
+
+    TrajectoryPathWithCost best_traj_with_cost = getDirectTrajectoryWithCost(
+        start, destination, initial_velocity, constraints, tree, obstacles);
+    savePath(best_traj_with_cost, start, 0.0, start, destination, initial_velocity, circle_obstacle, best_traj_with_cost.cost);
 
     // Return direct trajectory to the destination if it doesn't have any collisions
     if (!best_traj_with_cost.collides())

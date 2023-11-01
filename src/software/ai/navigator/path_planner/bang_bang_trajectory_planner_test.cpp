@@ -64,10 +64,10 @@ TEST_F(BangBangTrajectoryPlannerTest, avoid_obstacle){
     KinematicConstraints constraints = {maximum_velocity, BangBangTrajectoryPlannerTest::maximum_acceleration, BangBangTrajectoryPlannerTest::maximum_acceleration};
 
     Point start_pos = Point();
-    Point destination = Point(3,0);
-    Vector velocity = Vector(0.5,0);
+    Point destination = Point(1.2,0);
+    Vector velocity = Vector(0.0,0);
 
     ObstaclePtr obstacle =
-            robot_navigation_obstacle_factory.createFromRobotPosition(Point(2,0));
+            robot_navigation_obstacle_factory.createFromShape(Circle(Point(0.6,0), 0.5));
     TrajectoryPath path = planner.findTrajectory(start_pos, destination, velocity, constraints, {obstacle}, Field::createSSLDivisionBField().fieldBoundary());
 }
