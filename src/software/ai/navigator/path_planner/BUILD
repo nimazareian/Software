@@ -177,5 +177,6 @@ cc_test(
         ":trajectory_planner",
         "//shared/test_util:tbots_gtest_main",
         "//software/test_util",
+        "//software/ai/navigator/obstacle:robot_navigation_obstacle_factory",
     ],
 )

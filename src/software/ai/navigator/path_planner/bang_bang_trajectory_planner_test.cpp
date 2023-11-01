@@ -4,12 +4,16 @@
 #include <random>
 
 #include "software/test_util/test_util.h"
+#include "software/ai/navigator/obstacle/robot_navigation_obstacle_factory.h"
+#include "proto/parameters.pb.h"
 
 class BangBangTrajectoryPlannerTest : public testing::Test {
 public:       
-    BangBangTrajectoryPlannerTest() : planner(), rng(1010), pos_uniform_dist(-1, 1), vel_uniform_dist(-1, 1) {}
+    BangBangTrajectoryPlannerTest() : planner(), robot_navigation_obstacle_factory(config), rng(1010), pos_uniform_dist(-1, 1), vel_uniform_dist(-1, 1) {}
 
     TrajectoryPlanner planner;
+    RobotNavigationObstacleFactory robot_navigation_obstacle_factory;
+    TbotsProto::RobotNavigationObstacleConfig config;
 protected:
     static constexpr int num_points = 1000;
     static constexpr double max_x_velocity = 2; 
@@ -40,29 +44,30 @@ protected:
 
 };
 
-void generateColumnName(){
-    LOG(CSV, "path_summary.csv") << "sub_dest_x,sub_dest_y,connection_time,duration,start_x,start_y,end_x,end_y,initial_vel(x),initial_vel(y),"; 
-    for(int i = 1;i<=sample_counts; ++i){
-        if(i == sample_counts){
-            LOG(CSV, "path_summary.csv") << "x" << std::to_string(i) << "," <<  "y" << std::to_string(i);
-            break;
-        }
-        LOG(CSV, "path_summary.csv") << "x" << std::to_string(i) << "," <<  "y" << std::to_string(i)<< ",";
-    }
-    LOG(CSV, "path_summary.csv") << "\n";
-}
-
 TEST_F(BangBangTrajectoryPlannerTest, generate_path){
     double maximum_velocity = sqrt(max_x_position * max_x_position + max_y_velocity * max_y_velocity);
     KinematicConstraints constraints = {maximum_velocity, BangBangTrajectoryPlannerTest::maximum_acceleration, BangBangTrajectoryPlannerTest::maximum_acceleration};
 
-    // generate the column names 
-    generateColumnName();
     for(int i = 0; i<BangBangTrajectoryPlannerTest::num_points; ++i){
         Point start_pos = Point();
         Point destination = getRandomPoint();
         Vector velocity = getRandomVector();
 
-        TrajectoryPath path = planner.findTrajectory(start_pos, destination, velocity, constraints, {}, Field::createSSLDivisionBField().fieldBoundary());
+        ObstaclePtr obstacle =
+                robot_navigation_obstacle_factory.createFromRobotPosition(getRandomPoint());
+        TrajectoryPath path = planner.findTrajectory(start_pos, destination, velocity, constraints, {obstacle}, Field::createSSLDivisionBField().fieldBoundary());
     }
+}
+
+TEST_F(BangBangTrajectoryPlannerTest, avoid_obstacle){
+    double maximum_velocity = sqrt(max_x_position * max_x_position + max_y_velocity * max_y_velocity);
+    KinematicConstraints constraints = {maximum_velocity, BangBangTrajectoryPlannerTest::maximum_acceleration, BangBangTrajectoryPlannerTest::maximum_acceleration};
+
+    Point start_pos = Point();
+    Point destination = Point(3,0);
+    Vector velocity = Vector(0.5,0);
+
+    ObstaclePtr obstacle =
+            robot_navigation_obstacle_factory.createFromRobotPosition(Point(2,0));
+    TrajectoryPath path = planner.findTrajectory(start_pos, destination, velocity, constraints, {obstacle}, Field::createSSLDivisionBField().fieldBoundary());
 }
