@@ -5,9 +5,9 @@
 
 
 void savePath(TrajectoryPathWithCost trajectory, Point sub_dest, double connection_time, Point start, Point end, Vector initial_vel){
-    //saving the trajectory 
+    //saving the trajectory
     const TrajectoryPath traj = trajectory.traj_path;
-    LOG(CSV, "path_summary.csv") << sub_dest.x() << "," << sub_dest.y() << "," << connection_time << "," << traj.getTotalTime()<<"," 
+    LOG(CSV, "path_summary.csv") << sub_dest.x() << "," << sub_dest.y() << "," << connection_time << "," << traj.getTotalTime()<<","
         << start.x() << "," << start.y() << "," << end.x() << "," << end.y() << ","
         << initial_vel.x() << "," << initial_vel.y() << ",";
 
@@ -73,11 +73,10 @@ TrajectoryPath TrajectoryPlanner::findTrajectory(
         start, destination, initial_velocity, constraints, tree, obstacles);
 
     // Return direct trajectory to the destination if it doesn't have any collisions
-    // if (!best_traj_with_cost.collides())
-    // {
-    //     return best_traj_with_cost.traj_path;
-    //}
-    // std::cout << "Direct trajectory collides" << std::endl;
+    if (!best_traj_with_cost.collides())
+    {
+        return best_traj_with_cost.traj_path;
+    }
 
     std::vector<Point> sub_destinations;
     sub_destinations.reserve(relative_sub_destinations.size());
@@ -106,24 +105,22 @@ TrajectoryPath TrajectoryPlanner::findTrajectory(
             traj_path_to_dest.append(constraints, connection_time, destination);
             TrajectoryPathWithCost full_traj_with_cost = getTrajectoryWithCost(
                     traj_path_to_dest, tree, obstacles, sub_trajectory, connection_time);
-                num_traj++;
+            num_traj++;
+            savePath(traj_path_to_dest, sub_dest, connection_time, start, destination, initial_velocity);
+            if (full_traj_with_cost.cost < best_traj_with_cost.cost)
+            {
+                best_traj_with_cost = full_traj_with_cost;
+            }
 
-                // TODO: If full_traj_with_cost doesn't have any collisions, should we
-                // continue to next iter?
-                //       i.e. is it possible that with a later connection_time we get an
-                //       improved score?!
-                //if (full_traj_with_cost.cost < best_traj_with_cost.cost)
-                //{
-                //    best_traj_with_cost = full_traj_with_cost;
-                //}
-
-
-                savePath(traj_path_to_dest, sub_dest, connection_time, start, destination, initial_velocity);
+            // Later connection_times will generally have a larger trajectory duration,
+            // thus, if this trajectory does not have a collision, then we can not
+            // get a better trajectory with a later connection_time
+            if (!full_traj_with_cost.collides())
+            {
+                break;
+            }
         }
     }
-//    LOG(PLOTJUGGLER) << *createPlotJugglerValue({
-//          {"num_traj", num_traj}
-//    });
 
     // TODO: Added for debugging
     auto end_time = std::chrono::high_resolution_clock::now();
