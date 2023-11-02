@@ -12,8 +12,6 @@ class TrajectoryPathWithCost
 
     /**
      * Returns true if the trajectory collides with an obstacle
-     * @note Obstacles which the trajectory starts in or ends within
-     * are ignored.
      *
      * @return true if the trajectory collides with an obstacle
      */
