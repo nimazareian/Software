@@ -34,16 +34,43 @@ class TrajectoryPlanner
 
     double getFirstNonCollisionTime(const TrajectoryPath &traj_path,
                                     const std::set<unsigned int> &obstacle_indices,
-                                    const std::vector<ObstaclePtr> &obstacles) const;
+                                    const std::vector<ObstaclePtr> &obstacles,
+                                    const double search_end_time_s) const;
 
+    /**
+     * Find if there was a collision between the start_time_sec and search_end_time_s
+     * for the given trajectory path and obstacles.
+     *
+     * @param traj_path The trajectory path to check
+     * @param obstacle_indices The indices of the obstacles to check for collisions
+     * @param obstacles The list of all obstacles
+     * @param start_time_sec The time in seconds to start the search from
+     * @param search_end_time_s The time in seconds to stop the search at
+     * @return The first collision time within [start_time_sec and search_end_time_s]
+     * and a pointer to the obstacle if a collision exists, otherwise returns
+     * std::numeric_limits<double>::max() and nullptr.
+     */
     std::pair<double, ObstaclePtr> getFirstCollisionTime(
         const TrajectoryPath &traj_path, const std::set<unsigned int> &obstacle_indices,
-        const std::vector<ObstaclePtr> &obstacles, const double start_time_sec,
-        const double stop_time_sec) const;
+        const std::vector<ObstaclePtr> &obstacles, const double start_time_sec, // TODO: Somewhere we use sec, somewhere we use _s
+        const double search_end_time_s) const;
 
+    /**
+     * Returns the latest time (within the search_end_time_s) at which the trajectory
+     * is NOT in a collision. Will return search_end_time_s if the trajectory does not
+     * end in a collision.
+     *
+     * @param traj_path The trajectory path to check
+     * @param obstacle_indices The indices of the obstacles to check for collisions
+     * @param obstacles The list of all obstacles
+     * @param search_end_time_s The latest time to check for collisions. Assumed to
+     * be within the duration of the trajectory path.
+     * @return Time in seconds at which the trajectory is not in a collision. Result
+     * will be in the range [0, search_end_time_s].
+     */
     double getLastNonCollisionTime(const TrajectoryPath &traj_path,
                                    const std::set<unsigned int> &obstacle_indices,
-                                   const std::vector<ObstaclePtr> &obstacles) const;
+                                   const std::vector<ObstaclePtr> &obstacles, const double search_end_time_s) const;
 
     std::vector<Vector> relative_sub_destinations;
 
