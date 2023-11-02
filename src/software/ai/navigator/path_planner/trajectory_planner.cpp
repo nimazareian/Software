@@ -4,7 +4,7 @@
 #include "proto/message_translation/tbots_protobuf.h"
 
 
-void savePath(TrajectoryPathWithCost trajectory, Point sub_dest, double connection_time, Point start, Point end, Vector initial_vel, TbotsProto::Circle obstacle, double total_cost){
+void savePath(TrajectoryPathWithCost trajectory, Point sub_dest, double connection_time, Point start, Point end, Vector initial_vel, TbotsProto::Circle obstacle, TbotsProto::Polygon rectangle_obstacle, double total_cost){
     //saving the trajectory
     const TrajectoryPath traj = trajectory.traj_path;
     LOG(CSV, "path_summary.csv") << sub_dest.x() << "," << sub_dest.y() << "," << connection_time << "," << traj.getTotalTime()<<","
@@ -17,7 +17,7 @@ void savePath(TrajectoryPathWithCost trajectory, Point sub_dest, double connecti
         LOG(CSV, "path_summary.csv") << position.x() << "," << position.y() << ",";
     }
 
-    LOG(CSV, "path_summary.csv") << obstacle.origin().x_meters() << "," << obstacle.origin().y_meters() << "," << obstacle.radius() << "," << total_cost << "\n";
+    LOG(CSV, "path_summary.csv") << obstacle.origin().x_meters() << "," << obstacle.origin().y_meters() << "," << obstacle.radius() << "," << rectangle_obstacle.points(0).x_meters() << "," << rectangle_obstacle.points(0).y_meters() << "," << rectangle_obstacle.points(2).x_meters() << "," << rectangle_obstacle.points(2).y_meters() << "," << total_cost << "\n";
 }
 
 TrajectoryPlanner::TrajectoryPlanner()
@@ -39,7 +39,7 @@ TrajectoryPlanner::TrajectoryPlanner()
     for(int i = 0;i<=sample_counts; ++i){
         LOG(CSV, "path_summary.csv") << "x" << std::to_string(i) << "," <<  "y" << std::to_string(i)<< ",";
     }
-    LOG(CSV, "path_summary.csv") << "circle_obst_x,circle_obst_y,circle_obst_rad,total_cost\n";
+    LOG(CSV, "path_summary.csv") << "circle_obst_x,circle_obst_y,circle_obst_rad,rect_obst_x1,rect_obst_y1,rect_obst_x2,rect_obst_y2,total_cost\n";
 }
 
 TrajectoryPath TrajectoryPlanner::findTrajectory(
@@ -69,14 +69,16 @@ TrajectoryPath TrajectoryPlanner::findTrajectory(
     }
 
     TbotsProto::Circle circle_obstacle;
+    TbotsProto::Polygon rectangle_obstacle;
     if (!obstacles.empty())
     {
-        circle_obstacle = obstacles[0]->createObstacleProto().circle(0);
+//        circle_obstacle = obstacles[0]->createObstacleProto().circle(0);
+        rectangle_obstacle = obstacles[0]->createObstacleProto().polygon(0);
     }
 
     TrajectoryPathWithCost best_traj_with_cost = getDirectTrajectoryWithCost(
         start, destination, initial_velocity, constraints, tree, obstacles);
-    savePath(best_traj_with_cost, start, 0.0, start, destination, initial_velocity, circle_obstacle, best_traj_with_cost.cost);
+    savePath(best_traj_with_cost, start, 0.0, start, destination, initial_velocity, circle_obstacle, rectangle_obstacle, best_traj_with_cost.cost);
 
     // Return direct trajectory to the destination if it doesn't have any collisions
     if (!best_traj_with_cost.collides())
@@ -112,7 +114,7 @@ TrajectoryPath TrajectoryPlanner::findTrajectory(
             TrajectoryPathWithCost full_traj_with_cost = getTrajectoryWithCost(
                     traj_path_to_dest, tree, obstacles, sub_trajectory, connection_time);
             num_traj++;
-            savePath(traj_path_to_dest, sub_dest, connection_time, start, destination, initial_velocity, circle_obstacle, full_traj_with_cost.cost);
+            savePath(traj_path_to_dest, sub_dest, connection_time, start, destination, initial_velocity, circle_obstacle, rectangle_obstacle, full_traj_with_cost.cost);
             if (full_traj_with_cost.cost < best_traj_with_cost.cost)
             {
                 best_traj_with_cost = full_traj_with_cost;

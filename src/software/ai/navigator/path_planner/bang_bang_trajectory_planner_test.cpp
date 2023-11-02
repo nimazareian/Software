@@ -63,11 +63,12 @@ TEST_F(BangBangTrajectoryPlannerTest, avoid_obstacle){
     double maximum_velocity = sqrt(max_x_position * max_x_position + max_y_velocity * max_y_velocity);
     KinematicConstraints constraints = {maximum_velocity, BangBangTrajectoryPlannerTest::maximum_acceleration, BangBangTrajectoryPlannerTest::maximum_acceleration};
 
-    Point start_pos = Point(0.0, 0);
-    Point destination = Point(0.40,0);
+    Point start_pos = Point(-4.4, -1.05);
+    Point destination = Point(-4.4,1.05);
     Vector velocity = Vector(0.0,0);
 
-    ObstaclePtr obstacle =
-            robot_navigation_obstacle_factory.createFromShape(Circle(Point(0.20,0), 0.18));
-    TrajectoryPath path = planner.findTrajectory(start_pos, destination, velocity, constraints, {obstacle}, Field::createSSLDivisionBField().fieldBoundary());
+//    ObstaclePtr obstacle =
+//            robot_navigation_obstacle_factory.createFromShape(Circle(Point(0.20,0), 0.18));
+    std::vector<ObstaclePtr> obstacles = robot_navigation_obstacle_factory.createStaticObstaclesFromMotionConstraint(TbotsProto::MotionConstraint::FRIENDLY_DEFENSE_AREA, Field::createSSLDivisionBField());
+    TrajectoryPath path = planner.findTrajectory(start_pos, destination, velocity, constraints, obstacles, Field::createSSLDivisionBField().fieldBoundary());
 }
