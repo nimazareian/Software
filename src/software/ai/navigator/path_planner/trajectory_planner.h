@@ -81,9 +81,9 @@ class TrajectoryPlanner
     const double FORWARD_COLLISION_CHECK_STEP_INTERVAL_SEC = 0.05;
     const double MAX_FUTURE_COLLISION_CHECK_SEC            = 2.0;
 
-    static constexpr std::array<double, 4> SUB_DESTINATION_DISTANCES_METERS = {0.1, 1, 2,
+    static constexpr std::array<double, 4> SUB_DESTINATION_DISTANCES_METERS = {0.1, 1.1, 2.1,
                                                                                3};
-    static constexpr unsigned int NUM_SUB_DESTINATION_ANGLES                = 15;
+    static constexpr unsigned int NUM_SUB_DESTINATION_ANGLES                = 16;
     static constexpr double PATH_WITH_COLLISION_COST                        = 5.0;
 };
 // useful constants
