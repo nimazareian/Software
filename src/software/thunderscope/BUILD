@@ -11,6 +11,7 @@ py_binary(
         ":thunderscope",
         "//software/thunderscope:binary_context_managers",
         "//software/thunderscope/replay:proto_logger",
+        "//software/thunderscope:controller_diagnostics",
     ],
 )
 
@@ -129,5 +130,14 @@ py_library(
     ],
     deps = [
         "//software/thunderscope:constants",
+    ],
+)
+
+py_library(
+    name = "controller_diagnostics",
+    srcs = ["controller_diagnostics.py"],
+    deps = [
+        "//software/thunderscope:constants",
+        requirement("xbox360controller"),
     ],
 )

@@ -14,6 +14,7 @@ from software.thunderscope.robot_communication import RobotCommunication
 from software.thunderscope.replay.proto_logger import ProtoLogger
 import software.thunderscope.thunderscope_config as config
 from software.thunderscope.constants import ProtoUnixIOTypes
+from software.thunderscope.controller_diagnostics import ControllerDiagnostics
 
 NUM_ROBOTS = 6
 SIM_TICK_RATE_MS = 16
@@ -164,6 +165,12 @@ if __name__ == "__main__":
         help="Disables checking for estop plugged in (ONLY USE FOR LOCAL TESTING)",
     )
 
+    parser.add_argument(
+        "--xbox",
+        action="store_true",
+        help="Run robot diagnostics with an Xbox controller",
+    )
+
     # Sanity check that an interface was provided
     args = parser.parse_args()
 
@@ -256,6 +263,9 @@ if __name__ == "__main__":
         # if fullsystem is loaded
         # else, it will be the diagnostics proto
         current_proto_unix_io = tscope.proto_unix_io_map[ProtoUnixIOTypes.CURRENT]
+
+        if args.xbox:
+            controller_diagnostics = ControllerDiagnostics(current_proto_unix_io)
 
         # different estops use different ports this detects which one to use based on what is plugged in
         estop_path = (
