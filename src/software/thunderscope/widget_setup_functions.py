@@ -104,7 +104,7 @@ def setup_gl_widget(
             f"HRVO {robot_id}", robot_id, visualization_buffer_size
         )
         hrvo_layers.append(hrvo_layer)
-        gl_widget.add_layer(hrvo_layer, False)
+        gl_widget.add_layer(hrvo_layer, True)
 
     # Register observers
     for arg in [
