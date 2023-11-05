@@ -447,6 +447,10 @@ def field_test_runner():
                 yellow_full_system_proto_unix_io.register_to_observe_everything(
                     yellow_logger.buffer
                 )
+                print(
+                    f"\n\nTo replay this test for the blue team, go to the `src` folder and run \n./tbots.py run thunderscope --blue_log {blue_logger.log_folder}",
+                    flush=True,
+                )
                 yield runner
                 print(
                     f"\n\nTo replay this test for the blue team, go to the `src` folder and run \n./tbots.py run thunderscope --blue_log {blue_logger.log_folder}",

@@ -80,6 +80,7 @@ class ReplayControls(QWidget):
         self.clipping = False
         self.clip_start = 0
 
+        print(f"Replay with length {self.player.end_time * MILLISECONDS_PER_SECOND} sec")
         # Setup the replay slider
         (
             self.replay_layout,

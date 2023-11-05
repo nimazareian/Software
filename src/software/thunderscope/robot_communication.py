@@ -84,7 +84,7 @@ class RobotCommunication(object):
         # tries to access a plugged in estop. if not found, throws an exception
         # if using keyboard estop, skips this step
         self.estop_reader = None
-        self.estop_is_playing = False
+        self.estop_is_playing = True
         # when the estop has just been stopped,
         # we want to send a stop primitive once to all currently connected robots
         self.should_send_stop = False

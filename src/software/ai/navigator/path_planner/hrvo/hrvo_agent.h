@@ -264,7 +264,7 @@ class HRVOAgent : public Agent
     // moving in a linear line. This is defined as a multiplier of the angular velocity
     // for how much the linear velocity vector should be rotated by in the opposite
     // direction of the angular velocity.
-    static constexpr double ANGULAR_VELOCITY_COMPENSATION_MULTIPLIER = 1.5;
+    static constexpr double ANGULAR_VELOCITY_COMPENSATION_MULTIPLIER = 1.0; //1.5;
 
     // The obstacle factory robot_obstacle_inflation_factor used by HRVO
     // This is lower than the default value in the config used by path planner since HRVO

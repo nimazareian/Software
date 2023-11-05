@@ -176,7 +176,7 @@ void HRVOAgent::updatePrimitive(const TbotsProto::Primitive &new_primitive,
         last_traj_update_time = std::chrono::steady_clock::now();
         // TODO: This time offset works for the current kinematic constants
         //       it doesn't work if those constants are changed.
-        time_since_traj_update = Duration::fromSeconds(0.016);
+        time_since_traj_update = Duration::fromSeconds(0.016 * 5);
     }
     this->path = path;
 }
@@ -389,33 +389,46 @@ void HRVOAgent::computeNewVelocity(
             time_since_traj_update.toSeconds() /*+
         Duration::fromMilliseconds(static_cast<double>(time_since_traj_start_us) *
                                    MILLISECONDS_PER_MICROSECOND)*/);
+    auto path_point_opt =
+            path.getCurrentPathPoint().value_or(PathPoint(Point(0, 0), 0, Angle::zero()));
+    Point destination = path_point_opt.getPosition();
+
+    double dist_to_dest = (position - destination).length();
+    if (dist_to_dest < 0.05)
+    {
+        new_velocity *= dist_to_dest / 0.05;
+    }
+
     //    std::cout << "time_since_traj_start: " <<
     //    Duration::fromMilliseconds(static_cast<double>(time_since_traj_start_us) *
     //                                                                            MILLISECONDS_PER_MICROSECOND)
     //                                                                            <<
     //                                                                            std::endl;
 
-//    auto path_point_opt =
-//        path.getCurrentPathPoint().value_or(PathPoint(Point(0, 0), 0, Angle::zero()));
-//    Point destination = path_point_opt.getPosition();
-//    LOG(PLOTJUGGLER) << *createPlotJugglerValue({{"vx", velocity.x()},
-//                                                 {"vy", velocity.y()},
-//                                                 {"v", velocity.length()},
-//                                                 {"d", (position - destination).length()},
-//                                                 {"px", position.x()},
-//                                                 {"py", position.y()},
-//                                                 {"dx", (position - destination).x()},
-//                                                 {"dy", (position - destination).y()},
-//                                                 {"destx", (destination).x()},
-//                                                 {"desty", (destination).y()},
-//                                                 {"maxv", max_speed},
-//                                                 {"maxa", max_accel},
-//                                                 {"vt", angular_velocity.toRadians()},
-//                                                 {"t", orientation.toRadians()}});
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue({{"vx", velocity.x()},
+                                                 {"vy", velocity.y()},
+                                                 {"v", velocity.length()},
+                                                 {"d", (position - destination).length()},
+                                                 {"px", position.x()},
+                                                 {"py", position.y()},
+                                                 {"dx", (position - destination).x()},
+                                                 {"dy", (position - destination).y()},
+                                                 {"destx", (destination).x()},
+                                                 {"desty", (destination).y()},
+                                                 {"maxv", max_speed},
+                                                 {"maxa", max_accel},
+                                                 {"vt", angular_velocity.toRadians()},
+                                                 {"t", orientation.toRadians()}});
     angular_velocity = angular_traj.getVelocity(
             time_since_traj_update.toSeconds() /*+
         Duration::fromMilliseconds(static_cast<double>(time_since_traj_start_us) *
                                    MILLISECONDS_PER_MICROSECOND)*/);
+
+    // To avoid the robot swinging when turning and moving in a linear line, we
+    // will compensate for the current angular velocity by rotating the velocity
+    // in the opposite direction
+    new_velocity = new_velocity.rotate(-angular_velocity * time_step.toSeconds() *
+                                        ANGULAR_VELOCITY_COMPENSATION_MULTIPLIER);
 
     //    std::cout << "Robot id " << robot_id << " new velocity: " << new_velocity <<
     //    std::endl;
@@ -882,13 +895,13 @@ void HRVOAgent::visualize(TeamColour friendly_team_colour)
     // TODO (#2838): For HRVOVisualization logs to be sent properly from the robot, no
     // path should be passed as a second argument to LOG
     //    i.e. LOG(VISUALIZE) << hrvo_visualization;
-    //    LOG(VISUALIZE) << hrvo_visualization;
-    if (friendly_team_colour == TeamColour::YELLOW)
-    {
-        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
-    }
-    else
-    {
-        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
-    }
+//        LOG(VISUALIZE) << hrvo_visualization;
+//    if (friendly_team_colour == TeamColour::YELLOW)
+//    {
+//        LOG(VISUALIZE, YELLOW_HRVO_PATH) << hrvo_visualization;
+//    }
+//    else
+//    {
+//        LOG(VISUALIZE, BLUE_HRVO_PATH) << hrvo_visualization;
+//    }
 }
