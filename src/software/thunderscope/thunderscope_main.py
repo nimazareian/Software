@@ -255,17 +255,21 @@ if __name__ == "__main__":
 
             # use different estop based on what is plugged in for physical estop mode
             if mode == EstopMode.PHYSICAL_ESTOP:
-                path = (
-                    ESTOP_PATH_1
-                    if os.path.isfile(ESTOP_PATH_1)
-                    else ESTOP_PATH_2
-                    if os.path.isfile(ESTOP_PATH_2)
-                    else None
-                )
-                if not path:
-                    raise Exception(
-                        "Estop is not plugged into a valid port, plug one in or use a different estop mode"
-                    )
+                path = ESTOP_PATH_2
+                # print(f"PAAATH {os.path.isfile(ESTOP_PATH_1)=}", flush=True)
+                # print(f"PAAATH {os.path.isfile(ESTOP_PATH_2)=}", flush=True)
+                #
+                # path = (
+                #     ESTOP_PATH_1
+                #     if os.path.isfile(ESTOP_PATH_1)
+                #     else ESTOP_PATH_2
+                #     if os.path.isfile(ESTOP_PATH_2)
+                #     else None
+                # )
+                # if not path:
+                #     raise Exception(
+                #         "Estop is not plugged into a valid port, plug one in or use a different estop mode"
+                #     )
 
             return mode, path
 

@@ -24,6 +24,7 @@
 #include "shared/constants.h"
 #include "software/logger/logger.h"
 #include "software/util/scoped_timespec_timer/scoped_timespec_timer.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 extern "C"
 {
@@ -466,6 +467,12 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
     // We also want to work in the meters per second space rather than electrical RPMs
     WheelSpace_t current_wheel_velocities = {front_right_velocity, front_left_velocity,
                                              back_left_velocity, back_right_velocity};
+
+
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue({{"fr", front_right_velocity},
+                                                 {"fl", front_left_velocity},
+                                                 {"br", back_right_velocity},
+                                                 {"bl", back_left_velocity}});
 
     // Run-away protection
     if (std::abs(current_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX] -

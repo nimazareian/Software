@@ -144,32 +144,32 @@ void HRVOAgent::updatePrimitive(const TbotsProto::Primitive &new_primitive,
                               AngularAcceleration::fromRadians(max_angular_accel),
                               AngularAcceleration::fromRadians(max_angular_accel));
 
-        double MAX_TIME_OFFSET_BETWEEN_LINEAR_TRAJ_AND_ANGULAR_TRAJ_SEC = 0.5;
-        if (angular_traj.getTotalTime() < trajectory_path.getTotalTime() - MAX_TIME_OFFSET_BETWEEN_LINEAR_TRAJ_AND_ANGULAR_TRAJ_SEC)
-        {
-            // Binary search over coefficients for the kinematic constraints
-            // of the angular trajectory that make the times basically equal
-            double coefficient = 0.5;
-            double increment = 0.25;
-            while (increment > 0.0001)
-            {
-                angular_traj.generate(orientation, path_point_opt.getOrientation(),
-                                      angular_velocity,
-                                      AngularVelocity::fromRadians(max_angular_speed * coefficient),
-                                      AngularAcceleration::fromRadians(max_angular_accel * coefficient),
-                                      AngularAcceleration::fromRadians(max_angular_accel * coefficient));
-                if (angular_traj.getTotalTime() > trajectory_path.getTotalTime() -
-                                                  MAX_TIME_OFFSET_BETWEEN_LINEAR_TRAJ_AND_ANGULAR_TRAJ_SEC)
-                {
-                    coefficient += increment;
-                }
-                else
-                {
-                    coefficient -= increment;
-                }
-                increment /= 2;
-            }
-        }
+//        double MAX_TIME_OFFSET_BETWEEN_LINEAR_TRAJ_AND_ANGULAR_TRAJ_SEC = 0.5;
+//        if (angular_traj.getTotalTime() < trajectory_path.getTotalTime() - MAX_TIME_OFFSET_BETWEEN_LINEAR_TRAJ_AND_ANGULAR_TRAJ_SEC)
+//        {
+//            // Binary search over coefficients for the kinematic constraints
+//            // of the angular trajectory that make the times basically equal
+//            double coefficient = 0.5;
+//            double increment = 0.25;
+//            while (increment > 0.0001)
+//            {
+//                angular_traj.generate(orientation, path_point_opt.getOrientation(),
+//                                      angular_velocity,
+//                                      AngularVelocity::fromRadians(max_angular_speed * coefficient),
+//                                      AngularAcceleration::fromRadians(max_angular_accel * coefficient),
+//                                      AngularAcceleration::fromRadians(max_angular_accel * coefficient));
+//                if (angular_traj.getTotalTime() > trajectory_path.getTotalTime() -
+//                                                  MAX_TIME_OFFSET_BETWEEN_LINEAR_TRAJ_AND_ANGULAR_TRAJ_SEC)
+//                {
+//                    coefficient += increment;
+//                }
+//                else
+//                {
+//                    coefficient -= increment;
+//                }
+//                increment /= 2;
+//            }
+//        }
 
 
 

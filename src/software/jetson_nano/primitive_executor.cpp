@@ -130,6 +130,8 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             Vector target_velocity                  = getTargetLinearVelocity();
             AngularVelocity target_angular_velocity = getTargetAngularVelocity();
 
+            target_velocity = target_velocity.rotate(-0.5 * target_angular_velocity);
+
             auto output = createDirectControlPrimitive(
                 target_velocity, target_angular_velocity,
                 current_primitive_.move().dribbler_speed_rpm(),

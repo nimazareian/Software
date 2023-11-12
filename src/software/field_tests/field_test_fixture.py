@@ -17,7 +17,7 @@ from software.simulated_tests.robot_enters_region import (
 )
 
 from software.simulated_tests import validation
-from software.thunderscope.constants import EstopMode
+from software.thunderscope.constants import EstopMode, ESTOP_PATH_1, ESTOP_PATH_2
 from software.thunderscope.thunderscope import Thunderscope
 from software.thunderscope.proto_unix_io import ProtoUnixIO
 from software.py_constants import MILLISECONDS_PER_SECOND
@@ -382,6 +382,18 @@ def field_test_runner():
     if args.disable_communication:
         estop_mode = EstopMode.DISABLE_ESTOP
 
+    # path = (
+    #     ESTOP_PATH_1
+    #     if os.path.isfile(ESTOP_PATH_1)
+    #     else ESTOP_PATH_2
+    #     if os.path.isfile(ESTOP_PATH_2)
+    #     else None
+    # )
+    # if not path:
+    #     raise Exception(
+    #         "Estop is not plugged into a valid port, plug one in or use a different estop mode"
+    #     )
+
     # Launch all binaries
     with FullSystem(
         runtime_dir,
@@ -393,7 +405,7 @@ def field_test_runner():
         multicast_channel=getRobotMulticastChannel(args.channel),
         interface=args.interface,
         estop_mode=estop_mode,
-        estop_path=args.estop_path,
+        estop_path=ESTOP_PATH_2,
     ) as rc_friendly:
         with Gamecontroller(
             supress_logs=(not args.show_gamecontroller_logs), ci_mode=True
