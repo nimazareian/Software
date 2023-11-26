@@ -25,7 +25,7 @@ PrimitiveExecutor::PrimitiveExecutor(const Duration time_step,
 void PrimitiveExecutor::updatePrimitiveSet(
     const TbotsProto::PrimitiveSet &primitive_set_msg)
 {
-    hrvo_simulator_.updatePrimitiveSet(primitive_set_msg, time_step_);
+//    hrvo_simulator_.updatePrimitiveSet(primitive_set_msg, time_step_);
     auto primitive_set_msg_iter = primitive_set_msg.robot_primitives().find(robot_id_);
     if (primitive_set_msg_iter != primitive_set_msg.robot_primitives().end())
     {
@@ -61,12 +61,13 @@ void PrimitiveExecutor::setStopPrimitive()
 
 void PrimitiveExecutor::updateWorld(const TbotsProto::World &world_msg)
 {
+    current_world_ = world_msg;
     // Only update HRVO simulator if the world is newer than the previous world
-    if (world_msg.time_sent().epoch_timestamp_seconds() >
-        current_world_.time_sent().epoch_timestamp_seconds())
-    {
-        hrvo_simulator_.updateWorld(World(world_msg), robot_constants_, time_step_);
-    }
+//    if (world_msg.time_sent().epoch_timestamp_seconds() >
+//        current_world_.time_sent().epoch_timestamp_seconds())
+//    {
+//        hrvo_simulator_.updateWorld(World(world_msg), robot_constants_, time_step_);
+//    }
 }
 
 void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
@@ -75,31 +76,31 @@ void PrimitiveExecutor::updateVelocity(const Vector &local_velocity,
     // To allow robots to accelerate smoothly, we only update their simulated velocity if
     // it is significantly different from the actual robot velocity
 
-    std::optional<Angle> orientation_opt = hrvo_simulator_.getRobotOrientation(robot_id_);
-    if (!orientation_opt.has_value())
-    {
-        return;
-    }
+//    std::optional<Angle> orientation_opt = hrvo_simulator_.getRobotOrientation(robot_id_);
+//    if (!orientation_opt.has_value())
+//    {
+//        return;
+//    }
 
-    Vector curr_hrvo_velocity = hrvo_simulator_.getRobotVelocity(robot_id_);
+//    Vector curr_hrvo_velocity = hrvo_simulator_.getRobotVelocity(robot_id_);
     Vector actual_global_velocity =
         localToGlobalVelocity(local_velocity, orientation_);
     velocity_ = actual_global_velocity;
-    if ((curr_hrvo_velocity - actual_global_velocity).length() >
-        LINEAR_VELOCITY_FEEDBACK_THRESHOLD_M_PER_S)
-    {
-        hrvo_simulator_.updateRobotVelocity(
-            robot_id_, actual_global_velocity);
-    }
-
-    AngularVelocity curr_angular_velocity =
-        hrvo_simulator_.getRobotAngularVelocity(robot_id_);
+//    if ((curr_hrvo_velocity - actual_global_velocity).length() >
+//        LINEAR_VELOCITY_FEEDBACK_THRESHOLD_M_PER_S)
+//    {
+//        hrvo_simulator_.updateRobotVelocity(
+//            robot_id_, actual_global_velocity);
+//    }
+//
+//    AngularVelocity curr_angular_velocity =
+//        hrvo_simulator_.getRobotAngularVelocity(robot_id_);
     angular_velocity_ = angular_velocity;
-    if (angular_velocity.minDiff(curr_angular_velocity).toDegrees() >
-        ANGULAR_VELOCITY_FEEDBACK_THRESHOLD_DEG_PER_S)
-    {
-        hrvo_simulator_.updateRobotAngularVelocity(robot_id_, angular_velocity);
-    }
+//    if (angular_velocity.minDiff(curr_angular_velocity).toDegrees() >
+//        ANGULAR_VELOCITY_FEEDBACK_THRESHOLD_DEG_PER_S)
+//    {
+//        hrvo_simulator_.updateRobotAngularVelocity(robot_id_, angular_velocity);
+//    }
 }
 
 Vector PrimitiveExecutor::getTargetLinearVelocity()
@@ -124,7 +125,7 @@ AngularVelocity PrimitiveExecutor::getTargetAngularVelocity()
 
 std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimitive()
 {
-    hrvo_simulator_.doStep(time_step_);
+//    hrvo_simulator_.doStep(time_step_);
 
     // Visualize the HRVO Simulator for the current robot
 //    hrvo_simulator_.visualize(robot_id_, friendly_team_colour_);

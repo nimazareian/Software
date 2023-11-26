@@ -10,6 +10,7 @@ from software.thunderscope.constants import IndividualRobotMode
 from software.thunderscope.robot_diagnostics.robot_info import RobotInfo
 from software.thunderscope.robot_diagnostics.robot_status import RobotStatusView
 from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
+from software.thunderscope.constants import ROBOT_CRASH_TIMEOUT_S
 
 
 class RobotCrashDialog(QDialog):

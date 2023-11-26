@@ -174,6 +174,8 @@ Thunderloop::~Thunderloop() {}
             // Collect jetson status
             jetson_status_.set_cpu_temperature(getCpuTemperature());
 
+            LOG(INFO) << "1";
+
             // Network Service: receive newest world, primitives and set out the last
             // robot status
             {
@@ -182,6 +184,7 @@ Thunderloop::~Thunderloop() {}
                 new_primitive_set = std::get<0>(result);
                 new_world         = std::get<1>(result);
             }
+            LOG(INFO) << "2";
 
             thunderloop_status_.set_network_service_poll_time_ms(
                 getMilliseconds(poll_time));
@@ -215,6 +218,7 @@ Thunderloop::~Thunderloop() {}
                     {
                         ScopedTimespecTimer timer(&poll_time);
                         primitive_executor_.updatePrimitiveSet(primitive_set_);
+                        LOG(INFO) << "3";
                     }
 
                     thunderloop_status_.set_primitive_executor_start_time_ms(
@@ -228,6 +232,7 @@ Thunderloop::~Thunderloop() {}
                                               &time_since_last_vision_received);
             network_status_.set_ms_since_last_vision_received(
                 getMilliseconds(time_since_last_vision_received));
+            LOG(INFO) << "4";
 
             // If the world msg is new, update the internal buffer
             if (new_world.time_sent().epoch_timestamp_seconds() >
@@ -237,6 +242,7 @@ Thunderloop::~Thunderloop() {}
                 primitive_executor_.updateWorld(new_world);
                 world_ = new_world;
             }
+            LOG(INFO) << "5";
 
             if (motor_status_.has_value())
             {
@@ -245,6 +251,7 @@ Thunderloop::~Thunderloop() {}
                     createVector(status.local_velocity()),
                     createAngularVelocity(status.angular_velocity()));
             }
+            LOG(INFO) << "6";
 
             // Timeout Overrides for Primitives
             // These should be after the new primitive update section above

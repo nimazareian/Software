@@ -454,13 +454,6 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         static_cast<double>(tmc4671_getActualVelocity(BACK_LEFT_MOTOR_CHIP_SELECT)) *
         MECHANICAL_MPS_PER_ELECTRICAL_RPM;
 
-    LOG(PLOTJUGGLER) << *createPlotJugglerValue({
-         {"fr", front_right_velocity},
-         {"fl", front_left_velocity},
-         {"bl", back_left_velocity},
-         {"br", back_right_velocity}
-     });
-
     // Get the current dribbler rpm
     double dribbler_rpm =
         static_cast<double>(tmc4671_getActualVelocity(DRIBBLER_MOTOR_CHIP_SELECT));
@@ -568,6 +561,18 @@ TbotsProto::MotorStatus MotorService::poll(const TbotsProto::MotorControl& motor
         BACK_RIGHT_MOTOR_CHIP_SELECT, TMC4671_PID_VELOCITY_TARGET,
         static_cast<int>(target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX] *
                          ELECTRICAL_RPM_PER_MECHANICAL_MPS));
+
+
+    LOG(PLOTJUGGLER) << *createPlotJugglerValue({
+            {"fr", front_right_velocity},
+            {"fl", front_left_velocity},
+            {"bl", back_left_velocity},
+            {"br", back_right_velocity},
+            {"fr_desired", target_wheel_velocities[FRONT_RIGHT_WHEEL_SPACE_INDEX]},
+            {"fl_desired", target_wheel_velocities[FRONT_LEFT_WHEEL_SPACE_INDEX]},
+            {"br_desired", target_wheel_velocities[BACK_RIGHT_WHEEL_SPACE_INDEX]},
+            {"bl_desired", target_wheel_velocities[BACK_LEFT_WHEEL_SPACE_INDEX]}
+    });
 
     // Get target dribbler rpm from the primitive
     int target_dribbler_rpm;

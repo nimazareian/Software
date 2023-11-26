@@ -12,6 +12,7 @@ TrajectoryPath::TrajectoryPath(const std::shared_ptr<Trajectory2D>& initial_traj
 void TrajectoryPath::append(const KinematicConstraints& constraints,
                             double connection_time_sec, const Point& destination)
 {
+    connection_time_sec = std::min(connection_time_sec, traj_path.back().getTrajectoryEndTime());
     // Find the trajectory path node that the new trajectory should connect to
     for (size_t i = 0; i < traj_path.size(); i++)
     {
@@ -38,7 +39,7 @@ void TrajectoryPath::append(const KinematicConstraints& constraints,
         }
     }
 
-    LOG(FATAL) << "TrajectoryPath::append called with connection_time > getTotalTime() = "
+    LOG(INFO) << "TrajectoryPath::append called with connection_time > getTotalTime() = "
                << getTotalTime()
                << " (Num trajectories already in path: " << traj_path.size() << ")";
 }
