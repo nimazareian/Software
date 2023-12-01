@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import time
 import threading
@@ -434,12 +435,13 @@ if __name__ == "__main__":
     profiler.stop()
 
     # write to file
-    profiler.write_html(os.path.join(save_path, "thunderscope_profile.html"))
+    now_str = datetime.now().strftime('%H_%M_%S')
+    profiler.write_html(os.path.join(save_path, f"thunderscope_profile_{now_str}.html"))
     profiler.print()
     # flamegrpah output
     renderer = pyinstrument.renderers.SpeedscopeRenderer(show_all=True)
     render = profiler.output(renderer)
 
     # use this to see the flamegraph https://www.speedscope.app/
-    with open(os.path.join(save_path, "speed_scope_render.json"), "w") as f:
+    with open(os.path.join(save_path, f"speed_scope_render_{now_str}.json"), "w") as f:
         f.write(render)

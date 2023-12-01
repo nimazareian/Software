@@ -36,7 +36,7 @@ class Thunderscope(object):
             self,
             config: TScopeConfig,
             layout_path: os.PathLike = None,
-            refresh_interval_ms: int = 10,
+            refresh_interval_ms: int = 500,
             ) -> None:
         """Initialize Thunderscope
 
