@@ -110,15 +110,16 @@ git_repository(
     remote = "https://github.com/pybind/pybind11_protobuf",
 )
 
-# Used by pybind11 proto autocasters
-http_archive(
-    name = "com_google_absl",
-    sha256 = "987ce98f02eefbaf930d6e38ab16aa05737234d7afbab2d5c4ea7adbe50c28ed",  # SHARED_ABSL_SHA
-    strip_prefix = "abseil-cpp-20230802.1",
-    urls = [
-        "https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.1.tar.gz",
-    ],
-)
+# Used by pybind11 proto autocasters # TODO: Shouldn't need this since pybind11_protobuf depends on it! Introduced on f7a74eb63b30ee4688227319d882d82eb6291c6d
+#                                              Problem though: Newer versions cant be easily used since we don't have up to date Bazel for wasm32 (bazel/platforms is too old)
+#http_archive(
+#    name = "com_google_absl",
+#    sha256 = "5366d7e7fa7ba0d915014d387b66d0d002c03236448e1ba9ef98122c13b35c36",  # SHARED_ABSL_SHA
+#    strip_prefix = "abseil-cpp-20230125.3",
+#    urls = [
+#        "https://github.com/abseil/abseil-cpp/archive/refs/tags/20230125.3.tar.gz",
+#    ],
+#)
 
 load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
 
@@ -208,16 +209,6 @@ http_archive(
     urls = [
         "http://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/aarch64-linux-gnu/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz",
     ],
-)
-
-# We use our own fork of Box2D as we have made a few small modifications
-# See the repository readme for details
-new_git_repository(
-    name = "box2d",
-    build_file = "@//extlibs:box2d.BUILD",
-    commit = "bddb4ec7efc8a6630fcbe7ef913017d88fb9b4b1",
-    remote = "https://github.com/UBC-Thunderbots/Box2D",
-    shallow_since = "1571445859 -0700",
 )
 
 # tool used to flash firmware with bazel
