@@ -334,6 +334,7 @@ Thunderloop::~Thunderloop() {}
         auto loop_duration_ns = getNanoseconds(iteration_time);
         thunderloop_status_.set_iteration_time_ms(loop_duration_ns /
                                                   NANOSECONDS_PER_MILLISECOND);
+        // LOG(PLOTJUGGLER) << *createPlotJugglerValue({{"loop_duration", loop_duration_ns / NANOSECONDS_PER_MILLISECOND}});
 
         // Make sure the iteration can fit inside the period of the loop
         loop_duration_seconds =

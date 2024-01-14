@@ -76,4 +76,8 @@ class NetworkService
 
     // track last breakbeam state for sending RobotStatus outside of specified rate
     bool last_breakbeam_state_sent = false;
+
+    double last_primitive_time_s = static_cast<double>(std::chrono::system_clock::now().time_since_epoch().count()) /
+                            NANOSECONDS_PER_SECOND;
+    long int count = 0;
 };

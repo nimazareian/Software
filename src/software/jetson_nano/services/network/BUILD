@@ -12,6 +12,7 @@ cc_library(
         "//software/networking:threaded_proto_udp_listener",
         "//software/networking:threaded_proto_udp_sender",
         "@boost//:asio",
+        "//proto/message_translation:tbots_protobuf",
     ],
 )
 
