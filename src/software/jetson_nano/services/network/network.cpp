@@ -1,5 +1,7 @@
 #include "software/jetson_nano/services/network/network.h"
 
+#include "proto/message_translation/tbots_protobuf.h"
+
 NetworkService::NetworkService(const std::string& ip_address,
                                unsigned short primitive_listener_port,
                                unsigned short robot_status_sender_port, bool multicast)
@@ -53,6 +55,12 @@ bool NetworkService::shouldSendNewRobotStatus(
 
 void NetworkService::primitiveSetCallback(TbotsProto::PrimitiveSet input)
 {
+    double curr_time = static_cast<double>(std::chrono::system_clock::now().time_since_epoch().count()) /
+                            NANOSECONDS_PER_SECOND;
+    // double delta_time_s = curr_time - last_primitive_time_s;
+    // LOG(PLOTJUGGLER) << *createPlotJugglerValue({{"PrimitiveDeltaTime", delta_time_s},
+    //     {"count", count++},});
+    last_primitive_time_s = curr_time;
     std::scoped_lock<std::mutex> lock(primitive_set_mutex);
     const uint64_t seq_num = input.sequence_number();
 

@@ -19,8 +19,15 @@ Point DribbleFSM::findInterceptionPoint(const Robot &robot, const Ball &ball,
     if (ball.velocity().length() < BALL_MOVING_SLOW_SPEED_THRESHOLD)
     {
         auto face_ball_vector = (ball.position() - robot.position());
+
+        double offset = 0;
+        // distance(robot.position(), ball.position()) > ROBOT_MAX_RADIUS_METERS + BALL_MAX_RADIUS_METERS ||
+        if (robot.orientation().minDiff(face_ball_vector.orientation()) > Angle::fromDegrees(5)) {
+            offset = 0.08;
+        }
+
         auto point_in_front_of_ball =
-            robotPositionToFaceBall(ball.position(), face_ball_vector.orientation());
+            robotPositionToFaceBall(ball.position(), face_ball_vector.orientation(), offset);
         return point_in_front_of_ball;
     }
     Point intercept_position = ball.position();
