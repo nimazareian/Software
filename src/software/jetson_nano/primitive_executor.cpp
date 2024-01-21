@@ -132,6 +132,8 @@ std::unique_ptr<TbotsProto::DirectControlPrimitive> PrimitiveExecutor::stepPrimi
             Vector local_velocity            = getTargetLinearVelocity();
             AngularVelocity angular_velocity = getTargetAngularVelocity();
 
+//            local_velocity = local_velocity.rotate(-3.0 * angular_velocity * time_step_.toSeconds());
+
             const Point pos = trajectory_path_->getPosition(time_since_trajectory_creation_.toSeconds());
             const Point destination = trajectory_path_->getDestination();
             const Angle orientation = angular_trajectory_->getPosition(time_since_trajectory_creation_.toSeconds());
