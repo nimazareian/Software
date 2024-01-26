@@ -151,10 +151,10 @@ def test_one_robots_square(field_test_runner):
     id = world.friendly_team.team_robots[0].id
     print(f"Running test on robot {id}")
 
-    point1 = Point(x_meters=-2.25, y_meters=0.3)
+    point1 = Point(x_meters=-2.25, y_meters=0.5)
     point2 = Point(x_meters=-2.25, y_meters=-0.5)
     point3 = Point(x_meters=-3.25, y_meters=-0.5)
-    point4 = Point(x_meters=-3.25, y_meters=0.3)
+    point4 = Point(x_meters=-3.25, y_meters=0.5)
 
     tactic_0 = MoveTactic(
         destination=point1,
@@ -210,7 +210,7 @@ def test_one_robots_square(field_test_runner):
             field_test_runner.run_test(
                 always_validation_sequence_set=[[]],
                 eventually_validation_sequence_set=[[]],
-                test_timeout_s=4,
+                test_timeout_s=3,
             )
 
     # Send a stop tactic after the test finishes
