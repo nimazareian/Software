@@ -123,7 +123,7 @@ def setup_gl_widget(
     gl_widget.add_layer(cost_vis_layer, False)
     gl_widget.add_layer(tactic_layer, False)
     gl_widget.add_layer(validation_layer)
-    gl_widget.add_layer(debug_shapes_layer, False)
+    gl_widget.add_layer(debug_shapes_layer)
 
     gl_widget.toolbar.pause_button.clicked.connect(world_layer.toggle_play_state)
 

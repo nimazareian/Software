@@ -29,7 +29,7 @@ class GLDebugShapesLayer(GLLayer):
 
         """
         super().__init__(name)
-        self.setDepthValue(DepthValues.BACKGROUND_DEPTH)
+        self.setDepthValue(DepthValues.ABOVE_FOREGROUND_DEPTH)
 
         self.debug_shape_map_buffer = ThreadSafeBuffer(buffer_size, DebugShapesMap)
         self.debug_shape_map = {}

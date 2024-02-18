@@ -258,7 +258,8 @@ RobotNavigationObstacleFactory::createDynamicObstaclesFromMotionConstraints(
 ObstaclePtr RobotNavigationObstacleFactory::createFromBallPosition(
     const Point &ball_position) const
 {
-    return createFromShape(Circle(ball_position, BALL_MAX_RADIUS_METERS));
+    return std::make_shared<GeomObstacle<Circle>>(
+            Circle(ball_position, ROBOT_MAX_RADIUS_METERS));
 }
 
 ObstaclePtr RobotNavigationObstacleFactory::createFromRobotPosition(

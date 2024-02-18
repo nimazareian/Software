@@ -1,6 +1,7 @@
 #include "software/ai/hl/stp/tactic/get_behind_ball/get_behind_ball_fsm.h"
 
 #include "software/ai/hl/stp/tactic/move_primitive.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 
 GetBehindBallFSM::GetBehindBallFSM()
@@ -13,7 +14,7 @@ void GetBehindBallFSM::updateMove(const Update& event)
     Vector behind_ball =
         Vector::createFromAngle(event.control_params.chick_direction + Angle::half());
     Point point_behind_ball = event.control_params.ball_location +
-                              behind_ball.normalize(ROBOT_MAX_RADIUS_METERS + 0.04);
+                              behind_ball.normalize(ROBOT_MAX_RADIUS_METERS + 0.05);
 
     event.common.set_primitive(std::make_unique<MovePrimitive>(
         event.common.robot, point_behind_ball, event.control_params.chick_direction,
@@ -52,14 +53,16 @@ bool GetBehindBallFSM::behindBall(const Update& event)
 
     Polygon behind_ball_region = Polygon({behind_ball_vertex_A2, behind_ball_vertex_A1,
                                           behind_ball_vertex_B, behind_ball_vertex_C});
-
-    std::cout << behind_ball_region << std::endl;
-    std::cout << event.control_params.ball_location << std::endl;
-    std::cout << event.common.robot.position() << std::endl;
-    std::cout << contains(behind_ball_region, event.common.robot.position()) << std::endl;
-    std::cout << compareAngles(event.common.robot.orientation(),
-                         event.control_params.chick_direction, Angle::fromDegrees(4)) << std::endl;
+    LOG(VISUALIZE) << *createDebugShapesMap({
+        {"behind_ball_region", *createShapeProto(behind_ball_region)}
+    });
+//    std::cout << behind_ball_region << std::endl;
+//    std::cout << event.control_params.ball_location << std::endl;
+//    std::cout << event.common.robot.position() << std::endl;
+//    std::cout << contains(behind_ball_region, event.common.robot.position()) << std::endl;
+//    std::cout << compareAngles(event.common.robot.orientation(),
+//                         event.control_params.chick_direction, Angle::fromDegrees(4)) << std::endl;
     return contains(behind_ball_region, event.common.robot.position()) &&
            compareAngles(event.common.robot.orientation(),
-                         event.control_params.chick_direction, Angle::fromDegrees(4));
+                         event.control_params.chick_direction, Angle::fromDegrees(4)); // TODO: Should be a dynamic param?!?
 }

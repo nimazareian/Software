@@ -83,7 +83,7 @@ class GLWidget(QWidget):
 
         self.layers = []
 
-        self.set_camera_view(CameraView.LANDSCAPE_HIGH_ANGLE)
+        self.set_camera_view(CameraView.ORTHOGRAPHIC)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         """Detect when a key has been pressed

@@ -383,6 +383,7 @@ def field_test_runner():
                 blue_full_system_proto_unix_io, yellow_full_system_proto_unix_io,
             )
             # Inject the proto unix ios into thunderscope and start the test
+            print(f"BEFORE THE Thunderscope {time.time()}")
             tscope = Thunderscope(
                 configure_field_test_view(
                     simulator_proto_unix_io=simulator_proto_unix_io,
@@ -407,6 +408,8 @@ def field_test_runner():
                 )
 
             time.sleep(LAUNCH_DELAY_S)
+
+            print(f"BEFORE THE FieldTestRunner {time.time()}")
             runner = FieldTestRunner(
                 test_name=current_test,
                 blue_full_system_proto_unix_io=blue_full_system_proto_unix_io,
@@ -415,6 +418,7 @@ def field_test_runner():
                 thunderscope=tscope,
                 is_yellow_friendly=args.run_yellow,
             )
+            print(f"AFTER THE FieldTestRunner {time.time()}")
 
             friendly_proto_unix_io.register_observer(World, runner.world_buffer)
 
@@ -437,7 +441,11 @@ def field_test_runner():
                 yellow_full_system_proto_unix_io.register_to_observe_everything(
                     yellow_logger.buffer
                 )
+
+                print(f"BEFORE THE YIELD {time.time()}")
+
                 yield runner
+                print(f"AFTER THE YIELD {time.time()}")
                 print(
                     f"\n\nTo replay this test for the blue team, go to the `src` folder and run \n./tbots.py run thunderscope --blue_log {blue_logger.log_folder}",
                     flush=True,

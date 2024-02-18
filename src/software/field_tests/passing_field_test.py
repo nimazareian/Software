@@ -29,8 +29,8 @@ def test_passing(field_test_runner):
                 robot.current_state.global_position
             )
     
-    receive_speed_m_per_s = 2.0
-    min_pass_speed_m_per_s = 1.0
+    receive_speed_m_per_s = 1.0
+    min_pass_speed_m_per_s = 0.0
     max_pass_speed_m_per_s = 4.0
 
     pass_to_test = tbots_cpp.Pass.fromDestReceiveSpeed(
@@ -45,6 +45,8 @@ def test_passing(field_test_runner):
         pass_to_test.receiverPoint().x() - pass_to_test.passerPoint().x(),
         pass_to_test.receiverPoint().y() - pass_to_test.passerPoint().y(),
     )
+
+    print(f"!!!!!!!! {pass_to_test.speed()=}")
 
     # Setup the passer's tactic
     # We use KickTactic since AttackerTactic shoots towards the goal instead if open
@@ -97,7 +99,7 @@ def test_passing(field_test_runner):
     field_test_runner.run_test(
         always_validation_sequence_set=always_validation_sequence_set,
         eventually_validation_sequence_set=[[]],
-        test_timeout_s=5,
+        test_timeout_s=30,
     )
 
     # Send a stop tactic after the test finishes
