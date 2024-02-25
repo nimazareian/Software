@@ -1,6 +1,7 @@
 #include "software/sensor_fusion/sensor_fusion.h"
 
 #include "software/logger/logger.h"
+#include "proto/message_translation/tbots_protobuf.h"
 
 SensorFusion::SensorFusion(TbotsProto::SensorFusionConfig sensor_fusion_config)
     : sensor_fusion_config(sensor_fusion_config),
@@ -35,6 +36,17 @@ std::optional<World> SensorFusion::getWorld() const
         if (referee_stage)
         {
             new_world.updateRefereeStage(*referee_stage);
+        }
+
+        if (defending_positive_side)
+        {
+            LOG(PLOTJUGGLER) << *createPlotJugglerValue({
+                    {"ball_px", ball->position().x()},
+                    {"ball_py", ball->position().y()},
+                    {"ball_vx", ball->velocity().x()},
+                    {"ball_vy", ball->velocity().y()},
+                    {"ball_v", ball->velocity().length()}
+            });
         }
 
         return new_world;
