@@ -177,16 +177,18 @@ double calculateInterceptRisk(const Robot& enemy_robot, const Pass& pass,
     // able to intercept the pass anywhere.
 
     // Figure out how long the enemy robot and ball will take to reach the closest
-    // point on the pass to the enemy's current position
+    // point on the pass to the enemy's current position. To simplify this calculation
+    // we assume movement in 1D along the pass line.
     Point closest_point_on_pass_to_robot = closestPoint(
         enemy_robot.position(), Segment(pass.passerPoint(), pass.receiverPoint()));
-    // Subtracting by the max robot radius as a threshold of the enemy robot blocking the
+    double signed_1d_enemy_vel = enemy_robot.velocity().dot((pass.receiverPoint() - pass.passerPoint()).normalize());
     // pass
     double distance = (closest_point_on_pass_to_robot - enemy_robot.position()).length() -
                       ROBOT_MAX_RADIUS_METERS;
     Duration enemy_robot_time_to_closest_pass_point =
         getTimeToTravelDistance(distance, ENEMY_ROBOT_MAX_SPEED_METERS_PER_SECOND,
-                                ENEMY_ROBOT_MAX_ACCELERATION_METERS_PER_SECOND_SQUARED);
+                                ENEMY_ROBOT_MAX_ACCELERATION_METERS_PER_SECOND_SQUARED, signed_1d_enemy_vel, 0.5); // TODO(NIMA): Make 0.5 a constant (final vel)
+    // TODO (NIMA): Update to use Saurav's ball model. If not, could use t=sqrt(2*(d - v_i*t) / a)
     Duration ball_time_to_closest_pass_point = Duration::fromSeconds(
         (closest_point_on_pass_to_robot - pass.passerPoint()).length() / pass.speed());
 
@@ -325,13 +327,13 @@ double calculateProximityRisk(const Point& point, const Team& enemy_team,
 {
     // Calculate a risk score based on the distance of the enemy robots from the receive
     // point, based on an exponential function of the distance of each robot from the
-    // receiver point
+    // receiver point. The closer the enemy robot, the higher the risk.
     auto enemy_robots                 = enemy_team.getAllRobots();
-    double point_enemy_proximity_risk = 1;
+    double point_enemy_proximity_risk = 0;
     for (const Robot& enemy : enemy_team.getAllRobots())
     {
         double dist = (point - enemy.position()).length();
-        point_enemy_proximity_risk *= enemy_proximity_importance * std::exp(-dist * dist);
+        point_enemy_proximity_risk = std::max(point_enemy_proximity_risk, enemy_proximity_importance * std::exp(-dist * dist));
     }
     if (enemy_robots.empty())
     {

@@ -74,7 +74,7 @@ class GLCostVisLayer(GLLayer):
     protobuf data will be sent but not plotted.
     """
 
-    COST_VISUALIZATION_TIMEOUT_S = 0.5
+    COST_VISUALIZATION_TIMEOUT_S = 10000
 
     def __init__(self, name: str, buffer_size: int = 5) -> None:
         """Initialize the GLCostVisLayer
@@ -94,7 +94,7 @@ class GLCostVisLayer(GLLayer):
         )
         self.cached_world = World()
         self.cached_cost_vis = CostVisualization()
-        self.timeout = time.time() + GLCostVisLayer.COST_VISUALIZATION_TIMEOUT_S
+        self.timeout = 0.0
 
         self.color_map = pg.colormap.get("CET-L1")
         self.color_map_gradient = self.color_map.getGradient()

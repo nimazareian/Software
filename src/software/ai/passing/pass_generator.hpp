@@ -184,6 +184,15 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::samplePasses(const WorldPtr& worl
     {
         auto zone = pitch_division_->getZone(zone_id);
 
+        // TODO (NIMA): This should be in cost functions and smoother. Since in scenarios like kickoff we might want
+        //  to pass backwards
+        // Skip zones which are behind the ball in the friendly half to avoid
+        // passing backward far into our own half
+//        if (world_ptr->ball().position().x() < std::min(zone.xMin(), 0.0))
+//        {
+//            continue;
+//        }
+
         std::uniform_real_distribution x_distribution(zone.xMin(), zone.xMax());
         std::uniform_real_distribution y_distribution(zone.yMin(), zone.yMax());
 
@@ -197,6 +206,18 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::samplePasses(const WorldPtr& worl
                                                      pitch_division_->getZone(zone_id),
                                                      passing_config_)});
     }
+
+//    for (const Robot& friendly_robot : world_ptr->friendlyTeam().getAllRobots())
+//    {
+//        // TODO (NIMA): Make this a parameter
+//        Point ball_pos = world_ptr->ball().position();
+//        if (distance(ball_pos, friendly_robot.position()) <
+//            0.5 || friendly_robot.position().x() < (ball_pos.x() - 1.0))
+//        {
+//            continue;
+//        }
+//        passes.emplace()
+//    }
 
     return passes;
 }

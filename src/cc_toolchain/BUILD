@@ -114,7 +114,7 @@ cc_toolchain(
     # We add this tag to circumvent a bug in the CLion bazel plugin. It should be removed
     # when possible
     # https://github.com/bazelbuild/intellij/issues/486
-    tags = ["no-ide"],
+    tags = ["no-ide"], # TODO (NIMA): Is this still needed? The GH issue is closed and last comment was in 2019
     toolchain_config = ":linux_gcc",
     toolchain_identifier = "k8_gcc-x86_64",
 )
