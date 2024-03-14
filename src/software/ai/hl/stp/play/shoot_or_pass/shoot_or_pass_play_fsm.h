@@ -140,6 +140,7 @@ struct ShootOrPassPlayFSM
     std::shared_ptr<AttackerTactic> attacker_tactic;
     std::shared_ptr<ReceiverTactic> receiver_tactic;
     std::vector<std::shared_ptr<MoveTactic>> offensive_positioning_tactics;
+    std::shared_ptr<const FieldPitchDivision<EighteenZoneId>> pitch_division;
     PassGenerator<EighteenZoneId> pass_generator;
     Timestamp pass_optimization_start_time;
     PassWithRating best_pass_and_score_so_far;

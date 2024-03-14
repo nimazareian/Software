@@ -37,7 +37,7 @@ double ratePass(const WorldPtr& world_ptr, const Pass& pass, const Rectangle& zo
  * @return A value in [0,1] representing the quality of the zone, with 1 being a
  *         great zone to send a cherry picker to, and 0 being a zone to avoid.
  */
-double rateZone(const Field& field, const Team& enemy_team, const Rectangle& zone,
+double rateZone(const World& world, const Team& enemy_team, const Rectangle& zone,
                 const Point& ball_position, TbotsProto::PassingConfig passing_config);
 
 /**

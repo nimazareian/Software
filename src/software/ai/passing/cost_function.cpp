@@ -41,16 +41,18 @@ double ratePass(const WorldPtr& world_ptr, const Pass& pass, const Rectangle& zo
            shoot_pass_rating * pass_speed_quality * in_region_quality;
 }
 
-double rateZone(const Field& field, const Team& enemy_team, const Rectangle& zone,
+double rateZone(const World& world, const Team& enemy_team, const Rectangle& zone,
                 const Point& ball_position, TbotsProto::PassingConfig passing_config)
 {
-    // TODO (#2021) improve and implement tests
-    // Zones with their centers in bad positions are not good
     double static_pass_quality =
-        getStaticPositionQuality(field, zone.centre(), passing_config);
+        getStaticPositionQuality(world.field(), zone.centre(), passing_config);
 
     // Rate zones that are up the field higher to encourage progress up the field
-    double pass_up_field_rating = zone.centre().x() / field.xLength();
+    double pass_up_field_rating = sigmoid(zone.centre().x(), world.ball().position().x() - 1.0, 1.0); // zone.centre().x() / world.field().xLength();
+
+    // We want to encourage passes that are not too far away from the passer
+    // to stop the robots from trying to pass across the field
+    double pass_not_too_far = circleSigmoid(Circle(world.ball().position(), 7.0), zone.centre(), 2.0);  // TODO (NIMA): Add to config: UP TO 5 METERS
 
     auto enemy_reaction_time =
         Duration::fromSeconds(passing_config.enemy_reaction_time());
@@ -79,7 +81,7 @@ double rateZone(const Field& field, const Team& enemy_team, const Rectangle& zon
              enemy_reaction_time, enemy_proximity_importance)) /
         5.0;
 
-    return pass_up_field_rating * static_pass_quality * enemy_risk_rating;
+    return pass_up_field_rating * pass_not_too_far * static_pass_quality * enemy_risk_rating;
 }
 
 double ratePassShootScore(const Field& field, const Team& enemy_team, const Pass& pass,
@@ -183,8 +185,8 @@ double calculateInterceptRisk(const Robot& enemy_robot, const Pass& pass,
         enemy_robot.position(), Segment(pass.passerPoint(), pass.receiverPoint()));
     double signed_1d_enemy_vel = enemy_robot.velocity().dot((pass.receiverPoint() - pass.passerPoint()).normalize());
     // pass
-    double distance = (closest_point_on_pass_to_robot - enemy_robot.position()).length() -
-                      ROBOT_MAX_RADIUS_METERS;
+    double distance = std::max(0.0, (closest_point_on_pass_to_robot - enemy_robot.position()).length() -
+                      ROBOT_MAX_RADIUS_METERS); // TODO (NIMA): It is potentially faster to travel to +radius than -radius
     Duration enemy_robot_time_to_closest_pass_point =
         getTimeToTravelDistance(distance, ENEMY_ROBOT_MAX_SPEED_METERS_PER_SECOND,
                                 ENEMY_ROBOT_MAX_ACCELERATION_METERS_PER_SECOND_SQUARED, signed_1d_enemy_vel, 0.5); // TODO(NIMA): Make 0.5 a constant (final vel)
@@ -222,7 +224,7 @@ double calculateInterceptRisk(const Robot& enemy_robot, const Pass& pass,
     // the pass does. As such, we place the time difference between the robot and ball
     // on a sigmoid that is centered at 0, and goes to 1 at positive values, 0 at
     // negative values.
-    return 1 - sigmoid(min_time_diff, 0, 1);
+    return 1 - sigmoid(min_time_diff, 0.5, 5); // TODO (NIMA): Will probably have to tune...
 }
 
 double ratePassFriendlyCapability(const Team& friendly_team, const Pass& pass,

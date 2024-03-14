@@ -161,12 +161,23 @@ std::vector<ZoneEnum> PassEvaluation<ZoneEnum>::rankZonesForReceiving(
 
     std::sort(cherry_pick_zones.begin(), cherry_pick_zones.end(),
               [this, &world_ptr, &pass_position](const ZoneEnum& z1, const ZoneEnum& z2) {
-                  return rateZone(world_ptr->field(), world_ptr->enemyTeam(),
+                  return rateZone(*world_ptr, world_ptr->enemyTeam(),
                                   pitch_division_->getZone(z1), pass_position,
                                   passing_config_) >
-                         rateZone(world_ptr->field(), world_ptr->enemyTeam(),
+                         rateZone(*world_ptr, world_ptr->enemyTeam(),
                                   pitch_division_->getZone(z2), pass_position,
                                   passing_config_);
               });
+
+//    if (distance(pass_position, Point(-4.5, -3)) < 0.5)
+//    {
+//        std::cout << "-------------------" << std::endl;
+//        // Log the centers of the sorted zones
+//        for (const auto& zone : cherry_pick_zones)
+//        {
+//            Point center = pitch_division_->getZone(zone).centre();
+//            std::cout << "Zone " << static_cast<int>(zone) + 1 << " center: " << center << std::endl;
+//        }
+//    }
     return cherry_pick_zones;
 }

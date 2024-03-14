@@ -8,9 +8,10 @@ ShootOrPassPlayFSM::ShootOrPassPlayFSM(TbotsProto::AiConfig ai_config)
       attacker_tactic(std::make_shared<AttackerTactic>(ai_config)),
       receiver_tactic(std::make_shared<ReceiverTactic>()),
       offensive_positioning_tactics(std::vector<std::shared_ptr<MoveTactic>>()),
+      pitch_division(std::make_shared<const EighteenZonePitchDivision>(
+              Field::createSSLDivisionBField())),
       pass_generator(
-          PassGenerator<EighteenZoneId>(std::make_shared<const EighteenZonePitchDivision>(
-                                            Field::createSSLDivisionBField()),
+          PassGenerator<EighteenZoneId>(pitch_division,
                                         ai_config.passing_config())),
       pass_optimization_start_time(Timestamp::fromSeconds(0)),
       best_pass_and_score_so_far(
@@ -59,7 +60,7 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
         auto ranked_zones = pass_eval.rankZonesForReceiving(
             event.common.world_ptr, event.common.world_ptr->ball().position());
 
-        best_pass_and_score_so_far = pass_eval.getBestPassOnField();
+        best_pass_and_score_so_far = pass_eval.getBestPassOnField(); // TODO (NIMA): I think we can remove this duplicated call
 
 
         // Wait for a good pass by starting out only looking for "perfect" passes
@@ -109,6 +110,7 @@ void ShootOrPassPlayFSM::takePass(const Update& event)
         event.common.world_ptr, best_pass_and_score_so_far.pass.receiverPoint());
 
     // if we make it here then we have committed to the pass
+    LOG(DEBUG) << "Committing to pass with score " << best_pass_and_score_so_far.rating;
     attacker_tactic->updateControlParams(best_pass_and_score_so_far.pass, true);
     receiver_tactic->updateControlParams(best_pass_and_score_so_far.pass);
     event.common.set_inter_play_communication_fun(
@@ -163,19 +165,34 @@ bool ShootOrPassPlayFSM::shouldAbortPass(const Update& event)
     const auto short_pass_threshold =
         this->ai_config.shoot_or_pass_play_config().short_pass_threshold();
 
-    const auto pass_area_polygon =
-        Polygon::fromSegment(Segment(passer_point, receiver_point), 0.5);
+    const auto pass_stadium =
+        Stadium(Segment(passer_point, receiver_point), 0.5);
 
-    // calculate a polygon that contains the receiver and passer point, and checks if the
+    // calculate a stadium that contains the receiver and passer point, and checks if the
     // ball is inside it. if the ball isn't being passed to the receiver then we should
     // abort
     if ((receiver_point - passer_point).length() >= short_pass_threshold)
     {
-        if (!contains(pass_area_polygon, ball_position))
+        if (!contains(pass_stadium, ball_position))
         {
             return true;
         }
     }
+
+    // Update pass based on current ball position
+    best_pass_and_score_so_far.pass = Pass(event.common.world_ptr->ball().position(), best_pass_and_score_so_far.pass.receiverPoint(), best_pass_and_score_so_far.pass.speed());
+
+    // Calculate cost for the updated pass
+    const Rectangle& zone = pitch_division->getZone(pitch_division->getZoneId(best_pass_and_score_so_far.pass.receiverPoint()));
+    double curr_pass_rating = ratePass(event.common.world_ptr, best_pass_and_score_so_far.pass, zone, ai_config.passing_config());
+    best_pass_and_score_so_far.rating = curr_pass_rating;
+    if (curr_pass_rating < min_pass_score_threshold)
+    {
+        LOG(INFO) << "Aborting pass, pass rating " << curr_pass_rating
+                  << " is below threshold " << min_pass_score_threshold;
+        return true;
+    }
+
 
     // distance between robot and ball is too far, and it's not in flight,
     // i.e. team might still have possession, but kicker/passer doesn't have control over
