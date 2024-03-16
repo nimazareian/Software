@@ -249,7 +249,13 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::optimizePasses(
             passing_config_.number_of_gradient_descent_steps_per_iter());
 
         auto new_pass = Pass::fromPassArray(world_ptr->ball().position(), pass_array);
-        std::cout << "Moved " << distance(receiver_point, new_pass.receiverPoint()) << std::endl;
+
+//        LOG(CSV, "pass_optimizer_stats.csv") << "moved_distance,changed_score\n";
+//        LOG(CSV, "pass_optimizer_stats.csv") << distance(receiver_point, new_pass.receiverPoint()) << ","
+//                                            << (ratePass(world_ptr, new_pass, pitch_division_->getZone(zone_id),
+//                                                         passing_config_) - generated_passes.at(zone_id).rating) << "\n";
+
+//        std::cout << "Moved " << distance(receiver_point, new_pass.receiverPoint()) << std::endl;
         // TODO (NIMA): LOG(CSV) distance and bin + histogram
         auto score    = ratePass(world_ptr, new_pass, pitch_division_->getZone(zone_id),
                               passing_config_);

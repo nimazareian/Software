@@ -1,6 +1,7 @@
 #include "software/ai/passing/cost_function.h"
 
 #include <numeric>
+#include <Tracy.hpp>
 
 #include "proto/message_translation/tbots_protobuf.h"
 #include "proto/parameters.pb.h"
@@ -16,6 +17,8 @@
 double ratePass(const WorldPtr& world_ptr, const Pass& pass, const Rectangle& zone,
                 TbotsProto::PassingConfig passing_config)
 {
+    ZoneNamedN(_random_variable, "Rate Pass", true);
+
     double static_pass_quality = getStaticPositionQuality(
         world_ptr->field(), pass.receiverPoint(), passing_config);
 
