@@ -234,8 +234,9 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::optimizePasses(
     {
         // The objective function we minimize in gradient descent to improve each pass
         // that we're optimizing
+        Point receiver_point = generated_passes.at(zone_id).pass.receiverPoint();// TODO (NIMA): Added for testing to see how much the point moves
         const auto objective_function =
-            [this, &world_ptr,
+            [this, &world_ptr, receiver_point,
              zone_id](const std::array<double, NUM_PARAMS_TO_OPTIMIZE>& pass_array) {
                 return ratePass(
                     world_ptr,
@@ -248,6 +249,8 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::optimizePasses(
             passing_config_.number_of_gradient_descent_steps_per_iter());
 
         auto new_pass = Pass::fromPassArray(world_ptr->ball().position(), pass_array);
+        std::cout << "Moved " << distance(receiver_point, new_pass.receiverPoint()) << std::endl;
+        // TODO (NIMA): LOG(CSV) distance and bin + histogram
         auto score    = ratePass(world_ptr, new_pass, pitch_division_->getZone(zone_id),
                               passing_config_);
 

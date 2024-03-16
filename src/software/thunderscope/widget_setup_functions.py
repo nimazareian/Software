@@ -131,11 +131,11 @@ def setup_gl_widget(
     gl_widget.add_layer(path_layer)
     gl_widget.add_layer(obstacle_layer)
     gl_widget.add_layer(passing_layer)
-    gl_widget.add_layer(cost_vis_layer, False)
+    gl_widget.add_layer(cost_vis_layer)
     gl_widget.add_layer(tactic_layer, False)
     gl_widget.add_layer(validation_layer)
     gl_widget.add_layer(trail_layer, False)
-    gl_widget.add_layer(debug_shapes_layer, False)
+    gl_widget.add_layer(debug_shapes_layer)
 
     gl_widget.toolbar.pause_button.clicked.connect(world_layer.toggle_play_state)
 
@@ -154,6 +154,12 @@ def setup_gl_widget(
     # Register observers
     sim_proto_unix_io.register_observer(
         SimulationState, gl_widget.toolbar.simulation_state_buffer
+    )
+    sim_proto_unix_io.register_observer(
+        SimulationState, debug_shapes_layer.simulation_state_buffer
+    )
+    sim_proto_unix_io.register_observer(
+        SimulationState, cost_vis_layer.simulation_state_buffer
     )
 
     for arg in [

@@ -11,6 +11,7 @@
 #include "software/geom/algorithms/contains.h"
 #include "software/geom/algorithms/convex_angle.h"
 #include "software/logger/logger.h"
+#include "software/geom/algorithms/distance.h"
 
 double ratePass(const WorldPtr& world_ptr, const Pass& pass, const Rectangle& zone,
                 TbotsProto::PassingConfig passing_config)
@@ -27,7 +28,7 @@ double ratePass(const WorldPtr& world_ptr, const Pass& pass, const Rectangle& zo
                           passing_config.enemy_proximity_importance());
 
     double shoot_pass_rating = ratePassShootScore(
-        world_ptr->field(), world_ptr->enemyTeam(), pass, passing_config);
+        *world_ptr, pass, passing_config);
 
     double in_region_quality = rectangleSigmoid(zone, pass.receiverPoint(), 0.2);
 
@@ -53,6 +54,7 @@ double rateZone(const World& world, const Team& enemy_team, const Rectangle& zon
     // We want to encourage passes that are not too far away from the passer
     // to stop the robots from trying to pass across the field
     double pass_not_too_far = circleSigmoid(Circle(world.ball().position(), 7.0), zone.centre(), 2.0);  // TODO (NIMA): Add to config: UP TO 5 METERS
+    double pass_not_too_close = 1 - circleSigmoid(Circle(world.ball().position(), 1.5), zone.centre(), 2.0);  // TODO (NIMA): Add to config: UP TO 5 METERS
 
     auto enemy_reaction_time =
         Duration::fromSeconds(passing_config.enemy_reaction_time());
@@ -81,32 +83,39 @@ double rateZone(const World& world, const Team& enemy_team, const Rectangle& zon
              enemy_reaction_time, enemy_proximity_importance)) /
         5.0;
 
-    return pass_up_field_rating * pass_not_too_far * static_pass_quality * enemy_risk_rating;
+    return pass_up_field_rating * pass_not_too_far * pass_not_too_close * static_pass_quality * enemy_risk_rating;
 }
 
-double ratePassShootScore(const Field& field, const Team& enemy_team, const Pass& pass,
+double ratePassShootScore(const World& world, const Pass& pass,
                           TbotsProto::PassingConfig passing_config)
 {
     double ideal_max_rotation_to_shoot_degrees =
         passing_config.ideal_max_rotation_to_shoot_degrees();
 
     // Figure out the range of angles for which we have an open shot to the goal after
-    // receiving the pass
-    auto shot_opt = calcBestShotOnGoal(
-        Segment(field.enemyGoalpostPos(), field.enemyGoalpostNeg()), pass.receiverPoint(),
-        enemy_team.getAllRobots(), TeamType::ENEMY);
+    // receiving the pass. Take into account all friendly and enemy robots when
+    // calculating the open angle other than the receiving/shooting robot.
+    const auto& friendly_robots = world.friendlyTeam().getAllRobots();
+    const Robot& receiving_robot = *std::min_element(
+            friendly_robots.begin(), friendly_robots.end(),
+        [&pass](const Robot& a, const Robot& b) {
+            return distance(a.position(), pass.receiverPoint()) <
+                   distance(b.position(), pass.receiverPoint());
+        });
+    auto shot_opt = calcBestShotOnGoal(world.field(), world.friendlyTeam(), world.enemyTeam(), pass.receiverPoint(),
+                                       TeamType::ENEMY, {receiving_robot});
 
     Angle open_angle_to_goal = Angle::zero();
-    Point shot_target        = field.enemyGoalCenter();
+    Point shot_target        = world.field().enemyGoalCenter();
     if (shot_opt && shot_opt.value().getOpenAngle().abs() > Angle::fromDegrees(0))
     {
         open_angle_to_goal = shot_opt.value().getOpenAngle();
+        shot_target = shot_opt.value().getPointToShootAt();
     }
 
     // Figure out what the maximum open angle of the goal could be from the receiver pos.
-    Angle goal_angle = convexAngle(field.enemyGoalpostNeg(), pass.receiverPoint(),
-                                   field.enemyGoalpostPos())
-                           .abs();
+    Angle goal_angle = convexAngle(world.field().enemyGoalpostNeg(), pass.receiverPoint(),
+                                   world.field().enemyGoalpostPos());
     double net_percent_open = 0;
     if (goal_angle > Angle::zero())
     {
@@ -133,7 +142,7 @@ double ratePassShootScore(const Field& field, const Team& enemy_team, const Pass
         (shot_target - pass.receiverPoint()).orientation());
     double required_rotation_for_shot_score =
         1 - sigmoid(rotation_to_shot_target_after_pass.abs().toDegrees(),
-                    ideal_max_rotation_to_shoot_degrees, 4);
+                    ideal_max_rotation_to_shoot_degrees, 150) * 0.8; // TODO (NIMA): Add to config: lowerst 0.8
 
     return shot_openness_score * required_rotation_for_shot_score;
 }
@@ -161,7 +170,7 @@ double calculateInterceptRisk(const Team& enemy_team, const Pass& pass,
     }
     std::vector<double> enemy_intercept_risks(enemy_robots.size());
     std::transform(enemy_robots.begin(), enemy_robots.end(),
-                   enemy_intercept_risks.begin(), [&](Robot robot) {
+                   enemy_intercept_risks.begin(), [&](const Robot& robot) {
                        return calculateInterceptRisk(robot, pass, enemy_reaction_time);
                    });
     return *std::max_element(enemy_intercept_risks.begin(), enemy_intercept_risks.end());
@@ -242,14 +251,14 @@ double ratePassFriendlyCapability(const Team& friendly_team, const Pass& pass,
         return 0;
     }
 
+    // TODO (NIMA): Consider updating this to look at all robots' times to interception instead of just the closest
     // Get the robot that is closest to where the pass would be received
     Robot best_receiver = friendly_team.getAllRobots()[0];
+    double curr_best_distance_sq = (best_receiver.position() - pass.receiverPoint()).lengthSquared();
     for (const Robot& robot : friendly_team.getAllRobots())
     {
-        double distance = (robot.position() - pass.receiverPoint()).length();
-        double curr_best_distance =
-            (best_receiver.position() - pass.receiverPoint()).length();
-        if (distance < curr_best_distance)
+        double distance_sq = (robot.position() - pass.receiverPoint()).lengthSquared();
+        if (distance_sq < curr_best_distance_sq)
         {
             best_receiver = robot;
         }
@@ -280,7 +289,7 @@ double ratePassFriendlyCapability(const Team& friendly_team, const Pass& pass,
     // Create a sigmoid that goes to 0 as the time required to get to the reception
     // point exceeds the time we would need to get there by
     double sigmoid_width                  = 0.4;
-    double time_to_receiver_state_slack_s = 0.25;
+    double time_to_receiver_state_slack_s = 0.0; // TODO (NIMA): This was 0.25. The sigmoid already adds extra padding
 
     return sigmoid(
         receive_time.toSeconds(),
@@ -356,10 +365,6 @@ void samplePassesForVisualization(const WorldPtr& world_ptr,
     double height = world_ptr->field().yLength() / num_rows;
 
     std::vector<double> costs;
-    double static_pos_quality_costs;
-    double pass_friendly_capability_costs;
-    double pass_enemy_risk_costs;
-    double pass_shoot_score_costs;
 
     // We loop column wise (in the same order as how zones are defined)
     for (int i = 0; i < num_cols; i++)
@@ -374,10 +379,12 @@ void samplePassesForVisualization(const WorldPtr& world_ptr,
                              passing_config.max_pass_speed_m_per_s());
 
             // default values
-            static_pos_quality_costs       = 1;
-            pass_friendly_capability_costs = 1;
-            pass_enemy_risk_costs          = 1;
-            pass_shoot_score_costs         = 1;
+            double static_pos_quality_costs       = 1;
+            double pass_friendly_capability_costs = 1;
+            double enemy_proximity_cost          = 1;
+            double enemy_interception_cost          = 1;
+            double pass_shoot_score_costs         = 1;
+            double debugging_cost                 = 1;
 
             // getStaticPositionQuality
             if (passing_config.cost_vis_config().static_position_quality())
@@ -393,24 +400,38 @@ void samplePassesForVisualization(const WorldPtr& world_ptr,
                     world_ptr->friendlyTeam(), pass, passing_config);
             }
 
-            // ratePassEnemyRisk
-            if (passing_config.cost_vis_config().pass_enemy_risk())
+            // ratePassEnemyRisk: calculateProximityRisk
+            if (passing_config.cost_vis_config().enemy_proximity_score())
             {
-                pass_enemy_risk_costs = ratePassEnemyRisk(
-                    world_ptr->enemyTeam(), pass,
-                    Duration::fromSeconds(passing_config.enemy_reaction_time()),
+                enemy_proximity_cost = 1 - calculateProximityRisk(
+                    pass.receiverPoint(), world_ptr->enemyTeam(),
                     passing_config.enemy_proximity_importance());
+            }
+
+            // ratePassEnemyRisk: calculateInterceptRisk
+            if (passing_config.cost_vis_config().enemy_interception_score())
+            {
+                enemy_interception_cost = 1 - calculateInterceptRisk(
+                    world_ptr->enemyTeam(), pass,
+                    Duration::fromSeconds(passing_config.enemy_reaction_time()));
             }
 
             // ratePassShootScore
             if (passing_config.cost_vis_config().pass_shoot_score())
             {
                 pass_shoot_score_costs = ratePassShootScore(
-                    world_ptr->field(), world_ptr->enemyTeam(), pass, passing_config);
+                    *world_ptr, pass, passing_config);
+            }
+
+            // TODO (NIMA): Used for debugging other cost functions
+            if (passing_config.cost_vis_config().debugging_score())
+            {
+                debugging_cost = circleSigmoid(Circle(pass.passerPoint(), 8.0), pass.receiverPoint(), 7.0) *
+                        (1 - circleSigmoid(Circle(pass.passerPoint(), 1.5), pass.receiverPoint(), 2.0));
             }
 
             costs.push_back(static_pos_quality_costs * pass_friendly_capability_costs *
-                            pass_enemy_risk_costs * pass_shoot_score_costs);
+                            std::min(enemy_proximity_cost, enemy_interception_cost) * pass_shoot_score_costs * debugging_cost);
         }
     }
 

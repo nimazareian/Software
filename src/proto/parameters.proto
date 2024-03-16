@@ -100,7 +100,7 @@ message PassingConfig
     // try to take shots that require us to rotate more then this, it's more
     // of a soft limit.
     required double ideal_max_rotation_to_shoot_degrees = 5 [
-        default                   = 60.0,
+        default                   = 100.0,
         (bounds).min_double_value = 0.0,
         (bounds).max_double_value = 180.0
     ];
@@ -372,6 +372,7 @@ message RobotNavigationObstacleConfig
 
 message CostVisualizationConfig
 {
+    reserved 5;
     // Whether we should generate sample passes for the cost visualization
     required bool generate_sample_passes = 1 [default = false];
     required int32 num_cols              = 2
@@ -379,8 +380,11 @@ message CostVisualizationConfig
     // cost functions
     required bool static_position_quality  = 3 [default = false];
     required bool pass_friendly_capability = 4 [default = false];
-    required bool pass_enemy_risk          = 5 [default = false];
+//    required bool pass_enemy_risk          = 5 [default = false];
     required bool pass_shoot_score         = 6 [default = false];
+    required bool enemy_proximity_score         = 7 [default = false];
+    required bool enemy_interception_score         = 8 [default = false];
+    required bool debugging_score         = 9 [default = false];
 }
 
 message PossessionTrackerConfig

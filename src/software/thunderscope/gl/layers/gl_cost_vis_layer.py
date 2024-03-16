@@ -8,7 +8,7 @@ import time
 import queue
 import numpy as np
 
-from proto.world_pb2 import World
+from proto.world_pb2 import World, SimulationState
 from proto.visualization_pb2 import CostVisualization
 
 from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
@@ -74,7 +74,7 @@ class GLCostVisLayer(GLLayer):
     protobuf data will be sent but not plotted.
     """
 
-    COST_VISUALIZATION_TIMEOUT_S = 10000
+    COST_VISUALIZATION_TIMEOUT_S = 0.5
 
     def __init__(self, name: str, buffer_size: int = 5) -> None:
         """Initialize the GLCostVisLayer
@@ -87,6 +87,8 @@ class GLCostVisLayer(GLLayer):
         super().__init__(name)
         self.setDepthValue(DepthValues.BENEATH_BACKGROUND_DEPTH)
         self.related_layer = GLCostVisOverlayLayer(self)
+
+        self.simulation_state_buffer = ThreadSafeBuffer(1, SimulationState)
 
         self.world_buffer = ThreadSafeBuffer(buffer_size, World)
         self.cost_visualization_buffer = ThreadSafeBuffer(
@@ -103,6 +105,12 @@ class GLCostVisLayer(GLLayer):
 
     def refresh_graphics(self) -> None:
         """Update graphics in this layer"""
+
+        simulation_state = self.simulation_state_buffer.get(
+            block=False
+        )
+        if not simulation_state.is_playing:
+            return
 
         self.cached_world = self.world_buffer.get(block=False)
         field = self.cached_world.field

@@ -25,9 +25,6 @@
  * https://www.ruder.io/optimizing-gradient-descent/#adam
  * https://en.wikipedia.org/wiki/Moment_(mathematics)
  *
- * NOTE: CLion complains about "Redefinition of GradientDescentOptimizer", but it's
- *       incorrect, this class compiles just fine.
- *
  * @tparam NUM_PARAMS The number of parameters that a given instance of this class
  *                    will optimize over.
  */

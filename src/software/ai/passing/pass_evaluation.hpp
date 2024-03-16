@@ -159,6 +159,9 @@ std::vector<ZoneEnum> PassEvaluation<ZoneEnum>::rankZonesForReceiving(
 {
     std::vector<ZoneEnum> cherry_pick_zones = pitch_division_->getAllZoneIds();
 
+    // TODO (NIMA): Rating zones without considering friendly robots could lead to
+    //  robots going to zones which are right next to each other (in worst case
+    //  to friendly robots are in a line from where the ball is)
     std::sort(cherry_pick_zones.begin(), cherry_pick_zones.end(),
               [this, &world_ptr, &pass_position](const ZoneEnum& z1, const ZoneEnum& z2) {
                   return rateZone(*world_ptr, world_ptr->enemyTeam(),
@@ -179,5 +182,13 @@ std::vector<ZoneEnum> PassEvaluation<ZoneEnum>::rankZonesForReceiving(
 //            std::cout << "Zone " << static_cast<int>(zone) + 1 << " center: " << center << std::endl;
 //        }
 //    }
+    std::map<std::string, TbotsProto::Shape> zone_shapes;
+    for (unsigned int i = 0; i < cherry_pick_zones.size(); i++)
+    {
+        zone_shapes.insert({std::to_string(i + 1),
+                            *createShapeProto(pitch_division_->getZone(cherry_pick_zones[i]))});
+    }
+    LOG(VISUALIZE) << *createDebugShapesMap(zone_shapes);
+
     return cherry_pick_zones;
 }

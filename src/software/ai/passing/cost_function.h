@@ -43,8 +43,7 @@ double rateZone(const World& world, const Team& enemy_team, const Rectangle& zon
 /**
  * Rate pass based on the probability of scoring once we receive the pass
  *
- * @param field The field we are playing on
- * @param enemy_team The enemy team
+ * @param world The world in which to rate the pass
  * @param pass The pass to rate
  * @param passing_config The passing config used for tuning
  *
@@ -52,7 +51,7 @@ double rateZone(const World& world, const Team& enemy_team, const Rectangle& zon
  *         the pass, and 1 indicating that it is guaranteed to be able to score off of
  *         the pass
  */
-double ratePassShootScore(const Field& field, const Team& enemy_team, const Pass& pass,
+double ratePassShootScore(const World& world, const Pass& pass,
                           TbotsProto::PassingConfig passing_config);
 
 /**
