@@ -230,6 +230,11 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::optimizePasses(
         auto score    = ratePass(world_ptr, new_pass, pitch_division_->getZone(zone_id),
                               passing_config_);
 
+        // " + std::to_string(duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()) + "
+        LOG(CSV, "pass_optimizer_stats_.csv")
+                << distance(generated_passes.at(zone_id).pass.receiverPoint(), new_pass.receiverPoint()) << ","
+                << (score - generated_passes.at(zone_id).rating) << "\n";
+
         optimized_passes.emplace(zone_id, PassWithRating{new_pass, score});
     }
 

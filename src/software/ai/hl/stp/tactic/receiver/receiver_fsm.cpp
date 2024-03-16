@@ -96,7 +96,7 @@ std::optional<Shot> ReceiverFSM::findFeasibleShot(const WorldPtr& world_ptr,
         // deflection angle that is reasonable, we should one-touch kick the ball
         // towards the enemy net
         if (net_percent_open > MIN_SHOT_NET_PERCENT_OPEN &&
-            abs_angle_between_pass_and_shot_vectors < MAX_DEFLECTION_FOR_ONE_TOUCH_SHOT)
+            abs_angle_between_pass_and_shot_vectors < MAX_DEFLECTION_FOR_ONE_TOUCH_SHOT) // Too strict
         {
             return best_shot_opt;
         }
