@@ -53,14 +53,14 @@ int main(int argc, char** argv)
 
     if (!args.help)
     {
-        if (args.friendly_colour_yellow)
-        {
-            TracySetProgramName("Thunderbots: Blue");
-        }
-        else
-        {
-            TracySetProgramName("Thunderbots: Yellow");
-        }
+        //        if (args.friendly_colour_yellow)
+        //        {
+        //            TracySetProgramName("Thunderbots: Blue");
+        //        }
+        //        else
+        //        {
+        //            TracySetProgramName("Thunderbots: Yellow");
+        //        }
 
         LoggerSingleton::initializeLogger(args.runtime_dir);
         TbotsProto::ThunderbotsConfig tbots_proto;
