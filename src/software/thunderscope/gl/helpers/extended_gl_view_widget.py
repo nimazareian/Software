@@ -81,7 +81,7 @@ class ExtendedGLViewWidget(GLViewWidget):
         """
         adding a frameswap callback
         """
-        self.bufferswap_counter.add_one_datapoint()
+        # self.bufferswap_counter.add_one_datapoint() # TODO uncomment this line
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         """Detect that the mouse was pressed

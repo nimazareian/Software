@@ -1,6 +1,7 @@
 import time
 from PyQt6.QtWidgets import *
 import collections
+import numpy as np
 
 
 class FrameTimeCounter:
@@ -18,6 +19,9 @@ class FrameTimeCounter:
         )  # stores the timeframe of every data cycle
         self.previous_timestamp = time.time()
 
+        self.runtimes = np.zeros(20 * 30, dtype=np.float32)
+        self.i = 0
+
     def add_one_datapoint(self):
         """
         Save the time difference between each consecutive function call.
@@ -27,6 +31,18 @@ class FrameTimeCounter:
         self.datapoints.append(time_difference)
 
         self.previous_timestamp = current_time
+
+        # Add time to the runtimes array
+        self.runtimes[self.i] = time_difference
+        self.i += 1
+        if self.i == len(self.runtimes):
+            self.i = 0
+            # Print the percentiles
+            print(f"Percentiles over {len(self.runtimes)} frames")
+            print(f"50p: {np.percentile(self.runtimes, 50)}")
+            print(f"80p: {np.percentile(self.runtimes, 80)}")
+            print(f"90p: {np.percentile(self.runtimes, 90)}")
+            print(f"95p: {np.percentile(self.runtimes, 95)}")
 
     def get_last_frametime(self):
         """
