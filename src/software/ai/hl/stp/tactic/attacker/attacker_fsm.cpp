@@ -13,7 +13,7 @@ void AttackerFSM::pivotKick(const Update& event,
     PivotKickFSM::ControlParams control_params{
         .kick_origin       = ball_position,
         .kick_direction    = (chip_target - ball_position).orientation(),
-        .auto_chip_or_kick = AutoChipOrKick{AutoChipOrKickMode::AUTOCHIP,
+        .auto_chip_or_kick = AutoChipOrKick{AutoChipOrKickMode::AUTOCHIP, // TODO (NIMA): Why do we default to chipping the ball away? Is this why the robot sometimes chips the ball into the enemy goal?
                                             (chip_target - ball_position).length()}};
 
     if (event.control_params.shot)

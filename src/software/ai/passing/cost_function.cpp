@@ -236,7 +236,7 @@ double calculateInterceptRisk(const Robot& enemy_robot, const Pass& pass,
     // the pass does. As such, we place the time difference between the robot and ball
     // on a sigmoid that is centered at 0, and goes to 1 at positive values, 0 at
     // negative values.
-    return 1 - sigmoid(min_time_diff, 0.5, 5); // TODO (NIMA): Will probably have to tune...
+    return 1 - sigmoid(min_time_diff, 0.5, 5); // TODO (NIMA): Will probably have to tune... Should this be a boolean rather than sigmoid? sigmoid with low sigma is basically a step function
 }
 
 double ratePassFriendlyCapability(const Team& friendly_team, const Pass& pass,
