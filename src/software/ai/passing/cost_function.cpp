@@ -147,7 +147,7 @@ double ratePassShootScore(const World& world, const Pass& pass,
         1 - sigmoid(rotation_to_shot_target_after_pass.abs().toDegrees(),
                     ideal_max_rotation_to_shoot_degrees, 150) * 0.8; // TODO (NIMA): Add to config: lowerst 0.8
 
-    return shot_openness_score * required_rotation_for_shot_score;
+    return (shot_openness_score * required_rotation_for_shot_score) * 0.4 + 0.6;
 }
 
 double ratePassEnemyRisk(const Team& enemy_team, const Pass& pass,
@@ -256,38 +256,39 @@ double ratePassFriendlyCapability(const Team& friendly_team, const Pass& pass,
 
     // TODO (NIMA): Consider updating this to look at all robots' times to interception instead of just the closest
     // Get the robot that is closest to where the pass would be received
+//    Robot best_receiver = friendly_team.getAllRobots()[0];
+//    double curr_best_distance_sq = (best_receiver.position() - pass.receiverPoint()).lengthSquared();
+//    for (const Robot& robot : friendly_team.getAllRobots())
+//    {
+//        double distance_sq = (robot.position() - pass.receiverPoint()).lengthSquared();
+//        if (distance_sq < curr_best_distance_sq)
+//        {
+//            best_receiver = robot;
+//        }
+//    }
+
     Robot best_receiver = friendly_team.getAllRobots()[0];
-    double curr_best_distance_sq = (best_receiver.position() - pass.receiverPoint()).lengthSquared();
+    Duration min_robot_travel_time = Duration::fromSeconds(100);
+    Angle receive_angle = pass.receiverOrientation();
     for (const Robot& robot : friendly_team.getAllRobots())
     {
-        double distance_sq = (robot.position() - pass.receiverPoint()).lengthSquared();
-        if (distance_sq < curr_best_distance_sq)
+        Duration travel_time = std::max(robot.getTimeToPosition(pass.receiverPoint()),
+                                        robot.getTimeToOrientation(receive_angle));
+        if (travel_time < min_robot_travel_time)
         {
             best_receiver = robot;
+            min_robot_travel_time = travel_time;
         }
     }
+    // Figure out how long it would take our robot to get there
+    Timestamp earliest_time_to_receive_point =
+            best_receiver.timestamp() + min_robot_travel_time;
 
     // Figure out what time the robot would have to receive the ball at
     // TODO (#2988): We should generate a more realistic ball trajectory
     Duration ball_travel_time = Duration::fromSeconds(
         (pass.receiverPoint() - pass.passerPoint()).length() / pass.speed());
     Timestamp receive_time = best_receiver.timestamp() + ball_travel_time;
-
-    // Figure out how long it would take our robot to get there
-    Duration min_robot_travel_time =
-        best_receiver.getTimeToPosition(pass.receiverPoint());
-    Timestamp earliest_time_to_receive_point =
-        best_receiver.timestamp() + min_robot_travel_time;
-
-    // Figure out what angle the robot would have to be at to receive the ball
-    Angle receive_angle = (pass.passerPoint() - best_receiver.position()).orientation();
-    Duration time_to_receive_angle = best_receiver.getTimeToOrientation(receive_angle);
-    Timestamp earliest_time_to_receive_angle =
-        best_receiver.timestamp() + time_to_receive_angle;
-
-    // Figure out if rotation or moving will take us longer
-    Timestamp latest_time_to_reciever_state =
-        std::max(earliest_time_to_receive_angle, earliest_time_to_receive_point);
 
     // Create a sigmoid that goes to 0 as the time required to get to the reception
     // point exceeds the time we would need to get there by
@@ -296,7 +297,7 @@ double ratePassFriendlyCapability(const Team& friendly_team, const Pass& pass,
 
     return sigmoid(
         receive_time.toSeconds(),
-        latest_time_to_reciever_state.toSeconds() + time_to_receiver_state_slack_s,
+        earliest_time_to_receive_point.toSeconds() + time_to_receiver_state_slack_s,
         sigmoid_width);
 }
 
