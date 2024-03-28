@@ -37,7 +37,7 @@ class PassEvaluation
      */
     explicit PassEvaluation(
         std::shared_ptr<const FieldPitchDivision<ZoneEnum>> pitch_division,
-        ZonePassMap<ZoneEnum> best_pass_in_zones,
+        const ZonePassMap<ZoneEnum>& best_pass_in_zones,
         TbotsProto::PassingConfig passing_config, Timestamp timestamp);
 
     PassEvaluation() = delete;
@@ -99,7 +99,7 @@ class PassEvaluation
 template <class ZoneEnum>
 PassEvaluation<ZoneEnum>::PassEvaluation(
     std::shared_ptr<const FieldPitchDivision<ZoneEnum>> pitch_division,
-    std::unordered_map<ZoneEnum, PassWithRating> best_pass_in_zones,
+    const std::unordered_map<ZoneEnum, PassWithRating>& best_pass_in_zones,
     TbotsProto::PassingConfig passing_config, Timestamp timestamp)
     : pitch_division_(pitch_division),
       best_pass_in_zones_(best_pass_in_zones),
