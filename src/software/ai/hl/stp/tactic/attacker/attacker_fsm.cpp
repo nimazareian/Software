@@ -40,6 +40,8 @@ void AttackerFSM::pivotKick(const Update& event,
     processEvent(PivotKickFSM::Update(control_params, event.common));
 }
 
+// TODO (NIMA): KeepAway is too aggressive. Even if enemy robots are not closeby, we try to "keep away"
+//  Potentially have a defensive keep away and an offensive keep away (try to get into a better position to score -> up the field)
 void AttackerFSM::keepAway(const Update& event,
                            boost::sml::back::process<DribbleFSM::Update> processEvent)
 {
