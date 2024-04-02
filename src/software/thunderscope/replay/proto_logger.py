@@ -12,10 +12,13 @@ from software.thunderscope.replay.replay_constants import *
 from typing import Callable
 from google.protobuf.message import Message
 
+from cProfile import Profile
+from pstats import Stats
+import io
 
 class ProtoLogger:
 
-    """Logs incoming protobufs with metadata to a folder to be played back later.
+    """Logs incoming protobufs with metadata to a folder tops be played back later.
 
     Each entry will contain
         - The timestamp
@@ -73,6 +76,7 @@ class ProtoLogger:
         self.time_provider = time_provider if time_provider else time.time
         self.start_time = self.time_provider()
         self.stop_logging = False
+        self.p = Profile()
 
     def __enter__(self) -> ProtoLogger:
         """Starts the logger.
@@ -81,9 +85,13 @@ class ProtoLogger:
         save a _lot_ of space.
 
         """
+
         self.thread = threading.Thread(target=self.__log_protobufs, daemon=True)
         self.thread.start()
         return self
+
+    # def __log_protobufs_wrapper(self):
+    #     self.p.runctx('self.__log_protobufs()', globals(), locals())
 
     def __exit__(self, type, value, traceback) -> None:
         """Closes the log file.
@@ -96,6 +104,12 @@ class ProtoLogger:
         self.stop_logging = True
         self.thread.join()
 
+        s = io.StringIO()
+        sortby = 'cumulative'
+        ps = Stats(self.p, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
+
     def __log_protobufs(self) -> None:
         """Logs all protos in the queue. 
 
@@ -105,7 +119,7 @@ class ProtoLogger:
 
         """
         replay_index = -1
-
+        self.p.enable()
         try:
             while not self.stop_logging:
 
@@ -140,6 +154,8 @@ class ProtoLogger:
 
         except Exception:
             logging.exception("Exception detected in ProtoLogger")
+
+        self.p.disable()
 
     @staticmethod
     def create_log_entry(proto: Message, current_time: float) -> str:
