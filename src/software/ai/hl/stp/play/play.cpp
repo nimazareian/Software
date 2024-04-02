@@ -215,7 +215,7 @@ std::unique_ptr<TbotsProto::PrimitiveSet> Play::get(
 
     // TODO (#3104): Remove duplicated obstacles from obstacle_list
     // Visualize all obstacles and paths
-    LOG(VISUALIZE) << obstacle_list;
+//    LOG(VISUALIZE) << obstacle_list;
     LOG(VISUALIZE) << path_visualization;
 
     primitives_to_run->mutable_time_sent()->set_epoch_timestamp_seconds(

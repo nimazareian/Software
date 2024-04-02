@@ -80,11 +80,12 @@ class ProtoUnixIO:
                     except queue.Full:
                         pass
 
-            for buffer in self.all_proto_observers:
-                try:
-                    buffer.put(proto, block=False)
-                except queue.Full:
-                    print("Buffer registered to receive everything dropped data")
+            if proto.DESCRIPTOR.full_name != "SSLProto.SSL_WrapperPacket":
+                for buffer in self.all_proto_observers:
+                    try:
+                        buffer.put(proto, block=False)
+                    except queue.Full:
+                        print("Buffer registered to receive everything dropped data")
 
     def register_observer(
         self, proto_class: Type[Message], buffer: ThreadSafeBuffer
