@@ -6,6 +6,7 @@
 #include <numeric>
 #include <random>
 #include <thread>
+#include <Tracy.hpp>
 
 #include "eighteen_zone_pitch_division.h"
 #include "proto/message_translation/tbots_protobuf.h"
@@ -123,6 +124,8 @@ class PassGenerator
 
     // A random number generator for use across the class
     std::mt19937 random_num_gen_;
+
+    int num_rate_pass = 0;
 };
 template <class ZoneEnum>
 PassGenerator<ZoneEnum>::PassGenerator(
@@ -139,6 +142,7 @@ template <class ZoneEnum>
 PassEvaluation<ZoneEnum> PassGenerator<ZoneEnum>::generatePassEvaluation(
     const World& world)
 {
+    num_rate_pass = 0;
     // Generate sample passes for cost visualization
 //    if (passing_config_.cost_vis_config().generate_sample_passes())
 //    {
@@ -164,6 +168,7 @@ PassEvaluation<ZoneEnum> PassGenerator<ZoneEnum>::generatePassEvaluation(
     }
 
 //    LOG(VISUALIZE) << *createPassVisualization(passes); TODO (NIMA): Uncomment
+    LOG(DEBUG) << "PassGenerator: Number of rate pass: " << num_rate_pass;
 
     return PassEvaluation<ZoneEnum>(pitch_division_, current_best_passes_,
                                     passing_config_, world.getMostRecentTimestamp());
@@ -195,6 +200,7 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::samplePasses(const World& world)
                                        passing_config_.min_pass_speed_m_per_s(),
                                        passing_config_.max_pass_speed_m_per_s());
 
+        num_rate_pass++;
         passes.emplace(
             zone_id,
             PassWithRating{pass, ratePass(world, pass, pitch_division_->getZone(zone_id),
@@ -220,6 +226,7 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::optimizePasses(
             [this, &world,
              zone_id](const std::array<double, NUM_PARAMS_TO_OPTIMIZE>& pass_array) {
                 // get a pass with the new appropriate speed using the new destination
+                num_rate_pass++;
                 return ratePass(
                     world,
                     Pass::fromDestReceiveSpeed(
@@ -243,6 +250,7 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::optimizePasses(
             passing_config_.max_pass_speed_m_per_s());
         auto score =
             ratePass(world, new_pass, pitch_division_->getZone(zone_id), passing_config_);
+        num_rate_pass++;
 
         optimized_passes.emplace(zone_id, PassWithRating{new_pass, score});
     }
@@ -266,6 +274,7 @@ void PassGenerator<ZoneEnum>::updatePasses(const World& world,
             passing_config_.min_pass_speed_m_per_s(),
             passing_config_.max_pass_speed_m_per_s());
 
+        num_rate_pass++;
         if (ratePass(world, current_best_passes_.at(zone_id).pass,
                      pitch_division_->getZone(zone_id),
                      passing_config_) < optimized_passes.at(zone_id).rating)

@@ -16,6 +16,7 @@ cc_library(
         "//software/math:math_functions",
         "//software/util/make_enum",
         "//software/world",
+        "@tracy",
     ],
 )
 
@@ -161,6 +162,7 @@ cc_library(
         ":cost_functions",
         ":pass_with_rating",
         "//software/world",
+        "@tracy",
     ],
 )
 
@@ -189,6 +191,7 @@ cc_library(
         "//proto/message_translation:tbots_protobuf",
         "//software/optimization:gradient_descent",
         "//software/world",
+        "@tracy",
     ],
 )
 

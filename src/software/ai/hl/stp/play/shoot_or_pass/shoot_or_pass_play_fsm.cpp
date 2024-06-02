@@ -71,15 +71,15 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
     if (event.common.num_tactics > 1)
     {
         ZoneNamedN(_tracy_look_for_pass, "ShootOrPassPlayFSM: Look for pass", true);
-        best_pass_and_score_so_far =
+        auto sampling_best_pass =
             sampling_pass_generator.getBestPass(*event.common.world_ptr);
 
         PassEvaluation<EighteenZoneId> pass_eval =
                 pass_generator.generatePassEvaluation(*event.common.world_ptr);
-        best_pass_and_score_so_far               = pass_eval.getBestPassOnField();
+        best_pass_and_score_so_far                = pass_eval.getBestPassOnField();
 //        double pass_generator_pass_score               = pass_eval.getBestPassOnField().rating;
         // TODO (NIMA): Remember to remove file before starting this
-//        LOG(CSV, "pass_gen_comparison.csv") << best_pass_and_score_so_far.rating - pass_generator_pass_score << "\n";
+        LOG(CSV, "pass_gen_comparison.csv") << sampling_best_pass.rating - best_pass_and_score_so_far.rating << "\n";
 
 
         // update the best pass in the attacker tactic

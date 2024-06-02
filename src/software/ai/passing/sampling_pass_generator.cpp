@@ -1,6 +1,7 @@
 #include "software/ai/passing/sampling_pass_generator.h"
 
 #include <iomanip>
+#include <Tracy.hpp>
 
 #include "software/logger/logger.h"
 
@@ -25,6 +26,8 @@ PassWithRating SamplingPassGenerator::getBestPass(
     std::vector<PassWithRating> sampled_passes_and_ratings;
     sampled_passes_and_ratings.reserve(sampled_pass_points.size());
 
+    LOG(DEBUG) << "SamplingPassGenerator: Sampling " << sampled_pass_points.size() << " passes";
+
     // Get ratings for each pass
     std::transform(sampled_pass_points.begin(), sampled_pass_points.end(),
                    std::back_inserter(sampled_passes_and_ratings),
@@ -32,6 +35,7 @@ PassWithRating SamplingPassGenerator::getBestPass(
                        Pass pass = Pass::fromDestReceiveSpeed(world.ball().position(),
                                                               point, passing_config_);
 
+                       ZoneNamedN(_tracy_sample_rate_pass, "SamplingPassGenerator: ratePass", true);
                        double rating = ratePass(world, pass, passing_config_);
                        return PassWithRating{pass, rating};
                    });
@@ -98,7 +102,7 @@ std::vector<Point> SamplingPassGenerator::sampleReceivingPositions(
         std::normal_distribution y_normal_distribution{robot_position.y(),
                                                        sampling_std_dev};
 
-        for (unsigned int i = 0; i < passing_config_.pass_gen_num_samples_per_robot();
+        for (unsigned int i = 0; i < 26; // TODO (NIMA): passing_config_.pass_gen_num_samples_per_robot()
              i++)
         {
             auto point = Point(x_normal_distribution(random_num_gen_),

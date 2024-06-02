@@ -1,6 +1,7 @@
 #include "software/ai/passing/cost_function.h"
 
 #include <numeric>
+#include <Tracy.hpp>
 
 #include "proto/message_translation/tbots_protobuf.h"
 #include "proto/parameters.pb.h"
