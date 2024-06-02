@@ -20,6 +20,7 @@ ShootOrPassPlayFSM::ShootOrPassPlayFSM(const TbotsProto::AiConfig& ai_config)
               PassGenerator<EighteenZoneId>(std::make_shared<const EighteenZonePitchDivision>(
                                                     Field::createSSLDivisionBField()),
                                             ai_config.passing_config())),
+      gradient_descent_pass_generator(ai_config.passing_config()),
       pass_optimization_start_time(Timestamp::fromSeconds(0)),
       best_pass_and_score_so_far(
           PassWithRating{.pass = Pass(Point(), Point(), 0), .rating = 0}),
@@ -71,15 +72,24 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
     if (event.common.num_tactics > 1)
     {
         ZoneNamedN(_tracy_look_for_pass, "ShootOrPassPlayFSM: Look for pass", true);
-        auto sampling_best_pass =
-            sampling_pass_generator.getBestPass(*event.common.world_ptr);
+        std::vector<RobotId> robots_to_ignore = {};
+        auto friendly_goalie_id_opt = event.common.world_ptr->friendlyTeam().getGoalieId();
+        if (friendly_goalie_id_opt.has_value())
+        {
+            robots_to_ignore.push_back(friendly_goalie_id_opt.value());
+        }
+
+//        auto sampling_best_pass =
+//            sampling_pass_generator.getBestPass(*event.common.world_ptr, robots_to_ignore);
+
+        best_pass_and_score_so_far = gradient_descent_pass_generator.getBestPass(*event.common.world_ptr, robots_to_ignore);
 
         PassEvaluation<EighteenZoneId> pass_eval =
                 pass_generator.generatePassEvaluation(*event.common.world_ptr);
-        best_pass_and_score_so_far                = pass_eval.getBestPassOnField();
+        auto old_grad_desc_best_pass                 = pass_eval.getBestPassOnField();
 //        double pass_generator_pass_score               = pass_eval.getBestPassOnField().rating;
         // TODO (NIMA): Remember to remove file before starting this
-        LOG(CSV, "pass_gen_comparison.csv") << sampling_best_pass.rating - best_pass_and_score_so_far.rating << "\n";
+        LOG(CSV, "pass_gen_comparison.csv") << best_pass_and_score_so_far.rating - old_grad_desc_best_pass.rating << "\n";
 
 
         // update the best pass in the attacker tactic

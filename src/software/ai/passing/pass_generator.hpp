@@ -125,7 +125,7 @@ class PassGenerator
     // A random number generator for use across the class
     std::mt19937 random_num_gen_;
 
-    int num_rate_pass = 0;
+    int num_rate_pass = 0; // TODO(NIMA): Remove
 };
 template <class ZoneEnum>
 PassGenerator<ZoneEnum>::PassGenerator(
@@ -144,10 +144,10 @@ PassEvaluation<ZoneEnum> PassGenerator<ZoneEnum>::generatePassEvaluation(
 {
     num_rate_pass = 0;
     // Generate sample passes for cost visualization
-//    if (passing_config_.cost_vis_config().generate_sample_passes())
-//    {
-//        samplePassesForVisualization(world, passing_config_);
-//    } TODO (NIMA): Uncomment
+    if (passing_config_.cost_vis_config().generate_sample_passes())
+    {
+        samplePassesForVisualization(world, passing_config_);
+    } // TODO (NIMA): Uncomment
 
     auto generated_passes = samplePasses(world);
     if (current_best_passes_.empty())

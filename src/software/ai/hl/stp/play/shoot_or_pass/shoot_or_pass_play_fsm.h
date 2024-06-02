@@ -13,6 +13,7 @@
 #include "software/ai/passing/sampling_pass_generator.h"
 #include "software/geom/algorithms/intersects.h"
 #include "software/logger/logger.h"
+#include "software/ai/passing/gradient_descent_pass_generator.h"
 
 using Zones = std::unordered_set<EighteenZoneId>;
 
@@ -149,6 +150,7 @@ struct ShootOrPassPlayFSM
     ReceiverPositionGenerator<EighteenZoneId> receiver_position_generator;
     SamplingPassGenerator sampling_pass_generator;
     PassGenerator<EighteenZoneId> pass_generator;
+    GradientDescentPassGenerator gradient_descent_pass_generator;
     Timestamp pass_optimization_start_time;
     PassWithRating best_pass_and_score_so_far;
     Duration time_since_commit_stage_start;

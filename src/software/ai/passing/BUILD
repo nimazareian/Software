@@ -178,6 +178,21 @@ cc_test(
 )
 
 cc_library(
+    name = "gradient_descent_pass_generator",
+    srcs = [
+        "gradient_descent_pass_generator.cpp",
+    ],
+    hdrs = ["gradient_descent_pass_generator.h"],
+    deps = [
+        ":cost_functions",
+        ":pass_with_rating",
+        "//software/world",
+        "//software/optimization:gradient_descent",
+        "@tracy",
+    ],
+)
+
+cc_library(
     name = "pass_generator",
     hdrs = [
         "pass_generator.hpp",
