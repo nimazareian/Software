@@ -6,7 +6,7 @@
 #include <experimental/filesystem>
 #endif
 
-CSVSink::CSVSink(const std::string& log_directory) : log_directory(log_directory) {}
+CSVSink::CSVSink(const std::string& log_directory) : log_directory(log_directory) {std::cout << "log_directory: " << log_directory << std::endl;} // TODO (NIMA): revert}
 
 void CSVSink::appendToFile(g3::LogMessageMover log_entry)
 {

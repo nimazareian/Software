@@ -16,6 +16,10 @@ ShootOrPassPlayFSM::ShootOrPassPlayFSM(const TbotsProto::AiConfig& ai_config)
                                                   // the field from the world
           ai_config.passing_config())),
       sampling_pass_generator(ai_config.passing_config()),
+      pass_generator(
+              PassGenerator<EighteenZoneId>(std::make_shared<const EighteenZonePitchDivision>(
+                                                    Field::createSSLDivisionBField()),
+                                            ai_config.passing_config())),
       pass_optimization_start_time(Timestamp::fromSeconds(0)),
       best_pass_and_score_so_far(
           PassWithRating{.pass = Pass(Point(), Point(), 0), .rating = 0}),
@@ -40,6 +44,7 @@ void ShootOrPassPlayFSM::updateOffensivePositioningTactics(
                       []() { return std::make_shared<MoveTactic>(); });
     }
 
+    // TODO (NIMA): Run old pass generator and compare pass rating
     std::vector<Point> best_receiving_positions =
         receiver_position_generator.getBestReceivingPositions(
             *world, num_tactics, existing_receiver_positions, pass_origin_override);
@@ -68,6 +73,14 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
         ZoneNamedN(_tracy_look_for_pass, "ShootOrPassPlayFSM: Look for pass", true);
         best_pass_and_score_so_far =
             sampling_pass_generator.getBestPass(*event.common.world_ptr);
+
+        PassEvaluation<EighteenZoneId> pass_eval =
+                pass_generator.generatePassEvaluation(*event.common.world_ptr);
+        best_pass_and_score_so_far               = pass_eval.getBestPassOnField();
+//        double pass_generator_pass_score               = pass_eval.getBestPassOnField().rating;
+        // TODO (NIMA): Remember to remove file before starting this
+//        LOG(CSV, "pass_gen_comparison.csv") << best_pass_and_score_so_far.rating - pass_generator_pass_score << "\n";
+
 
         // update the best pass in the attacker tactic
         attacker_tactic->updateControlParams(best_pass_and_score_so_far.pass, false);

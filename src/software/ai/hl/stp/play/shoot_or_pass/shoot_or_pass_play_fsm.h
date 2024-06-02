@@ -148,6 +148,7 @@ struct ShootOrPassPlayFSM
     std::vector<std::shared_ptr<MoveTactic>> offensive_positioning_tactics;
     ReceiverPositionGenerator<EighteenZoneId> receiver_position_generator;
     SamplingPassGenerator sampling_pass_generator;
+    PassGenerator<EighteenZoneId> pass_generator;
     Timestamp pass_optimization_start_time;
     PassWithRating best_pass_and_score_so_far;
     Duration time_since_commit_stage_start;

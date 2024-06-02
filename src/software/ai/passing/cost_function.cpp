@@ -37,7 +37,7 @@ double ratePass(const World& world, const Pass& pass,
 double ratePass(const World& world, const Pass& pass, const Rectangle& zone,
                 const TbotsProto::PassingConfig& passing_config)
 {
-    double in_region_quality = rectangleSigmoid(zone, pass.receiverPoint(), 0.2);
+    double in_region_quality = 1; // rectangleSigmoid(zone, pass.receiverPoint(), 0.2); TODO (NIMA): Uncomment
 
     return ratePass(world, pass, passing_config) * in_region_quality;
 }

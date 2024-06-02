@@ -140,10 +140,10 @@ PassEvaluation<ZoneEnum> PassGenerator<ZoneEnum>::generatePassEvaluation(
     const World& world)
 {
     // Generate sample passes for cost visualization
-    if (passing_config_.cost_vis_config().generate_sample_passes())
-    {
-        samplePassesForVisualization(world, passing_config_);
-    }
+//    if (passing_config_.cost_vis_config().generate_sample_passes())
+//    {
+//        samplePassesForVisualization(world, passing_config_);
+//    } TODO (NIMA): Uncomment
 
     auto generated_passes = samplePasses(world);
     if (current_best_passes_.empty())
@@ -163,7 +163,7 @@ PassEvaluation<ZoneEnum> PassGenerator<ZoneEnum>::generatePassEvaluation(
         passes.push_back(zone_and_pass.second);
     }
 
-    LOG(VISUALIZE) << *createPassVisualization(passes);
+//    LOG(VISUALIZE) << *createPassVisualization(passes); TODO (NIMA): Uncomment
 
     return PassEvaluation<ZoneEnum>(pitch_division_, current_best_passes_,
                                     passing_config_, world.getMostRecentTimestamp());
@@ -175,6 +175,10 @@ ZonePassMap<ZoneEnum> PassGenerator<ZoneEnum>::samplePasses(const World& world)
     ZonePassMap<ZoneEnum> passes;
 
     // Randomly sample a pass in each zone
+    // TODO (NIMA): Remove zones, sample these points per robot:
+    //  1. The current position of the robot
+    //  2. The best pass position from the previous tick
+    //  3. X Randomly sampled points around the robots
     for (ZoneEnum zone_id : pitch_division_->getAllZoneIds())
     {
         auto zone = pitch_division_->getZone(zone_id);
