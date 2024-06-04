@@ -61,6 +61,7 @@ class GLWorldLayer(GLLayer):
         self.friendly_colour_yellow = friendly_colour_yellow
 
         self.world_buffer = ThreadSafeBuffer(buffer_size, World)
+        self.primitive_set_buffer = ThreadSafeBuffer(buffer_size, PrimitiveSet) # TODO (NIMA): Autokick/chip
         self.robot_status_buffer = ThreadSafeBuffer(buffer_size, RobotStatus)
         self.referee_buffer = ThreadSafeBuffer(buffer_size, Referee, False)
         self.simulation_state_buffer = ThreadSafeBuffer(buffer_size, SimulationState)
@@ -133,6 +134,8 @@ class GLWorldLayer(GLLayer):
         self.friendly_robot_id_graphics = ObservableList(self._graphics_changed)
         self.enemy_robot_id_graphics = ObservableList(self._graphics_changed)
         self.breakbeam_graphics = ObservableList(self._graphics_changed)
+        self.auto_kick_graphics = ObservableList(self._graphics_changed)
+        self.auto_chip_graphics = ObservableList(self._graphics_changed)
         self.speed_line_graphics = ObservableList(self._graphics_changed)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
@@ -335,6 +338,7 @@ class GLWorldLayer(GLLayer):
         self._update_robots_graphics()
 
         self.__update_robot_status_graphics()
+        self.__update_auto_chip_or_kick_graphics()
         self.__update_speed_line_graphics()
 
         # Update internal simulation state
@@ -538,6 +542,76 @@ class GLWorldLayer(GLLayer):
                 )
             else:
                 breakbeam_graphic.hide()
+
+    def __update_auto_chip_or_kick_graphics(self) -> None:
+        """Update the auto kick and auto chip graphics"""
+
+        # See which robots have auto kick or auto chip enabled
+        auto_kick_robots = []
+        auto_chip_robots = []
+        primitive_set = self.primitive_set_buffer.get(
+            block=False
+        )
+
+        for robot_id in primitive_set.robot_primitives:
+            primitive = primitive_set.robot_primitives[robot_id]
+
+            if primitive.HasField("move"):
+                autochip_or_kick = primitive.move.auto_chip_or_kick
+
+                if (autochip_or_kick.HasField("autokick_speed_m_per_s") and
+                        autochip_or_kick.autokick_speed_m_per_s > 0):
+                    auto_kick_robots.append(robot_id)
+                elif (autochip_or_kick.HasField("autochip_distance_meters") and
+                      autochip_or_kick.autochip_distance_meters > 0):
+                    auto_chip_robots.append(robot_id)
+
+        # Ensure we have the same number of graphics as robots
+        self.auto_chip_graphics.resize(
+            len(self.cached_world.friendly_team.team_robots),
+            lambda: GLCircle(
+                parent_item=self,
+                radius=ROBOT_MAX_RADIUS_METERS / 2 + 0.02,
+                outline_color=Colors.AUTO_CHIP_ENABLED_COLOR,
+            ),
+        )
+        self.auto_kick_graphics.resize(
+            len(self.cached_world.friendly_team.team_robots),
+            lambda: GLCircle(
+                parent_item=self,
+                radius=ROBOT_MAX_RADIUS_METERS / 2 + 0.04,
+                outline_color=Colors.AUTO_KICK_ENABLED_COLOR,
+            ),
+        )
+
+        # Update the graphics
+        for auto_chip_graphic, auto_kick_graphic, robot in zip(
+                self.auto_chip_graphics, self.auto_kick_graphics, self.cached_world.friendly_team.team_robots
+        ):
+            if robot.id in auto_chip_robots:
+                auto_chip_graphic.show()
+                auto_kick_graphic.hide()
+
+                auto_chip_graphic.setDepthValue(DepthValues.ABOVE_FOREGROUND_DEPTH)
+
+                auto_chip_graphic.set_position(
+                    robot.current_state.global_position.x_meters,
+                    robot.current_state.global_position.y_meters,
+                )
+            elif robot.id in auto_kick_robots:
+                auto_kick_graphic.show()
+                auto_chip_graphic.hide()
+
+                auto_kick_graphic.setDepthValue(DepthValues.ABOVE_FOREGROUND_DEPTH)
+
+                auto_kick_graphic.set_position(
+                    robot.current_state.global_position.x_meters,
+                    robot.current_state.global_position.y_meters,
+                )
+
+            else:
+                auto_chip_graphic.hide()
+                auto_kick_graphic.hide()
 
     def __update_speed_line_graphics(self) -> None:
         """Update the speed lines visualizing the robot and ball speeds"""

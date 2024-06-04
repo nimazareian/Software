@@ -21,6 +21,10 @@ double ratePass(const World& world, const Pass& pass,
     double static_pass_quality =
         getStaticPositionQuality(world.field(), pass.receiverPoint(), passing_config);
 
+    double receiver_not_too_far_rating = circleSigmoid(
+            Circle(pass.passerPoint(), passing_config.receiver_ideal_max_distance_meters()),
+            pass.receiverPoint(), 2.0);
+
     double friendly_pass_rating =
         ratePassFriendlyCapability(world.friendlyTeam(), pass, passing_config);
 
@@ -31,7 +35,7 @@ double ratePass(const World& world, const Pass& pass,
     double shoot_pass_rating =
         ratePassShootScore(world.field(), world.enemyTeam(), pass, passing_config);
 
-    return static_pass_quality * friendly_pass_rating * enemy_pass_rating *
+    return static_pass_quality * receiver_not_too_far_rating * friendly_pass_rating * enemy_pass_rating *
            pass_forward_rating * shoot_pass_rating;
 }
 
