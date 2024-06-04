@@ -26,7 +26,7 @@ PassWithRating SamplingPassGenerator::getBestPass(
     std::vector<PassWithRating> sampled_passes_and_ratings;
     sampled_passes_and_ratings.reserve(sampled_pass_points.size());
 
-    LOG(DEBUG) << "SamplingPassGenerator: Sampling " << sampled_pass_points.size() << " passes";
+//    LOG(DEBUG) << "SamplingPassGenerator: Sampling " << sampled_pass_points.size() << " passes"; // TODO (NIMA)
 
     // Get ratings for each pass
     std::transform(sampled_pass_points.begin(), sampled_pass_points.end(),
@@ -102,7 +102,7 @@ std::vector<Point> SamplingPassGenerator::sampleReceivingPositions(
         std::normal_distribution y_normal_distribution{robot_position.y(),
                                                        sampling_std_dev};
 
-        for (unsigned int i = 0; i < 26; // TODO (NIMA): passing_config_.pass_gen_num_samples_per_robot()
+        for (unsigned int i = 0; i < 40; // TODO (NIMA): passing_config_.pass_gen_num_samples_per_robot()
              i++)
         {
             auto point = Point(x_normal_distribution(random_num_gen_),

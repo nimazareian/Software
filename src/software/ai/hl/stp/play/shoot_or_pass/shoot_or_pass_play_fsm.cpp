@@ -45,7 +45,6 @@ void ShootOrPassPlayFSM::updateOffensivePositioningTactics(
                       []() { return std::make_shared<MoveTactic>(); });
     }
 
-    // TODO (NIMA): Run old pass generator and compare pass rating
     std::vector<Point> best_receiving_positions =
         receiver_position_generator.getBestReceivingPositions(
             *world, num_tactics, existing_receiver_positions, pass_origin_override);
@@ -85,9 +84,10 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
             robots_to_ignore.push_back(robot_with_ball_opt.value().id());
         }
 
-//        auto sampling_best_pass =
-//            sampling_pass_generator.getBestPass(*event.common.world_ptr, robots_to_ignore);
+        auto sampling_best_pass =
+            sampling_pass_generator.getBestPass(*event.common.world_ptr, robots_to_ignore);
 
+        // TODO (NIMA): Run old pass generator and compare pass rating
         best_pass_and_score_so_far = gradient_descent_pass_generator.getBestPass(*event.common.world_ptr, robots_to_ignore);
 
         PassEvaluation<EighteenZoneId> pass_eval =
@@ -95,8 +95,12 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
         auto old_grad_desc_best_pass                 = pass_eval.getBestPassOnField();
 //        double pass_generator_pass_score               = pass_eval.getBestPassOnField().rating;
         // TODO (NIMA): Remember to remove file before starting this
-        LOG(CSV, "pass_gen_comparison.csv") << best_pass_and_score_so_far.rating - old_grad_desc_best_pass.rating << "\n";
+        LOG(CSV, "pass_gen_comparison.csv") << best_pass_and_score_so_far.rating << "," << sampling_best_pass.rating << "," << old_grad_desc_best_pass.rating << "\n";
 
+        if (old_grad_desc_best_pass.rating > best_pass_and_score_so_far.rating)
+        {
+            LOG(DEBUG) << "Old grad desc impl outperforms new by " << old_grad_desc_best_pass.rating - best_pass_and_score_so_far.rating;
+        }
 
         // update the best pass in the attacker tactic
         attacker_tactic->updateControlParams(best_pass_and_score_so_far.pass, false);
@@ -108,21 +112,21 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
                               offensive_positioning_tactics.end());
 
         // Update minimum pass score threshold. Wait for a good pass by starting out only
-        // looking for "perfect" passes (with a score of 1) and decreasing this threshold
-        // over time
+        // looking for "perfect" passes (with a score of min_perfect_pass_score) and decreasing this threshold
+        // over time (to abs_min_pass_score)
         double abs_min_pass_score =
             ai_config.shoot_or_pass_play_config().abs_min_pass_score();
+        double min_perfect_pass_score =
+                ai_config.shoot_or_pass_play_config().min_perfect_pass_score();
         double pass_score_ramp_down_duration =
             ai_config.shoot_or_pass_play_config().pass_score_ramp_down_duration();
 
         time_since_commit_stage_start = event.common.world_ptr->getMostRecentTimestamp() -
                                         pass_optimization_start_time;
         min_pass_score_threshold =
-            0.85 - std::min(time_since_commit_stage_start.toSeconds() /
+                min_perfect_pass_score - std::min(time_since_commit_stage_start.toSeconds() /
                              pass_score_ramp_down_duration,
-                            0.85 - abs_min_pass_score);
-
-        LOG(DEBUG) << "Best pass score so far: " << best_pass_and_score_so_far.rating << " - Min pass score threshold: " << min_pass_score_threshold;
+                                                  min_perfect_pass_score - abs_min_pass_score);
     }
     event.common.set_tactics(ret_tactics);
 }

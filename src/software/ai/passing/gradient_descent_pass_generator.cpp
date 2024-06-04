@@ -48,6 +48,8 @@ PassWithRating GradientDescentPassGenerator::getBestPass(
         LOG(VISUALIZE) << *createDebugShapes(debug_shapes);
     }
 
+//    LOG(DEBUG) << "GradientDescentPassGenerator: Number of passes rated: " << num_rate_pass; // TODO (NIMA)
+
     return best_pass;
 }
 
@@ -77,8 +79,7 @@ std::vector<Point> GradientDescentPassGenerator::sampleReceivingPositions(
         std::normal_distribution y_normal_distribution{robot_position.y(),
                                                        sampling_std_dev};
 
-        for (unsigned int i = 0; i < 3; // TODO (NIMA): passing_config_.pass_gen_num_samples_per_robot()
-             i++)
+        for (unsigned int i = 0; i < passing_config_.pass_gen_num_samples_per_robot(); i++)
         {
             auto point = Point(x_normal_distribution(random_num_gen_),
                                y_normal_distribution(random_num_gen_));
