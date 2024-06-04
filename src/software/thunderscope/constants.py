@@ -335,8 +335,11 @@ class CustomGLOptions:
     Custom OpenGL Rendering modes that could be used in addition to
     the ones provided by PyQtGraph in GLGraphicsItem.py GLOptions.
     """
+
     # Opaque rendering (i.e. overlapping colors are not blended) while
     # also allowing for custom depth values to be set.
+    # This is useful when the graphics are overlaid on top of (e.g.) a
+    # yellow robot where the blended colors would not be easily visible.
     OPAQUE_WITH_OUT_DEPTH_TEST = {
         GL_DEPTH_TEST: False,
         GL_BLEND: False,
