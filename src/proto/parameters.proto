@@ -208,6 +208,11 @@ message PassingConfig
     required double min_pass_shoot_score = 18
         [default = 0.5, (bounds).min_double_value = 0.0, (bounds).max_double_value = 1.0];
 
+    // The estimated delay in seconds between the time we commit to a pass and the time
+    // the pass is taken.
+    required double pass_delay_sec = 24
+        [default = 0.3, (bounds).min_double_value = 0.0, (bounds).max_double_value = 1.0];
+
     /*****  Visualization parameters *****/
     // Cost function visualization parameters
     required CostVisualizationConfig cost_vis_config = 10;

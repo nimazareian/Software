@@ -30,8 +30,6 @@ PassWithRating GradientDescentPassGenerator::getBestPass(
     PassWithRating best_pass = optimizeReceivingPositions(world, receiving_positions);
     previous_best_receiving_pos_ = best_pass.pass.receiverPoint();
 
-    LOG(DEBUG) << "GradientDescentPassGenerator: Number of passes rated: " << num_rate_pass;
-
     // Visualize the sampled passes and the best pass
     if (passing_config_.pass_gen_vis_config().visualize_sampled_passes())
     {
@@ -40,13 +38,13 @@ PassWithRating GradientDescentPassGenerator::getBestPass(
         {
             debug_shapes.push_back(*createDebugShape(
                     Circle(receiving_position, 0.02),
-                    std::to_string(debug_shapes.size()) + "sgdp"));
+                    std::to_string(debug_shapes.size()) + "gdpg"));
         }
         std::stringstream stream;
         stream << "BP:" << std::fixed << std::setprecision(3) << best_pass.rating;
         debug_shapes.push_back(
                 *createDebugShape(Circle(best_pass.pass.receiverPoint(), 0.05),
-                                  std::to_string(debug_shapes.size()) + "sgdp", stream.str()));
+                                  std::to_string(debug_shapes.size()) + "gdpg", stream.str()));
         LOG(VISUALIZE) << *createDebugShapes(debug_shapes);
     }
 
@@ -74,7 +72,7 @@ std::vector<Point> GradientDescentPassGenerator::sampleReceivingPositions(
         all_sampled_passes.push_back(robot_position);
 
         // get random coordinates based on the normal distribution around the robot
-        std::normal_distribution x_normal_distribution{robot_position.x(), // TODO (NIMA): Could try uniform dist as well
+        std::normal_distribution x_normal_distribution{robot_position.x(),
                                                        sampling_std_dev};
         std::normal_distribution y_normal_distribution{robot_position.y(),
                                                        sampling_std_dev};

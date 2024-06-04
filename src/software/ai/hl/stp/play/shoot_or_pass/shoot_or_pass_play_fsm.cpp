@@ -72,11 +72,17 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
     if (event.common.num_tactics > 1)
     {
         ZoneNamedN(_tracy_look_for_pass, "ShootOrPassPlayFSM: Look for pass", true);
+        // Avoid passes to the goalie and the passing robot
         std::vector<RobotId> robots_to_ignore = {};
         auto friendly_goalie_id_opt = event.common.world_ptr->friendlyTeam().getGoalieId();
         if (friendly_goalie_id_opt.has_value())
         {
             robots_to_ignore.push_back(friendly_goalie_id_opt.value());
+        }
+        auto robot_with_ball_opt = event.common.world_ptr->friendlyTeam().getNearestRobot(event.common.world_ptr->ball().position());
+        if (robot_with_ball_opt.has_value())
+        {
+            robots_to_ignore.push_back(robot_with_ball_opt.value().id());
         }
 
 //        auto sampling_best_pass =
@@ -112,9 +118,11 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
         time_since_commit_stage_start = event.common.world_ptr->getMostRecentTimestamp() -
                                         pass_optimization_start_time;
         min_pass_score_threshold =
-            1 - std::min(time_since_commit_stage_start.toSeconds() /
+            0.85 - std::min(time_since_commit_stage_start.toSeconds() /
                              pass_score_ramp_down_duration,
-                         1.0 - abs_min_pass_score);
+                            0.85 - abs_min_pass_score);
+
+        LOG(DEBUG) << "Best pass score so far: " << best_pass_and_score_so_far.rating << " - Min pass score threshold: " << min_pass_score_threshold;
     }
     event.common.set_tactics(ret_tactics);
 }
@@ -175,12 +183,12 @@ void ShootOrPassPlayFSM::takePass(const Update& event)
 
 bool ShootOrPassPlayFSM::passFound(const Update& event)
 {
-    const auto ball_velocity = event.common.world_ptr->ball().velocity().length();
-    const auto ball_is_kicked_m_per_s_threshold =
-        this->ai_config.ai_parameter_config().ball_is_kicked_m_per_s_threshold();
-
-    return (ball_velocity < ball_is_kicked_m_per_s_threshold) &&
-           (best_pass_and_score_so_far.rating > min_pass_score_threshold);
+//    const auto ball_velocity = event.common.world_ptr->ball().velocity().length();
+//    const auto ball_is_kicked_m_per_s_threshold =
+//        this->ai_config.ai_parameter_config().ball_is_kicked_m_per_s_threshold();
+//    (ball_velocity < ball_is_kicked_m_per_s_threshold) &&
+//    (
+    return best_pass_and_score_so_far.rating > min_pass_score_threshold;
 }
 
 bool ShootOrPassPlayFSM::shouldAbortPass(const Update& event)
@@ -194,7 +202,14 @@ bool ShootOrPassPlayFSM::shouldAbortPass(const Update& event)
             ai_config.shoot_or_pass_play_config().abs_min_pass_score();
         if (best_pass_and_score_so_far.rating < abs_min_pass_score)
         {
+//            LOG(DEBUG) << "Aborting pass since " << best_pass_and_score_so_far.rating
+//                       << " < " << abs_min_pass_score; // TODO (NIMA): Remove
             return true;
+        }
+        else
+        {
+//            LOG(DEBUG) << "Likely NOT aborting pass since " << best_pass_and_score_so_far.rating
+//                       << " > " << abs_min_pass_score; // TODO (NIMA): Remove
         }
     }
     const auto ball_position  = event.common.world_ptr->ball().position();
@@ -205,6 +220,9 @@ bool ShootOrPassPlayFSM::shouldAbortPass(const Update& event)
 
     const auto pass_area_polygon =
         Polygon::fromSegment(Segment(passer_point, receiver_point), 0.5);
+
+    LOG(VISUALIZE) << *createDebugShapes({*createDebugShape(
+                pass_area_polygon, "pass_area_polygon")});  // TODO (NIMA): Added for debugging
 
     // calculate a polygon that contains the receiver and passer point, and checks if the
     // ball is inside it. if the ball isn't being passed to the receiver then we should

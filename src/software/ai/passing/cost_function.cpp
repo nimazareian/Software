@@ -215,7 +215,7 @@ double calculateInterceptRisk(const Robot& enemy_robot, const Pass& pass,
         ENEMY_ROBOT_INTERCEPTION_SPEED_METERS_PER_SECOND);
 
     Duration ball_time_to_interception_point = Duration::fromSeconds(
-        distance(pass.passerPoint(), closest_interception_point) / pass.speed());
+        distance(pass.passerPoint(), closest_interception_point) / pass.speed()) + Duration::fromSeconds(passing_config.pass_delay_sec());
 
     Duration interception_delta_time =
         ball_time_to_interception_point - enemy_robot_time_to_interception_point;
@@ -259,7 +259,7 @@ double ratePassFriendlyCapability(const Team& friendly_team, const Pass& pass,
     // Figure out what time the robot would have to receive the ball at
     // TODO (#2988): We should generate a more realistic ball trajectory
     Duration ball_travel_time = Duration::fromSeconds(
-        (pass.receiverPoint() - pass.passerPoint()).length() / pass.speed());
+        (pass.receiverPoint() - pass.passerPoint()).length() / pass.speed()) + Duration::fromSeconds(passing_config.pass_delay_sec());
     Timestamp receive_time = best_receiver.timestamp() + ball_travel_time;
 
     // Figure out how long it would take our robot to get there

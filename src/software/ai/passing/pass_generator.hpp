@@ -168,7 +168,7 @@ PassEvaluation<ZoneEnum> PassGenerator<ZoneEnum>::generatePassEvaluation(
     }
 
 //    LOG(VISUALIZE) << *createPassVisualization(passes); TODO (NIMA): Uncomment
-    LOG(DEBUG) << "PassGenerator: Number of rate pass: " << num_rate_pass;
+//    LOG(DEBUG) << "PassGenerator: Number of rate pass: " << num_rate_pass;
 
     return PassEvaluation<ZoneEnum>(pitch_division_, current_best_passes_,
                                     passing_config_, world.getMostRecentTimestamp());
