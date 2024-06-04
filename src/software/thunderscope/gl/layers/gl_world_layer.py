@@ -5,6 +5,7 @@ from pyqtgraph.opengl import *
 import math
 import numpy as np
 
+import software.python_bindings as tbots_cpp
 from proto.import_all_protos import *
 from software.py_constants import *
 from software.thunderscope.constants import (
@@ -13,7 +14,7 @@ from software.thunderscope.constants import (
     SPEED_SEGMENT_SCALE,
     DEFAULT_EMPTY_FIELD_WORLD,
     is_field_message_empty,
-    SIMULATION_SPEEDS,
+    SIMULATION_SPEEDS, LINE_WIDTH, CustomGLOptions,
 )
 
 from typing import Dict, Tuple
@@ -569,20 +570,30 @@ class GLWorldLayer(GLLayer):
         # Ensure we have the same number of graphics as robots
         self.auto_chip_graphics.resize(
             len(self.cached_world.friendly_team.team_robots),
-            lambda: GLCircle(
-                parent_item=self,
-                radius=ROBOT_MAX_RADIUS_METERS / 2 + 0.02,
-                outline_color=Colors.AUTO_CHIP_ENABLED_COLOR,
-            ),
+            lambda: GLPolygon(outline_color=Colors.AUTO_CHIP_ENABLED_COLOR, line_width=LINE_WIDTH * 2)
         )
         self.auto_kick_graphics.resize(
             len(self.cached_world.friendly_team.team_robots),
-            lambda: GLCircle(
-                parent_item=self,
-                radius=ROBOT_MAX_RADIUS_METERS / 2 + 0.04,
-                outline_color=Colors.AUTO_KICK_ENABLED_COLOR,
-            ),
+            lambda: GLPolygon(outline_color=Colors.AUTO_KICK_ENABLED_COLOR, line_width=LINE_WIDTH * 2)
         )
+
+        def update_polygon(polygon_graphic: GLPolygon, robot: tbots_cpp.Robot):
+            polygon_graphic.updateGLOptions(CustomGLOptions.OPAQUE_WITH_OUT_DEPTH_TEST)
+            polygon_graphic.setDepthValue(DepthValues.ABOVE_FOREGROUND_DEPTH)
+
+            dribble_area_polygon_points = tbots_cpp.Robot(robot).dribblerArea().getPoints()
+            polygon_graphic.set_points(
+                [
+                    [
+                        dribble_area_polygon_points[0].x(),
+                        dribble_area_polygon_points[0].y(),
+                    ],
+                    [
+                        dribble_area_polygon_points[3].x(),
+                        dribble_area_polygon_points[3].y(),
+                    ],
+                ]
+            )
 
         # Update the graphics
         for auto_chip_graphic, auto_kick_graphic, robot in zip(
@@ -591,23 +602,12 @@ class GLWorldLayer(GLLayer):
             if robot.id in auto_chip_robots:
                 auto_chip_graphic.show()
                 auto_kick_graphic.hide()
+                update_polygon(auto_chip_graphic, robot)
 
-                auto_chip_graphic.setDepthValue(DepthValues.ABOVE_FOREGROUND_DEPTH)
-
-                auto_chip_graphic.set_position(
-                    robot.current_state.global_position.x_meters,
-                    robot.current_state.global_position.y_meters,
-                )
             elif robot.id in auto_kick_robots:
                 auto_kick_graphic.show()
                 auto_chip_graphic.hide()
-
-                auto_kick_graphic.setDepthValue(DepthValues.ABOVE_FOREGROUND_DEPTH)
-
-                auto_kick_graphic.set_position(
-                    robot.current_state.global_position.x_meters,
-                    robot.current_state.global_position.y_meters,
-                )
+                update_polygon(auto_kick_graphic, robot)
 
             else:
                 auto_chip_graphic.hide()

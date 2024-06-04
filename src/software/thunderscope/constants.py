@@ -1,4 +1,5 @@
 from pyqtgraph.Qt import QtCore, QtGui
+from OpenGL.GL import *
 from proto.import_all_protos import *
 from enum import Enum, IntEnum
 from proto.robot_log_msg_pb2 import LogLevel
@@ -280,8 +281,8 @@ class Colors(object):
     SHOT_VISUALIZATION_COLOR = QtGui.QColor(255, 0, 0, 255)
     CHIP_TARGET_VISUALIZATION_COLOR = QtGui.QColor(255, 0, 0, 255)
     BREAKBEAM_TRIPPED_COLOR = QtGui.QColor(255, 0, 0, 255)
-    AUTO_CHIP_ENABLED_COLOR = QtGui.QColor(200, 90, 20, 255)
-    AUTO_KICK_ENABLED_COLOR = QtGui.QColor(30, 150, 10, 255)
+    AUTO_CHIP_ENABLED_COLOR = QtGui.QColor(215, 0, 200, 255)
+    AUTO_KICK_ENABLED_COLOR = QtGui.QColor(255, 0, 0, 255)
 
     VALIDATION_PASSED_COLOR = QtGui.QColor(0, 200, 0, 255)
     VALIDATION_FAILED_COLOR = QtGui.QColor(200, 0, 0, 255)
@@ -327,3 +328,18 @@ class TrailValues:
 
     DEFAULT_TRAIL_LENGTH = 20
     DEFAULT_TRAIL_SAMPLING_RATE = 0
+
+
+class CustomGLOptions:
+    """
+    Custom OpenGL Rendering modes that could be used in addition to
+    the ones provided by PyQtGraph in GLGraphicsItem.py GLOptions.
+    """
+    # Opaque rendering (i.e. overlapping colors are not blended) while
+    # also allowing for custom depth values to be set.
+    OPAQUE_WITH_OUT_DEPTH_TEST = {
+        GL_DEPTH_TEST: False,
+        GL_BLEND: False,
+        GL_ALPHA_TEST: False,
+        GL_CULL_FACE: False,
+    }
