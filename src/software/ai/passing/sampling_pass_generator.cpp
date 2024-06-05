@@ -48,24 +48,24 @@ PassWithRating SamplingPassGenerator::getBestPass(
         });
 
     // Visualize the sampled passes and the best pass
-    if (passing_config_.pass_gen_vis_config().visualize_sampled_passes())
-    {
-        std::vector<TbotsProto::DebugShapes::DebugShape> debug_shapes;
-        for (const auto& pass_with_rating : sampled_passes_and_ratings)
-        {
-            std::stringstream stream;
-            stream << std::fixed << std::setprecision(3) << pass_with_rating.rating;
-            debug_shapes.push_back(*createDebugShape(
-                Circle(pass_with_rating.pass.receiverPoint(), 0.02),
-                std::to_string(debug_shapes.size()) + "sp", stream.str()));
-        }
-        std::stringstream stream;
-        stream << "BP:" << std::fixed << std::setprecision(3) << best_pass.rating;
-        debug_shapes.push_back(
-            *createDebugShape(Circle(best_pass.pass.receiverPoint(), 0.05),
-                              std::to_string(debug_shapes.size()) + "sp", stream.str()));
-        LOG(VISUALIZE) << *createDebugShapes(debug_shapes);
-    }
+//    if (passing_config_.pass_gen_vis_config().visualize_sampled_passes())
+//    {
+//        std::vector<TbotsProto::DebugShapes::DebugShape> debug_shapes;
+//        for (const auto& pass_with_rating : sampled_passes_and_ratings)
+//        {
+//            std::stringstream stream;
+//            stream << std::fixed << std::setprecision(3) << pass_with_rating.rating;
+//            debug_shapes.push_back(*createDebugShape(
+//                Circle(pass_with_rating.pass.receiverPoint(), 0.02),
+//                std::to_string(debug_shapes.size()) + "sp", stream.str()));
+//        }
+//        std::stringstream stream;
+//        stream << "BP:" << std::fixed << std::setprecision(3) << best_pass.rating;
+//        debug_shapes.push_back(
+//            *createDebugShape(Circle(best_pass.pass.receiverPoint(), 0.05),
+//                              std::to_string(debug_shapes.size()) + "sp", stream.str()));
+//        LOG(VISUALIZE) << *createDebugShapes(debug_shapes);
+//    }
 
     // Generate sample passes across the field for cost visualization
     if (passing_config_.cost_vis_config().generate_sample_passes())

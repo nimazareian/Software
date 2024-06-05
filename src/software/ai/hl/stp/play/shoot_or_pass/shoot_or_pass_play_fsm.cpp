@@ -100,6 +100,17 @@ void ShootOrPassPlayFSM::lookForPass(const Update& event)
         if (old_grad_desc_best_pass.rating > best_pass_and_score_so_far.rating)
         {
             LOG(DEBUG) << "Old grad desc impl outperforms new by " << old_grad_desc_best_pass.rating - best_pass_and_score_so_far.rating;
+
+            std::stringstream stream1;
+            stream1 << "New GD:" << std::fixed << std::setprecision(3) << best_pass_and_score_so_far.rating;
+            std::stringstream stream2;
+            stream2 << "Old GD:" << std::fixed << std::setprecision(3) << old_grad_desc_best_pass.rating;
+            LOG(VISUALIZE) << *createDebugShapes({
+                 *createDebugShape(Circle(best_pass_and_score_so_far.pass.receiverPoint(), 0.04),
+                                   "newgd", stream1.str()),
+                 *createDebugShape(Circle(old_grad_desc_best_pass.pass.receiverPoint(), 0.06),
+                                   "oldgd", stream2.str())
+            });
         }
 
         // update the best pass in the attacker tactic
