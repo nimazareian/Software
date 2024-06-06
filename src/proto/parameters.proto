@@ -123,6 +123,7 @@ message PassingConfig
         (bounds).min_double_value = 0.01,
         (bounds).max_double_value = 3.0
     ];
+    // TODO (NIMA): Document
     required double pass_gen_rand_sample_std_dev_robot_vel_multiplier = 21 [
         default                   = 0.15,
         (bounds).min_double_value = 0.0,

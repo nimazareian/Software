@@ -81,7 +81,7 @@ std::vector<Point> SamplingPassGenerator::sampleReceivingPositions(
 {
     std::vector<Point> all_sampled_passes;
 
-    const double sampling_std_dev = passing_config_.pass_gen_rand_sample_std_dev_meters();
+    const double sampling_std_dev = passing_config_.pass_gen_min_rand_sample_std_dev_meters();
 
     for (const Robot& robot : world.friendlyTeam().getAllRobots())
     {
