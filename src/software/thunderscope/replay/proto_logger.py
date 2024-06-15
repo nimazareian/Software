@@ -11,6 +11,7 @@ from extlibs.er_force_sim.src.protobuf.world_pb2 import *
 from software.thunderscope.replay.replay_constants import *
 from typing import Callable
 from google.protobuf.message import Message
+import cProfile
 
 
 class ProtoLogger:
@@ -73,6 +74,7 @@ class ProtoLogger:
         self.time_provider = time_provider if time_provider else time.time
         self.start_time = self.time_provider()
         self.stop_logging = False
+        self.profiler = cProfile.Profile()
 
     def __enter__(self) -> ProtoLogger:
         """Starts the logger.
@@ -105,14 +107,17 @@ class ProtoLogger:
 
         """
         replay_index = -1
+        from pstats import Stats
+
+        self.profiler.enable()
 
         try:
             while not self.stop_logging:
 
                 replay_index += 1
 
-                with gzip.open(
-                    self.log_folder + f"{replay_index}.{REPLAY_FILE_EXTENSION}", "wb"
+                with open(
+                    self.log_folder + f"{replay_index}.{REPLAY_FILE_EXTENSION}", "wb" # , compresslevel=1
                 ) as self.log_file:
 
                     # Allocates 1MB of disk for impending replay
@@ -140,6 +145,11 @@ class ProtoLogger:
 
         except Exception:
             logging.exception("Exception detected in ProtoLogger")
+
+        self.profiler.disable()
+        # Print profiler stats
+        stats = Stats(self.profiler)
+        stats.sort_stats('cumtime').print_stats(30)
 
     @staticmethod
     def create_log_entry(proto: Message, current_time: float) -> str:
