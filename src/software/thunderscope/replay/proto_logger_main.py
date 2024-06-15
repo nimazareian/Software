@@ -53,4 +53,3 @@ if __name__ == "__main__":
     logger = ProtoLoggerMain()
     while True:
         time.sleep(1)
-        pass
