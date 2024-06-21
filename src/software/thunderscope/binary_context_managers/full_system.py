@@ -40,6 +40,7 @@ class FullSystem(object):
         self.should_run_under_sudo = run_sudo
 
         self.thread = threading.Thread(target=self.__restart__)
+        self.thread.name = "blue_full_system_restart" if not friendly_colour_yellow else "yellow_full_system_restart"
 
     def __enter__(self) -> "self":
         """Enter the full_system context manager. 

@@ -42,6 +42,7 @@ class ThreadedUnixSender(Generic[T]):
         # We want to set daemon to true so that the program can exit
         # even if there are still unix listener threads running
         self.thread = Thread(target=self.__send_protobuf, daemon=True)
+        self.thread.name = proto_type.DESCRIPTOR.name
         self.thread.start()
         self.send_failures = 0
 

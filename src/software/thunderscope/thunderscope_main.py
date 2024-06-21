@@ -510,8 +510,34 @@ if __name__ == "__main__":
 
                 sys.exit(0)
             else:
+                # import cProfile
+                # profiler = cProfile.Profile()
+                # profiler.enable()
+
+                # import yappi
+                # yappi.set_clock_type("cpu") # Use set_clock_type("wall") for wall time
+                # yappi.start()
+
                 sim_ticker_thread.start()  # start the simulation ticking
                 tscope.show()  # blocking!
 
                 # resource cleanup occurs after Thunderscope is closed by the user
                 sim_ticker_thread.join()
+
+                # func_stats = yappi.get_func_stats()
+                # func_stats.sort(sort_type="tsub").print_all(
+                #     columns={
+                #         0: ("name", 60),
+                #         1: ("ncall", 12),
+                #         2: ("tsub", 8),
+                #         3: ("ttot", 8),
+                #         4: ("tavg", 8)
+                #     }
+                # )
+                # func_stats.save("/tmp/thunderscope.callgrind", "callgrind")
+                # func_stats.save("/tmp/thunderscope.stats", "pstat")
+                # yappi.get_thread_stats().print_all()
+
+                # profiler.disable()
+                # profiler.dump_stats("/tmp/thunderscope.prof")
+                # profiler.print_stats("cumulative")

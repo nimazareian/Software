@@ -38,6 +38,7 @@ class ThreadedUnixListener:
         # We want to set daemon to true so that the program can exit
         # even if there are still unix listener threads running
         self.thread = Thread(target=self.start, daemon=True)
+        self.thread.name = f"US-{proto_class.DESCRIPTOR.name}"
         self.thread.start()
 
     def __buffer_protobuf(self, proto):

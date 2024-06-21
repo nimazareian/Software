@@ -182,6 +182,7 @@ class ProtoUnixIO:
             args=(listener.proto_buffer,),
             daemon=True,
         )
+        self.send_proto_to_observer_threads[key].name = f"PUIO-{proto_class.DESCRIPTOR.name}"
         self.send_proto_to_observer_threads[key].start()
 
     def force_close(self) -> None:

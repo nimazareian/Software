@@ -1,6 +1,7 @@
 #include "software/ai/hl/stp/play/play.h"
 
 #include <munkres/munkres.h>
+#include <google/protobuf/util/message_differencer.h>
 
 #include <Tracy.hpp>
 
@@ -215,8 +216,30 @@ std::unique_ptr<TbotsProto::PrimitiveSet> Play::get(
 
     // TODO (#3104): Remove duplicated obstacles from obstacle_list
     // Visualize all obstacles and paths
-    LOG(VISUALIZE) << obstacle_list;
-    LOG(VISUALIZE) << path_visualization;
+//    auto size_init = obstacle_list.obstacles_size();
+//    auto proto_comparator = [&](const TbotsProto::Obstacle& a, const TbotsProto::Obstacle& b) {
+//        // The two obstacles are not the same if they have different types
+//        if (a.has_circle() != b.has_circle() || a.has_polygon() != b.has_polygon() || a.has_stadium() != b.has_stadium()) {
+//            return true;
+//        }
+//
+//        google::protobuf::util::MessageDifferencer differencer;
+//        differencer.set_repeated_field_comparison(
+//                google::protobuf::util::MessageDifferencer::AS_SET);
+//        differencer.set_float_comparison(google::protobuf::util::MessageDifferencer::APPROXIMATE);
+//        return !differencer.Compare(a, b);
+//    };
+//    std::set<TbotsProto::Obstacle, decltype(proto_comparator)> obstacle_set(proto_comparator);
+//
+//    for (const auto& obstacle : obstacle_list.obstacles()) {
+//        obstacle_set.insert(obstacle);
+//    }
+//    obstacle_list = TbotsProto::ObstacleList();
+//    *obstacle_list.mutable_obstacles() = {obstacle_set.begin(), obstacle_set.end()};
+//    LOG(DEBUG) << "Obstacle list removed duplicates: " << obstacle_list.obstacles_size() - size_init << " obstacles";
+
+//    LOG(VISUALIZE) << obstacle_list;
+//    LOG(VISUALIZE) << path_visualization;
 
     primitives_to_run->mutable_time_sent()->set_epoch_timestamp_seconds(
         world_ptr->getMostRecentTimestamp().toSeconds());
