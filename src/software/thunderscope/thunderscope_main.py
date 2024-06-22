@@ -428,7 +428,8 @@ if __name__ == "__main__":
             should_restart_on_crash=False,
             run_sudo=args.sudo,
         ) as yellow_fs, Gamecontroller(
-            supress_logs=(not args.verbose)
+            supress_logs=(not args.verbose),
+            simulator_proto_unix_io=tscope.proto_unix_io_map[ProtoUnixIOTypes.SIM],
         ) as gamecontroller, (
             # Here we only initialize autoref if the --enable_autoref flag is requested.
             # To avoid nested Python withs, the autoref is initialized as None when this flag doesn't exist.

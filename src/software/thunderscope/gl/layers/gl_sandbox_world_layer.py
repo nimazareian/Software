@@ -7,7 +7,6 @@ from pyqtgraph.opengl import *
 from software.py_constants import *
 from software.thunderscope.gl.layers.gl_world_layer import GLWorldLayer
 from software.thunderscope.gl.helpers.extended_gl_view_widget import MouseInSceneEvent
-from software.thunderscope.thread_safe_buffer import ThreadSafeBuffer
 
 
 class RobotOperation:
@@ -62,8 +61,6 @@ class GLSandboxWorldLayer(GLWorldLayer):
                             Set lower for more realtime plots. Default is arbitrary
         """
         super().__init__(name, simulator_io, friendly_colour_yellow, buffer_size)
-
-        self.referee_buffer = ThreadSafeBuffer(buffer_size, Referee, False)
 
         # double click flags for adding and removing
         self.robot_add_double_click = None
@@ -220,34 +217,6 @@ class GLSandboxWorldLayer(GLWorldLayer):
 
             self.next_id = len(self.curr_robot_ids)
             self.should_init_curr_robot_ids = False
-
-        referee = self.referee_buffer.get(block=False, return_cached=False)
-        while referee is not None:
-            self.handle_referee(referee)
-            referee = self.referee_buffer.get(block=False, return_cached=False)
-
-    def handle_referee(self, referee: Referee) -> None:
-        """
-        Updates the world state based on the referee message
-        :param referee: the referee protobuf message
-        """
-        # Check to see if there are any too many robots game events
-        # TODO (NIMA)
-        # import time
-        # print(f"{time.time()} {referee.game_events}")
-        too_many_robots_game_event = next((game_event for game_event in referee.game_events if game_event.type == GameEvent.Type.TOO_MANY_ROBOTS), None)
-        if too_many_robots_game_event is not None:
-            # Remove the robots that are not allowed
-            num_friendly_robots = len(self.curr_robot_ids)
-            num_robots_allowed = too_many_robots_game_event.too_many_robots.num_robots_allowed
-            for i in range(num_friendly_robots - num_robots_allowed):
-                print(f" Removing from: {self.curr_robot_ids=} {self.cached_world.friendly_team.team_robots=}", flush=True)
-                print(f" TOO MANY  {too_many_robots_game_event=}", flush=True)
-                # TODO (NIMA): max(players, key=func) robot id
-
-                id_to_remove = list(self.curr_robot_ids)[-(i + 1)]
-                self.__update_world_state(id_to_remove, None, 0, clear_redo=False)
-                self.next_id = self.__get_next_robot_id(self.next_id)
 
     def undo(self) -> None:
         """
@@ -648,7 +617,6 @@ class GLSandboxWorldLayer(GLWorldLayer):
                 )
         else:
             # remove an existing robot
-            print(f"Removing robot {robot_id} from {self.curr_robot_ids=}", flush=True)
             self.curr_robot_ids.remove(robot_id)
             del self.pre_sim_robot_positions[robot_id]
             world_state = self.__remove_robot_from_state(world_state, robot_id)

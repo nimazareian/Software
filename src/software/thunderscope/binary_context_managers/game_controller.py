@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import itertools
 import logging
+import math
 import os
 import socket
 import time
@@ -27,7 +29,9 @@ class Gamecontroller(object):
     REFEREE_IP = "224.5.23.1"
     CI_MODE_OUTPUT_RECEIVE_BUFFER_SIZE = 9000
 
-    def __init__(self, supress_logs: bool = False) -> None:
+    def __init__(
+        self, supress_logs: bool = False, simulator_proto_unix_io: ProtoUnixIO = None
+    ) -> None:
         """Run Gamecontroller
 
         :param supress_logs: Whether to suppress the logs
@@ -43,6 +47,12 @@ class Gamecontroller(object):
         self.command_override_buffer = ThreadSafeBuffer(
             buffer_size=2, protobuf_type=ManualGCCommand
         )
+
+        self.simulator_proto_unix_io = simulator_proto_unix_io
+        self.blue_team_world_buffer = ThreadSafeBuffer(
+            buffer_size=1, protobuf_type=World
+        )
+        self.referee_buffer = ThreadSafeBuffer(buffer_size=10, protobuf_type=Referee)
 
     def __enter__(self) -> "self":
         """Enter the gamecontroller context manager. 
@@ -102,6 +112,95 @@ class Gamecontroller(object):
             )
             manual_command = self.command_override_buffer.get(return_cached=False)
 
+        referee = self.referee_buffer.get(block=False, return_cached=False)
+        while referee is not None:
+            self.handle_referee(referee)
+            referee = self.referee_buffer.get(block=False, return_cached=False)
+
+    def handle_referee(self, referee: Referee) -> None:
+        """
+        Updates the world state based on the referee message
+        :param referee: the referee protobuf message
+        """
+        # Check that we are running with the simulator and have access to its
+        # proto unix io
+        if self.simulator_proto_unix_io is None:
+            return
+
+        # Check to see if there are any too many robots game events
+        too_many_robots_game_events = [
+            game_event
+            for game_event in referee.game_events
+            if game_event.type == GameEvent.Type.TOO_MANY_ROBOTS
+        ]
+
+        if not too_many_robots_game_events:
+            return
+
+        # Convert the latest blue world into a WorldState we can send to the simulator
+        latest_blue_world = self.blue_team_world_buffer.get(
+            block=False, return_cached=True
+        )
+        world_state = WorldState()
+        # Set robot velocities to zero to avoid any drift
+        for robot in latest_blue_world.friendly_team.team_robots:
+            world_state.blue_robots[robot.id].CopyFrom(robot.current_state)
+            velocity = world_state.yellow_robots[robot.id].global_velocity
+            velocity.x_component_meters = 0
+            velocity.y_component_meters = 0
+
+        for robot in latest_blue_world.enemy_team.team_robots:
+            world_state.yellow_robots[robot.id].CopyFrom(robot.current_state)
+            velocity = world_state.yellow_robots[robot.id].global_velocity
+            velocity.x_component_meters = 0
+            velocity.y_component_meters = 0
+
+        # Check if we need to invert the world state
+        if referee.blue_team_on_positive_half:
+            for robot in itertools.chain(
+                world_state.blue_robots, world_state.blue_robots
+            ):
+                robot.current_state.global_position.x_meters *= -1
+                robot.current_state.global_position.y_meters *= -1
+                robot.current_state.global_orientation.radians += math.pi
+
+        for too_many_robots_game_event in too_many_robots_game_events:
+            # Remove the robots that are not allowed
+            team_with_too_many_robots = (
+                too_many_robots_game_event.too_many_robots.by_team
+            )
+            num_robots_allowed = (
+                too_many_robots_game_event.too_many_robots.num_robots_allowed
+            )
+
+            # Remove robots from the team that has too many robots
+            # Robots from the end of the list (highest robot ids) are removed first. This is to avoid
+            # removing robot 0 first which is conventionally the goalkeeper.
+            if team_with_too_many_robots == SslTeam.BLUE:
+                for i in range(len(world_state.blue_robots) - num_robots_allowed):
+                    robot_being_removed = latest_blue_world.friendly_team.team_robots[
+                        -(i + 1)
+                    ].id
+                    print(
+                        f"Blue team is has {len(world_state.blue_robots)} robots on the field but is allowed "
+                        f"only {num_robots_allowed} robots. Removing robot {robot_being_removed}."
+                    )
+                    del world_state.blue_robots[robot_being_removed]
+
+            elif team_with_too_many_robots == SslTeam.YELLOW:
+                for i in range(len(world_state.yellow_robots) - num_robots_allowed):
+                    robot_being_removed = latest_blue_world.enemy_team.team_robots[
+                        -(i + 1)
+                    ].id
+                    print(
+                        f"Yellow team is has {len(world_state.yellow_robots)} robots on the field but is allowed "
+                        f"only {num_robots_allowed} robots. Removing robot {robot_being_removed}."
+                    )
+                    del world_state.yellow_robots[robot_being_removed]
+
+        # Send out updated world state
+        self.simulator_proto_unix_io.send_proto(WorldState, world_state)
+
     def next_free_port(self, port: int = 40000, max_port: int = 65535) -> None:
         """Find the next free port. We need to find 2 free ports to use for the gamecontroller
         so that we can run multiple gamecontroller instances in parallel.
@@ -144,6 +243,7 @@ class Gamecontroller(object):
             :param data: The referee command to send
 
             """
+            self.referee_buffer.put(data, block=False)
             blue_full_system_proto_unix_io.send_proto(Referee, data)
             yellow_full_system_proto_unix_io.send_proto(Referee, data)
             if autoref_proto_unix_io is not None:
@@ -158,6 +258,10 @@ class Gamecontroller(object):
         )
         yellow_full_system_proto_unix_io.register_observer(
             ManualGCCommand, self.command_override_buffer
+        )
+
+        blue_full_system_proto_unix_io.register_observer(
+            World, self.blue_team_world_buffer
         )
 
     def send_gc_command(
