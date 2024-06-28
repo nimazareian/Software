@@ -16,7 +16,7 @@
  * as well as the firmware simulation for the robots. This provides a simple interface
  * to setup, run, and query the current state of the simulation.
  */
-class ErForceSimulator
+class   ErForceSimulator
 {
    public:
     /**
@@ -83,6 +83,9 @@ class ErForceSimulator
     void setBlueRobotPrimitiveSet(const TbotsProto::PrimitiveSet& primitive_set_msg,
                                   std::unique_ptr<TbotsProto::World> world_msg);
 
+    void setYellowRobotControl(const SSLSimulationProto::RobotControl &control);
+    void setBlueRobotControl(const SSLSimulationProto::RobotControl &control);
+
     /**
      * Advances the simulation by the given time step.
      *
@@ -97,6 +100,9 @@ class ErForceSimulator
      */
     std::vector<TbotsProto::RobotStatus> getBlueRobotStatuses() const;
     std::vector<TbotsProto::RobotStatus> getYellowRobotStatuses() const;
+
+    std::vector<robot::RadioResponse> getYellowRadioResponses() const;
+    std::vector<robot::RadioResponse> getBlueRadioResponses() const;
 
     /**
      * Returns the most recent SSL Wrapper Packets
@@ -211,6 +217,12 @@ class ErForceSimulator
         blue_primitive_executor_map;
     std::unique_ptr<TbotsProto::World> yellow_team_world_msg;
     std::unique_ptr<TbotsProto::World> blue_team_world_msg;
+
+    std::vector<robot::RadioResponse> yellow_radio_responses;
+    std::vector<robot::RadioResponse> blue_radio_responses;
+
+    SSLSimulationProto::RobotControl yellow_robot_controls;
+    SSLSimulationProto::RobotControl blue_robot_controls;
 
     double primitive_executor_time_step_s;
     unsigned int frame_number;
