@@ -44,8 +44,8 @@ void CreaseDefenderFSM::blockThreat(
     }
     else
     {
-        LOG(WARNING)
-            << "Could not find a point on the defense area to block a potential shot";
+//        LOG(WARNING)
+//            << "Could not find a point on the defense area to block a potential shot";
     }
     Angle face_threat_orientation =
         (event.control_params.enemy_threat_origin - event.common.robot.position())
