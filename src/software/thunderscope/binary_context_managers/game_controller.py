@@ -57,6 +57,7 @@ class Gamecontroller(object):
 
         if self.supress_logs:
             with open(os.devnull, "w") as fp:
+                print(f"Starting gamecontroller with command: {' '.join(command)}")
                 self.gamecontroller_proc = Popen(command, stdout=fp, stderr=fp)
 
         else:

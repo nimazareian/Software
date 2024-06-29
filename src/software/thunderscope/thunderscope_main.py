@@ -423,13 +423,7 @@ if __name__ == "__main__":
             friendly_colour_yellow=False,
             should_restart_on_crash=False,
             run_sudo=args.sudo,
-        ) as blue_fs, FullSystem(
-            full_system_runtime_dir=args.yellow_full_system_runtime_dir,
-            debug_full_system=args.debug_yellow_full_system,
-            friendly_colour_yellow=True,
-            should_restart_on_crash=False,
-            run_sudo=args.sudo,
-        ) as yellow_fs, Gamecontroller(
+        ) as blue_fs, Gamecontroller( # Removed the yellow AI
             supress_logs=(not args.verbose)
         ) as gamecontroller, (
             # Here we only initialize autoref if the --enable_autoref flag is requested.
@@ -444,14 +438,14 @@ if __name__ == "__main__":
             )
             if args.enable_autoref
             else contextlib.nullcontext()
-        ) as autoref:
-            #     ProtoLogger(
-            #     log_path=args.blue_full_system_runtime_dir,
-            #     time_provider=autoref.time_provider if args.enable_autoref else None,
-            # ) as blue_logger, ProtoLogger(
-            #     log_path=args.yellow_full_system_runtime_dir,
-            #     time_provider=autoref.time_provider if args.enable_autoref else None,
-            # ) as yellow_logger:
+        ) as autoref, ProtoLogger(
+            log_path=args.blue_full_system_runtime_dir,
+            time_provider=autoref.time_provider if args.enable_autoref else None,
+        ) as blue_logger:
+        #     , ProtoLogger(
+        #     log_path=args.yellow_full_system_runtime_dir,
+        #     time_provider=autoref.time_provider if args.enable_autoref else None,
+        # ) as yellow_logger:
 
             tscope.register_refresh_function(gamecontroller.refresh)
 
@@ -465,9 +459,9 @@ if __name__ == "__main__":
             # ].register_to_observe_everything(yellow_logger.buffer)
 
             blue_fs.setup_proto_unix_io(tscope.proto_unix_io_map[ProtoUnixIOTypes.BLUE])
-            yellow_fs.setup_proto_unix_io(
-                tscope.proto_unix_io_map[ProtoUnixIOTypes.YELLOW]
-            )
+            # yellow_fs.setup_proto_unix_io(
+            #     tscope.proto_unix_io_map[ProtoUnixIOTypes.YELLOW]
+            # )
             simulator.setup_proto_unix_io(
                 tscope.proto_unix_io_map[ProtoUnixIOTypes.SIM],
                 tscope.proto_unix_io_map[ProtoUnixIOTypes.BLUE],
