@@ -20,7 +20,9 @@ cc_library(
     deps = [
         ":attacker_mdp_action",
         ":feature_extractor",
+        "//shared:constants",
         "//software/ai/evaluation:possession",
+        "//software/math:math_functions",
     ],
 )
 
@@ -60,6 +62,7 @@ cc_library(
         ":q_function",
         "@csv",
         "@eigen",
+        "//proto:tbots_cc_proto",
     ],
 )
 
