@@ -27,10 +27,10 @@ class Strategy
 
     /**
      * Gets the best pass on the field.
-     *
-     * @return the best pass
+     * 
+     * @see PassGenerator::getBestPass
      */
-    PassWithRating getBestPass();
+    PassWithRating getBestPass(const std::vector<RobotId>& robots_to_ignore = {});
 
     /**
      * Gets the best receiving positions for the friendly robots to go to.

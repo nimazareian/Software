@@ -9,14 +9,9 @@ Strategy::Strategy(const TbotsProto::AiConfig& ai_config)
 {
 }
 
-PassWithRating Strategy::getBestPass()
+PassWithRating Strategy::getBestPass(const std::vector<RobotId>& robots_to_ignore)
 {
-    if (!best_pass_)
-    {
-        best_pass_ = pass_generator_.getBestPass(*world_ptr_);
-    }
-
-    return *best_pass_;
+    return pass_generator_.getBestPass(*world_ptr_, robots_to_ignore);
 }
 
 std::vector<Point> Strategy::getBestReceivingPositions(

@@ -21,32 +21,6 @@ cc_library(
 )
 
 cc_library(
-    name = "free_kick_play",
-    srcs = ["free_kick_play.cpp"],
-    hdrs = ["free_kick_play.h"],
-    deps = [
-        ":play",
-        "//shared:constants",
-        "//software/ai/evaluation:enemy_threat",
-        "//software/ai/evaluation:find_open_areas",
-        "//software/ai/evaluation:possession",
-        "//software/ai/hl/stp/skill/kick:kick_skill",
-        "//software/ai/hl/stp/skill/chip:chip_skill",
-        "//software/ai/hl/stp/tactic/crease_defender:crease_defender_tactic",
-        "//software/ai/hl/stp/tactic/goalie:goalie_tactic",
-        "//software/ai/hl/stp/tactic/move:move_tactic",
-        "//software/ai/hl/stp/tactic/receiver:receiver_tactic",
-        "//software/ai/passing:eighteen_zone_pitch_division",
-        "//software/ai/passing:pass_generator",
-        "//software/ai/passing:receiver_position_generator",
-        "//software/logger",
-        "//software/util/generic_factory",
-        "//software/world:ball",
-    ],
-    alwayslink = True,
-)
-
-cc_library(
     name = "kickoff_enemy_play",
     srcs = ["kickoff_enemy_play.cpp"],
     hdrs = ["kickoff_enemy_play.h"],
@@ -122,7 +96,6 @@ cc_library(
 cc_library(
     name = "all_plays",
     deps = [
-        ":free_kick_play",
         ":halt_play",
         ":kickoff_enemy_play",
         ":kickoff_friendly_play",
@@ -133,6 +106,7 @@ cc_library(
         "//software/ai/hl/stp/play/dynamic_plays:offense_play",
         "//software/ai/hl/stp/play/enemy_ball_placement:enemy_ball_placement_play",
         "//software/ai/hl/stp/play/enemy_free_kick:enemy_free_kick_play",
+        "//software/ai/hl/stp/play/free_kick:free_kick_play",
         "//software/ai/hl/stp/play/penalty_kick:penalty_kick_play",
         "//software/ai/hl/stp/play/penalty_kick_enemy:penalty_kick_enemy_play",
     ],
@@ -229,31 +203,6 @@ py_test(
     deps = [
         "//software/simulated_tests:simulated_test_fixture",
         "//software/simulated_tests:speed_threshold_helpers",
-        "//software/simulated_tests:validation",
-        requirement("pytest"),
-    ],
-)
-
-cc_test(
-    name = "free_kick_play_cpp_test",
-    srcs = ["free_kick_play_test.cpp"],
-    deps = [
-        "//shared/test_util:tbots_gtest_main",
-        "//software/ai/hl/stp/play:free_kick_play",
-        "//software/simulated_tests:simulated_er_force_sim_play_test_fixture",
-        "//software/simulated_tests/validation:validation_function",
-        "//software/test_util",
-        "//software/time:duration",
-        "//software/world",
-    ],
-)
-
-py_test(
-    name = "free_kick_play_test",
-    srcs = ["free_kick_play_test.py"],
-    tags = ["exclusive"],
-    deps = [
-        "//software/simulated_tests:simulated_test_fixture",
         "//software/simulated_tests:validation",
         requirement("pytest"),
     ],
