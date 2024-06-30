@@ -95,10 +95,9 @@ class TigersAutoref(TimeProvider):
         return self
 
     def time_provider(self):
-        # return time.time()
-        # TODO (NIMA): This seems to break replay
-        with self.timestamp_mutex:
-            return self.current_timestamp * SECONDS_PER_NANOSECOND
+        return time.time()
+        # with self.timestamp_mutex:
+        #     return self.current_timestamp * SECONDS_PER_NANOSECOND
 
     def _force_gamecontroller_to_accept_all_events(self) -> list[CiOutput]:
         """
