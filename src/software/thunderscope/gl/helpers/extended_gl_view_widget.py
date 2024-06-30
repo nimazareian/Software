@@ -6,6 +6,8 @@ from pyqtgraph.opengl import *
 from software.thunderscope.common.frametime_counter import FrameTimeCounter
 from software.py_constants import ROBOT_MAX_HEIGHT_METERS
 from software.thunderscope.constants import MULTI_PLANE_POINTS
+from PyQt6.QtOpenGL import QOpenGLDebugLogger
+from OpenGL.GL import *
 
 import numpy as np
 from typing import List
@@ -76,6 +78,27 @@ class ExtendedGLViewWidget(GLViewWidget):
         if self.bufferswap_counter == None:
             self.bufferswap_counter = FrameTimeCounter()
         self.frameSwapped.connect(self.frameswap_callback)
+
+        # Check OpenGL version
+        self.initializeOpenGLFunctions()
+
+        version = glGetString(GL_VERSION)
+        print(f'OpenGL version: {version}')
+
+        self.debug_logger = QOpenGLDebugLogger(self)
+        self.debug_logger.initialize()
+        self.debug_logger.messageLogged.connect(self.onDebugMessageLogged)
+
+        # Check for errors
+        self.checkForErrors()
+
+    def onDebugMessageLogged(self, message):
+        print(f'Debug message: {message.message()}')
+
+    def checkForErrors(self):
+        error = glGetError()
+        if error != GL_NO_ERROR:
+            print(f'OpenGL error: {error}')
 
     def frameswap_callback(self):
         """
