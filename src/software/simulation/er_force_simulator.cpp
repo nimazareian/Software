@@ -88,7 +88,7 @@ std::unique_ptr<RealismConfigErForce> ErForceSimulator::createDefaultRealismConf
     realism_config->set_stddev_robot_p(0);
     realism_config->set_stddev_robot_phi(0);
     realism_config->set_stddev_ball_area(0);
-    realism_config->set_enable_invisible_ball(true);
+    realism_config->set_enable_invisible_ball(false);
     realism_config->set_ball_visibility_threshold(0.4f);
     realism_config->set_camera_overlap(0.3f);
     realism_config->set_dribbler_ball_detections(0);
