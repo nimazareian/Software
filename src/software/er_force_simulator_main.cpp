@@ -113,7 +113,7 @@ int main(int argc, char **argv)
         auto yellow_ssl_wrapper_output =
             ThreadedProtoUdpSender<SSLProto::SSL_WrapperPacket>("127.0.0.1", 2024, false);
         auto yellow_radio_response_output =
-            ThreadedProtoUdpSender<robot::RadioResponse>("127.0.0.1", 2026, false);
+            ThreadedProtoUdpSender<robot::RadioResponse>("127.0.0.1", 2027, false);
 
         auto common_ssl_wrapper_output =
             ThreadedProtoUnixSender<SSLProto::SSL_WrapperPacket>(runtime_dir +
