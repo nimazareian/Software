@@ -452,9 +452,9 @@ if __name__ == "__main__":
 
             autoref_proto_unix_io = ProtoUnixIO()
 
-            # tscope.proto_unix_io_map[
-            #     ProtoUnixIOTypes.BLUE
-            # ].register_to_observe_everything(blue_logger.buffer)
+            tscope.proto_unix_io_map[
+                ProtoUnixIOTypes.BLUE
+            ].register_to_observe_everything(blue_logger.buffer)
             # tscope.proto_unix_io_map[
             #     ProtoUnixIOTypes.YELLOW
             # ].register_to_observe_everything(yellow_logger.buffer)
