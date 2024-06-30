@@ -30,7 +30,7 @@ class OpenGLWidget(QOpenGLWidget):
             print("OpenGL debug logger initialized")
 
         # Example OpenGL initialization
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        glClearColor(1.0, 0.0, 0.0, 1.0)
 
         # Check for errors
         self.checkForErrors()
