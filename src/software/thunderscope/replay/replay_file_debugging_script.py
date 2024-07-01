@@ -46,7 +46,7 @@ def read_one_chunk(replay_file_name):
 
             # Deserialize protobuf
             proto = proto_class.FromString(
-                base64.b64decode(data[len("b") : -len("\n")])
+                base64.b64decode(data[:-len("\n")])
             )
 
             #######################################

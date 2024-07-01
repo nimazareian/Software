@@ -110,10 +110,11 @@ void ProtoUnixListener<ReceiveProtoT>::handleDataReception(
         packet_data.ParseFromArray(raw_received_data_.data(),
                                    static_cast<int>(num_bytes_received));
         receive_callback(packet_data);
+//        CHECK(raw_received_data_.data())
 
         if (proto_logger)
         {
-            proto_logger->saveSerializedProto<ReceiveProtoT>(raw_received_data_.data());
+            proto_logger->saveSerializedProto<ReceiveProtoT>(std::string(raw_received_data_.data(), num_bytes_received));
         }
 
         // Once we've handled the data, start listening again
