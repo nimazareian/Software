@@ -346,6 +346,8 @@ Play::assignTactics(const WorldPtr &world_ptr, TacticVector tactic_vector,
     //        -1, 0,-1,         and            0,-1,
     //         0,-1,-1,                       -1, 0,
     //        -1,-1, 0,
+
+    ZoneNamedN(_tracy_proto_logger, "Play::assignTactics and Hungarian algorithm", true);
     for (size_t row = 0; row < num_rows; row++)
     {
         for (size_t col = 0; col < num_tactics; col++)

@@ -182,5 +182,6 @@ cc_library(
         "@base64",
         "@boost//:filesystem",
         "@zlib",
+        "@tracy",
     ],
 )

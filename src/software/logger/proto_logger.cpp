@@ -2,6 +2,7 @@
 
 #include <google/protobuf/message.h>
 #include <zlib.h>
+#include <Tracy.hpp>
 
 #include <chrono>
 #include <ctime>
@@ -93,6 +94,7 @@ void ProtoLogger::logProtobufs()
                     // Timed out without getting a new value
                     continue;
                 }
+                ZoneNamedN(_tracy_proto_logger, "ProtoLogger: log a value", true);
 
                 const auto& [proto_full_name, serialized_proto, receive_time_sec] =
                     serialized_proto_opt.value();
@@ -176,17 +178,17 @@ void ProtoLogger::flushAndStopLogging()
         log_thread_.join();
     }
 
-    // Print the command to run to watch the replay
+    // In blue, print the command to run to watch the replay
     if (friendly_colour_yellow_)
     {
         std::cout
-            << "\nTo watch the replay for the yellow team, go to the `src` folder and run \n./tbots.py run thunderscope --yellow_log  "
-            << log_folder_ << std::endl;
+            << "\nTo watch the replay for the yellow team, go to the `src` folder and run \n\033[34m./tbots.py run thunderscope --yellow_log  "
+            << log_folder_ << "\033[0m" << std::endl;
     }
     else
     {
         std::cout
-            << "\nTo watch the replay for the blue team, go to the `src` folder and run \n./tbots.py run thunderscope --blue_log  "
-            << log_folder_ << std::endl;
+            << "\nTo watch the replay for the blue team, go to the `src` folder and run \n\033[34m./tbots.py run thunderscope --blue_log  "
+            << log_folder_ << "\033[0m" << std::endl;
     }
 }
