@@ -5,6 +5,7 @@
 
 #include "software/test_util/equal_within_tolerance.h"
 #include "software/test_util/test_util.h"
+#include "proto/robot_status_msg.pb.h"
 
 class TbotsProtobufTest : public ::testing::Test
 {
@@ -137,6 +138,13 @@ TEST(TbotsProtobufTest, ball_state_msg_test)
     auto ball_state_msg = createBallState(ball);
 
     TbotsProtobufTest::assertBallStateMessageFromBall(ball, *ball_state_msg);
+}
+
+TEST(TbotsProtobufTest, test)
+{
+    TbotsProto::RobotStatus status;
+    status.ParseFromString("0g==");
+    std::cout << "Status: " << status.DebugString() << std::endl;
 }
 
 class TrajectoryParamConversionTest
