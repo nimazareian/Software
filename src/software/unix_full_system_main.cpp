@@ -77,14 +77,14 @@ int main(int argc, char** argv)
 
     if (!args.help)
     {
-        if (args.friendly_colour_yellow)
-        {
-            TracySetProgramName("Thunderbots: Blue");
-        }
-        else
-        {
-            TracySetProgramName("Thunderbots: Yellow");
-        }
+        //        if (args.friendly_colour_yellow)
+        //        {
+        //            TracySetProgramName("Thunderbots: Blue");
+        //        }
+        //        else
+        //        {
+        //            TracySetProgramName("Thunderbots: Yellow");
+        //        }
 
         std::function<double()> time_provider;
         if (!args.ci)
