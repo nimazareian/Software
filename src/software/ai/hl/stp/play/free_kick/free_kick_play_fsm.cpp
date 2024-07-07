@@ -1,16 +1,16 @@
 #include "free_kick_play_fsm.h"
 
-FreeKickPlayFSM::FreeKickPlayFSM(const TbotsProto::AiConfig &ai_config)
-    : ai_config(ai_config),
+FreeKickPlayFSM::FreeKickPlayFSM(std::shared_ptr<Strategy> strategy)
+    : ai_config(strategy->getAiConfig()),
       align_to_ball_tactic(std::make_shared<MoveTactic>()),
-      shoot_tactic(std::make_shared<KickTactic>()),
-      chip_tactic(std::make_shared<ChipTactic>()),
-      passer_tactic(std::make_shared<KickTactic>()),
+      shoot_tactic(std::make_shared<AssignedSkillTactic<KickSkill>>(strategy)),
+      chip_tactic(std::make_shared<AssignedSkillTactic<ChipSkill>>(strategy)),
+      passer_tactic(std::make_shared<AssignedSkillTactic<KickSkill>>(strategy)),
       receiver_tactic(
-          std::make_shared<ReceiverTactic>(ai_config.receiver_tactic_config())),
+          std::make_shared<ReceiverTactic>(strategy)),
       receiver_positioning_tactics(
           {std::make_shared<MoveTactic>(), std::make_shared<MoveTactic>()}),
-      defense_play(std::make_shared<DefensePlay>(ai_config)),
+      defense_play(std::make_shared<DefensePlay>(strategy)),
       receiver_position_generator(ReceiverPositionGenerator<EighteenZoneId>(
           std::make_shared<const EighteenZonePitchDivision>(
               Field::createSSLDivisionBField()),
@@ -48,10 +48,6 @@ void FreeKickPlayFSM::setupPosition(const Update &event)
 
 bool FreeKickPlayFSM::setupDone(const Update &event)
 {
-    if (align_to_ball_tactic->done())
-    {
-        LOG(INFO) << "Finished aligning to ball.";
-    }
     return align_to_ball_tactic->done();
 }
 
@@ -147,14 +143,14 @@ bool FreeKickPlayFSM::shotFound(const Update &event)
 
 void FreeKickPlayFSM::shootBall(const Update &event)
 {
-    LOG(INFO) << "Shooting ball...";
+    LOG(INFO) << "Shooting ball.";
     PriorityTacticVector tactics_to_run = {{}};
 
     Point ball_pos = event.common.world_ptr->ball().position();
 
     shoot_tactic->updateControlParams(
-        ball_pos, (shot->getPointToShootAt() - ball_pos).orientation(),
-        BALL_MAX_SPEED_METERS_PER_SECOND);
+            {ball_pos, (shot->getPointToShootAt() - ball_pos).orientation(),
+             BALL_MAX_SPEED_METERS_PER_SECOND});
     tactics_to_run[0].emplace_back(shoot_tactic);
 
     event.common.set_tactics(tactics_to_run);
@@ -175,7 +171,7 @@ bool FreeKickPlayFSM::timeExpired(const FreeKickPlayFSM::Update &event)
 
 void FreeKickPlayFSM::chipBall(const Update &event)
 {
-    LOG(INFO) << "Time to look for pass expired. Chipping ball...";
+    LOG(INFO) << "Time to look for pass expired. Chipping ball.";
     PriorityTacticVector tactics_to_run = {{}};
 
     Point ball_pos = event.common.world_ptr->ball().position();
@@ -203,8 +199,9 @@ void FreeKickPlayFSM::chipBall(const Update &event)
         }
     }
 
-    chip_tactic->updateControlParams(event.common.world_ptr->ball().position(),
-                                     chip_target);
+    chip_tactic->updateControlParams({event.common.world_ptr->ball().position(),
+                                      (chip_target - event.common.world_ptr->ball().position()).orientation(),
+                                      (chip_target - event.common.world_ptr->ball().position()).length()});
     tactics_to_run[0].emplace_back(chip_tactic);
 
     event.common.set_tactics(tactics_to_run);
@@ -252,9 +249,9 @@ bool FreeKickPlayFSM::passFound(const Update &event)
             .toSeconds();
 
     double abs_min_pass_score =
-        ai_config.shoot_or_pass_play_config().abs_min_pass_score();
+        ai_config.passing_config().abs_min_pass_score();
     double min_perfect_pass_score =
-        ai_config.shoot_or_pass_play_config().min_perfect_pass_score();
+        ai_config.passing_config().min_perfect_pass_score();
     double pass_score_ramp_down_duration =
         ai_config.free_kick_play_config().max_time_commit_to_pass_seconds();
 
@@ -264,8 +261,6 @@ bool FreeKickPlayFSM::passFound(const Update &event)
         min_perfect_pass_score - std::min(time_since_pass_optimization_start_seconds /
                                               pass_score_ramp_down_duration,
                                           min_perfect_pass_score - abs_min_pass_score);
-    LOG(INFO) << "Pass Score: " << best_pass_and_score_so_far.rating
-              << " Score threshold: " << min_score;
 
     return best_pass_and_score_so_far.rating > min_score;
 }
@@ -284,7 +279,7 @@ bool FreeKickPlayFSM::shouldAbortPass(const Update &event)
         ratePass(*event.common.world_ptr, best_pass_and_score_so_far.pass,
                  ai_config.passing_config());
     double abs_min_pass_score =
-        ai_config.shoot_or_pass_play_config().abs_min_pass_score();
+        ai_config.passing_config().abs_min_pass_score();
     return best_pass_and_score_so_far.rating < abs_min_pass_score;
 }
 
@@ -293,15 +288,11 @@ void FreeKickPlayFSM::passBall(const Update &event)
 {
     PriorityTacticVector tactics_to_run = {{}};
 
-    // We have committed to the pass
-    LOG(INFO) << "Found pass with score: " << best_pass_and_score_so_far.rating
-              << ". Passing...";
-
     Pass pass = best_pass_and_score_so_far.pass;
 
-    passer_tactic->updateControlParams(pass.passerPoint(), pass.passerOrientation(),
-                                       pass.speed());
-    receiver_tactic->updateControlParams(pass);
+    passer_tactic->updateControlParams({pass.passerPoint(), pass.passerOrientation(),
+                                        pass.speed()});
+    receiver_tactic->updateControlParams(pass.receiverPoint(), true);
     tactics_to_run[0].emplace_back(passer_tactic);
     tactics_to_run[0].emplace_back(receiver_tactic);
 
@@ -318,27 +309,15 @@ void FreeKickPlayFSM::passBall(const Update &event)
 
 bool FreeKickPlayFSM::shotDone(const Update &event)
 {
-    if (shoot_tactic->done())
-    {
-        LOG(INFO) << "Finished shot.";
-    }
     return shoot_tactic->done();
 }
 
 bool FreeKickPlayFSM::passDone(const FreeKickPlayFSM::Update &event)
 {
-    if (receiver_tactic->done())
-    {
-        LOG(INFO) << "Finished pass.";
-    }
     return receiver_tactic->done();
 }
 
 bool FreeKickPlayFSM::chipDone(const FreeKickPlayFSM::Update &event)
 {
-    if (chip_tactic->done())
-    {
-        LOG(INFO) << "Finished chip.";
-    }
     return chip_tactic->done();
 }
