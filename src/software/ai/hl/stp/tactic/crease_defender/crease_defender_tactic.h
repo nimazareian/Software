@@ -6,6 +6,7 @@
 #include "software/ai/hl/stp/tactic/tactic.h"
 #include "software/geom/segment.h"
 
+
 /**
  * A crease defender moves around the exterior of our defense box to help shadow
  * shots against the enemy
@@ -30,11 +31,8 @@ class CreaseDefenderTactic : public Tactic
    public:
     /**
      * Creates a new CreaseDefenderTactic
-     *
-     * @param robot_obstacle_inflation_factor The amount to inflate the robot obstacles
      */
-    explicit CreaseDefenderTactic(
-        TbotsProto::RobotNavigationObstacleConfig robot_navigation_obstacle_config);
+    explicit CreaseDefenderTactic(std::shared_ptr<Strategy> strategy);
 
     CreaseDefenderTactic() = delete;
 
@@ -46,11 +44,14 @@ class CreaseDefenderTactic : public Tactic
      * @param enemy_threat_origin The origin of the enemy threat
      * @param alignment The alignment for this crease defender
      * @param max_allowed_speed_mode The mode of maximum speed allowed
+     * @param ball_steal_mode The mode of ball stealing to follow
      */
-    void updateControlParams(const Point &enemy_threat_origin,
-                             const TbotsProto::CreaseDefenderAlignment &alignment,
-                             TbotsProto::MaxAllowedSpeedMode max_allowed_speed_mode =
-                                 TbotsProto::MaxAllowedSpeedMode::PHYSICAL_LIMIT);
+    void updateControlParams(
+        const Point &enemy_threat_origin,
+        const TbotsProto::CreaseDefenderAlignment &alignment,
+        TbotsProto::MaxAllowedSpeedMode max_allowed_speed_mode =
+            TbotsProto::MaxAllowedSpeedMode::PHYSICAL_LIMIT,
+        TbotsProto::BallStealMode ball_steal_mode = TbotsProto::BallStealMode::STEAL);
 
     void accept(TacticVisitor &visitor) const override;
 
@@ -58,7 +59,6 @@ class CreaseDefenderTactic : public Tactic
     void updatePrimitive(const TacticUpdate &tactic_update, bool reset_fsm) override;
 
     std::map<RobotId, std::unique_ptr<FSM<CreaseDefenderFSM>>> fsm_map;
-
     CreaseDefenderFSM::ControlParams control_params;
-    TbotsProto::RobotNavigationObstacleConfig robot_navigation_obstacle_config;
+    std::shared_ptr<Strategy> strategy;
 };

@@ -24,8 +24,7 @@ namespace
             std::make_tuple(std::make_shared<MoveTactic>(),
                             std::set<TbotsProto::MotionConstraint>(),
                             std::set<TbotsProto::MotionConstraint>()),
-            std::make_tuple(std::make_shared<CreaseDefenderTactic>(
-                                strategy->getAiConfig().robot_navigation_obstacle_config()),
+            std::make_tuple(std::make_shared<CreaseDefenderTactic>(strategy),
                             std::set<TbotsProto::MotionConstraint>(
                                 {TbotsProto::MotionConstraint::HALF_METER_AROUND_BALL}),
                             std::set<TbotsProto::MotionConstraint>()),

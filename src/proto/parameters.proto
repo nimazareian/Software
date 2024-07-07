@@ -45,6 +45,7 @@ message AiConfig
     required ShotConfig shot_config                                         = 14;
     required ReceiverTacticConfig receiver_tactic_config                    = 15;
     required PivotKickConfig pivot_kick_config                              = 16;
+    required CreaseDefenderConfig crease_defender_config                    = 17;
 }
 
 message AiControlConfig
@@ -676,4 +677,29 @@ message PossessionTrackerConfig
         (bounds).min_double_value = 0.0,
         (bounds).max_double_value = 10.0
     ];
+}
+
+message CreaseDefenderConfig
+{
+    /*
+    Max ratio between distances (crease and ball) / (crease and nearest enemy) for
+    crease to chase ball. Scale from (0, 1)
+    ┌──────────────────────────────────────────┐
+    | Crease | <───────────────────────> Enemy |
+    |        | <────> Ball                 |   |
+    |       ()         x                  ()   |
+    └──────────────────────────────────────────┘
+     */
+    required double max_get_ball_ratio_threshold = 1
+        [default = 0.3, (bounds).min_double_value = 0.0, (bounds).max_double_value = 1.0];
+    // Max distance that the crease will try and get possession of a ball
+    required double max_get_ball_radius_m = 2
+        [default = 1, (bounds).min_double_value = 0.0, (bounds).max_double_value = 10.0];
+    // Max speed of ball that crease will try and get possession
+    required double max_ball_speed_to_get_m_per_s = 3
+        [default = 0.5, (bounds).min_double_value = 0.0, (bounds).max_double_value = 7.0];
+    // The additional buffer length for each side of the goal
+    // to determine if crease defender chipping is "towards goal"
+    required double goal_post_offset_chipping = 4
+        [default = 0.5, (bounds).min_double_value = 0.0, (bounds).max_double_value = 2.0];
 }

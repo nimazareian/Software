@@ -8,19 +8,20 @@
 #include "software/geom/ray.h"
 #include "software/geom/segment.h"
 #include "software/logger/logger.h"
+#include "software/ai/hl/stp/skill/dribble/dribble_skill_fsm.h"
 
-CreaseDefenderTactic::CreaseDefenderTactic(
-    TbotsProto::RobotNavigationObstacleConfig robot_navigation_obstacle_config)
+CreaseDefenderTactic::CreaseDefenderTactic(std::shared_ptr<Strategy> strategy)
     : Tactic({RobotCapability::Move}),
       fsm_map(),
       control_params({Point(0, 0), TbotsProto::CreaseDefenderAlignment::CENTRE,
-                      TbotsProto::MaxAllowedSpeedMode::PHYSICAL_LIMIT}),
-      robot_navigation_obstacle_config(robot_navigation_obstacle_config)
+                      TbotsProto::MaxAllowedSpeedMode::PHYSICAL_LIMIT,
+                      TbotsProto::BallStealMode::STEAL}),
+      strategy(strategy)
 {
     for (RobotId id = 0; id < MAX_ROBOT_IDS; id++)
     {
         fsm_map[id] = std::make_unique<FSM<CreaseDefenderFSM>>(
-            CreaseDefenderFSM(robot_navigation_obstacle_config));
+            CreaseDefenderFSM(strategy), DribbleSkillFSM());
     }
 }
 
@@ -32,11 +33,13 @@ void CreaseDefenderTactic::accept(TacticVisitor &visitor) const
 void CreaseDefenderTactic::updateControlParams(
     const Point &enemy_threat_origin,
     const TbotsProto::CreaseDefenderAlignment &alignment,
-    TbotsProto::MaxAllowedSpeedMode max_allowed_speed_mode)
+    TbotsProto::MaxAllowedSpeedMode max_allowed_speed_mode,
+    TbotsProto::BallStealMode ball_steal_mode)
 {
     control_params.enemy_threat_origin       = enemy_threat_origin;
     control_params.crease_defender_alignment = alignment;
     control_params.max_allowed_speed_mode    = max_allowed_speed_mode;
+    control_params.ball_steal_mode           = ball_steal_mode;
 }
 
 void CreaseDefenderTactic::updatePrimitive(const TacticUpdate &tactic_update,
@@ -45,8 +48,9 @@ void CreaseDefenderTactic::updatePrimitive(const TacticUpdate &tactic_update,
     if (reset_fsm)
     {
         fsm_map[tactic_update.robot.id()] = std::make_unique<FSM<CreaseDefenderFSM>>(
-            CreaseDefenderFSM(robot_navigation_obstacle_config));
+            CreaseDefenderFSM(strategy), DribbleSkillFSM());
     }
+
     fsm_map.at(tactic_update.robot.id())
         ->process_event(CreaseDefenderFSM::Update(control_params, tactic_update));
 }
