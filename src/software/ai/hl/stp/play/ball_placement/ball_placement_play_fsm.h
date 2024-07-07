@@ -7,14 +7,23 @@
 #include "software/ai/hl/stp/skill/dribble/dribble_skill.h"
 #include "software/ai/hl/stp/tactic/move/move_tactic.h"
 #include "software/ai/passing/eighteen_zone_pitch_division.h"
+#include "software/ai/hl/stp/tactic/stop/stop_tactic.h"
+#include "software/geom/algorithms/closest_point.h"
 
+
+//TODO: align closer to the ball in wall pickoff
+//TODO: wall pickoff, let go of the ball and drive back, then align for placement
+//
 
 using Zones = std::unordered_set<EighteenZoneId>;
 
 struct BallPlacementPlayFSM
 {
     class StartState;
-    class KickOffWallState;
+    class PickOffWallState;
+    class PickOffWaitState;
+    class ReleaseWallState;
+    class AlignWallState;
     class AlignPlacementState;
     class PlaceBallState;
     class WaitState;
@@ -39,7 +48,22 @@ struct BallPlacementPlayFSM
      *
      * @param event the BallPlacementPlayFSM Update event
      */
-    void kickOffWall(const Update& event);
+    void alignWall(const Update& event);
+
+    void setPickOffDest(const Update& event);
+
+    /**
+     * Action that has the placing robot kick the ball off the wall to give more space to
+     * dribble
+     *
+     * @param event the BallPlacementPlayFSM Update event
+     */
+    void pickOffWall(const Update& event);
+
+    void releaseBall(const Update& event);
+
+
+
 
     /**
      * Action that finds a point where the ball's current position aligns with the ball
@@ -66,6 +90,13 @@ struct BallPlacementPlayFSM
     void startWait(const Update& event);
 
     /**
+     * Action that stops the robot while waiting
+     *
+     * @param event the BallPlacementPlayFSM Update event
+     */
+    void wait(const Update& event);
+
+    /**
      * Action that has the placing robot retreat after placing the ball
      *
      * @param event the BallPlacementPlayFSM Update event
@@ -79,7 +110,7 @@ struct BallPlacementPlayFSM
      *
      * @return whether the ball is in a "dead zone"
      */
-    bool shouldKickOffWall(const Update& event);
+    bool shouldPickOffWall(const Update& event);
 
     /**
      * Guard on whether the robot is aligned with the ball and placement point
@@ -90,6 +121,14 @@ struct BallPlacementPlayFSM
     bool alignDone(const Update& event);
 
     /**
+     * Action that has the placing robot kick the ball off the wall to give more space to
+     * dribble
+     *
+     * @param event the BallPlacementPlayFSM Update event
+     */
+    bool wallAlignDone(const Update& event);
+
+    /**
      * Guard on whether the placing robot has finished moving the ball into a better
      * position with a kick
      *
@@ -97,7 +136,9 @@ struct BallPlacementPlayFSM
      *
      * @return whether the kick has been performed
      */
-    bool kickDone(const Update& event);
+    bool wallPickOffDone(const Update& event);
+
+    bool ballReleased(const Update& event);
 
     /**
      * Guard on whether the placing robot has finished placing the ball into the desired
@@ -123,15 +164,17 @@ struct BallPlacementPlayFSM
      */
     bool retreatDone(const Update& event);
 
+
+
     /**
-     * Helper function for calculating the angle to kick the ball off of a wall
+     * Helper function for calculating the angle at which the robot must face towards to pick up ball
      *
      * @param ball_pos the ball position to use when calculating the kick angle
      * @param field_lines the field lines of the playing area
      *
      * @return the kick angle
      */
-    Angle calculateWallKickoffAngle(const Point& ball_pos, const Rectangle& field_lines);
+    std::pair<Angle, Point> calculateWallPickOffLocation(const Point& ball_pos, const Rectangle& field_lines, double max_dist);
 
     /**
      * Helper function that populates the move_tactics field with MoveTactics that
@@ -146,7 +189,10 @@ struct BallPlacementPlayFSM
         using namespace boost::sml;
 
         DEFINE_SML_STATE(StartState)
-        DEFINE_SML_STATE(KickOffWallState)
+        DEFINE_SML_STATE(AlignWallState)
+        DEFINE_SML_STATE(PickOffWallState)
+        DEFINE_SML_STATE(PickOffWaitState)
+        DEFINE_SML_STATE(ReleaseWallState)
         DEFINE_SML_STATE(AlignPlacementState)
         DEFINE_SML_STATE(PlaceBallState)
         DEFINE_SML_STATE(WaitState)
@@ -155,49 +201,67 @@ struct BallPlacementPlayFSM
 
         DEFINE_SML_ACTION(alignPlacement)
         DEFINE_SML_ACTION(placeBall)
-        DEFINE_SML_ACTION(kickOffWall)
+        DEFINE_SML_ACTION(setPickOffDest)
+        DEFINE_SML_ACTION(alignWall)
+        DEFINE_SML_ACTION(pickOffWall)
+        DEFINE_SML_ACTION(releaseBall)
         DEFINE_SML_ACTION(startWait)
         DEFINE_SML_ACTION(retreat)
+        DEFINE_SML_ACTION(wait)
 
-        DEFINE_SML_GUARD(shouldKickOffWall)
+        DEFINE_SML_GUARD(shouldPickOffWall)
         DEFINE_SML_GUARD(alignDone)
-        DEFINE_SML_GUARD(kickDone)
+        DEFINE_SML_GUARD(wallAlignDone)
+        DEFINE_SML_GUARD(wallPickOffDone)
+        DEFINE_SML_GUARD(ballReleased)
         DEFINE_SML_GUARD(ballPlaced)
         DEFINE_SML_GUARD(waitDone)
         DEFINE_SML_GUARD(retreatDone)
 
         return make_transition_table(
             // src_state + event [guard] / action = dest_state
-            *StartState_S + Update_E[!shouldKickOffWall_G] / alignPlacement_A =
+            *StartState_S + Update_E[!shouldPickOffWall_G] / alignPlacement_A =
                 AlignPlacementState_S,
-            StartState_S + Update_E[shouldKickOffWall_G] = KickOffWallState_S,
-            KickOffWallState_S + Update_E[!kickDone_G && shouldKickOffWall_G] /
-                                     kickOffWall_A                = KickOffWallState_S,
-            KickOffWallState_S + Update_E[kickDone_G]             = KickOffWallState_S,
-            KickOffWallState_S + Update_E[!kickDone_G]            = AlignPlacementState_S,
-            AlignPlacementState_S + Update_E[shouldKickOffWall_G] = KickOffWallState_S,
+            StartState_S + Update_E[shouldPickOffWall_G] = AlignWallState_S,
+            AlignWallState_S + Update_E[!wallAlignDone_G] / alignWall_A = AlignWallState_S,
+            AlignWallState_S + Update_E[wallAlignDone_G] / setPickOffDest_A = PickOffWallState_S,
+            AlignWallState_S + Update_E[!shouldPickOffWall_G]    = AlignPlacementState_S,
+            PickOffWallState_S + Update_E[!wallPickOffDone_G] / pickOffWall_A = PickOffWallState_S,
+            PickOffWallState_S + Update_E[wallPickOffDone_G] / startWait_A = PickOffWaitState_S,
+            PickOffWaitState_S + Update_E[!waitDone_G] / wait_A = PickOffWaitState_S,
+            PickOffWaitState_S + Update_E[waitDone_G]           = ReleaseWallState_S,
+            ReleaseWallState_S + Update_E[!ballReleased_G] / releaseBall_A = ReleaseWallState_S,
+            ReleaseWallState_S + Update_E[ballReleased_G] = AlignPlacementState_S,
+            AlignPlacementState_S + Update_E[shouldPickOffWall_G] = AlignWallState_S,
             AlignPlacementState_S + Update_E[!alignDone_G] / alignPlacement_A =
                 AlignPlacementState_S,
-            AlignPlacementState_S + Update_E[alignDone_G]            = PlaceBallState_S,
-            PlaceBallState_S + Update_E[!ballPlaced_G] / placeBall_A = PlaceBallState_S,
-            PlaceBallState_S + Update_E[ballPlaced_G] / startWait_A  = WaitState_S,
-            WaitState_S + Update_E[!waitDone_G]                      = WaitState_S,
-            WaitState_S + Update_E[waitDone_G]                       = RetreatState_S,
-            RetreatState_S + Update_E[retreatDone_G && ballPlaced_G] = X,
-            RetreatState_S + Update_E[ballPlaced_G] / retreat_A      = RetreatState_S);
+            AlignPlacementState_S + Update_E[alignDone_G]                = PlaceBallState_S,
+            PlaceBallState_S + Update_E[!ballPlaced_G] / placeBall_A     = PlaceBallState_S,
+            PlaceBallState_S + Update_E[ballPlaced_G] / startWait_A      = WaitState_S,
+            WaitState_S + Update_E[!waitDone_G && ballPlaced_G] / wait_A = WaitState_S,
+            WaitState_S + Update_E[!ballPlaced_G]                        = StartState_S,
+            WaitState_S + Update_E[waitDone_G]                           = RetreatState_S,
+            RetreatState_S + Update_E[retreatDone_G && ballPlaced_G]     = X,
+            RetreatState_S + Update_E[ballPlaced_G] / retreat_A          = RetreatState_S,
+            RetreatState_S + Update_E[!ballPlaced_G]                     = StartState_S);
     }
 
    private:
     TbotsProto::AiConfig ai_config;
-    std::shared_ptr<WallKickoffSkillTactic> pivot_kick_tactic;
+    std::shared_ptr<MoveTactic> align_wall_tactic;
+    std::shared_ptr<AssignedSkillTactic<DribbleSkill>> pickoff_wall_tactic;
     std::shared_ptr<PlaceBallSkillTactic> place_ball_tactic;
     std::shared_ptr<MoveTactic> align_placement_tactic;
     std::shared_ptr<MoveTactic> retreat_tactic;
+    std::shared_ptr<MoveTactic> wait_tactic;
     std::vector<std::shared_ptr<PlaceBallMoveTactic>> move_tactics;
     Point setup_point;
+    Point pickoff_point;
+    Point pickoff_destination;
+    Angle pickoff_final_orientation;
     Timestamp start_time;
     constexpr static double const WALL_KICKOFF_VELOCITY_M_PER_S   = 3.0;
     constexpr static double const RETREAT_DISTANCE_METERS         = 0.6;
     constexpr static double const PLACEMENT_DIST_THRESHOLD_METERS = 0.15;
-    constexpr static double const BALL_IS_PLACED_WAIT_S           = 3.0;
+    constexpr static double const BALL_IS_PLACED_WAIT_S           = 2.0;
 };
