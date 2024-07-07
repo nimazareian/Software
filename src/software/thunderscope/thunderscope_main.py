@@ -12,7 +12,6 @@ import software.python_bindings as tbots_cpp
 from software.py_constants import *
 import proto.message_translation.tbots_protobuf as tbots_protobuf
 from software.thunderscope.robot_communication import RobotCommunication
-from software.thunderscope.replay.proto_logger import ProtoLogger
 from software.thunderscope.constants import EstopMode, ProtoUnixIOTypes
 from software.thunderscope.estop_helpers import get_estop_config
 from software.thunderscope.proto_unix_io import ProtoUnixIO
@@ -292,8 +291,6 @@ if __name__ == "__main__":
         )
         tscope = Thunderscope(config=tscope_config, layout_path=args.layout,)
 
-        current_proto_unix_io = None
-
         if args.run_blue:
             runtime_dir = args.blue_full_system_runtime_dir
             friendly_colour_yellow = False
@@ -345,7 +342,7 @@ if __name__ == "__main__":
                     if args.run_blue
                     else args.yellow_full_system_runtime_dir
                 )
-                with ProtoLogger(full_system_runtime_dir,) as logger, FullSystem(
+                with FullSystem(
                     full_system_runtime_dir=runtime_dir,
                     debug_full_system=debug,
                     friendly_colour_yellow=friendly_colour_yellow,
@@ -353,7 +350,6 @@ if __name__ == "__main__":
                     run_sudo=args.sudo,
                 ) as full_system:
 
-                    current_proto_unix_io.register_to_observe_everything(logger.buffer)
                     full_system.setup_proto_unix_io(current_proto_unix_io)
 
                     tscope.show()
@@ -423,12 +419,14 @@ if __name__ == "__main__":
             friendly_colour_yellow=False,
             should_restart_on_crash=False,
             run_sudo=args.sudo,
+            running_in_realtime=(not args.ci_mode),
         ) as blue_fs, FullSystem(
             full_system_runtime_dir=args.yellow_full_system_runtime_dir,
             debug_full_system=args.debug_yellow_full_system,
             friendly_colour_yellow=True,
             should_restart_on_crash=False,
             run_sudo=args.sudo,
+            running_in_realtime=(not args.ci_mode),
         ) as yellow_fs, Gamecontroller(
             supress_logs=(not args.verbose)
         ) as gamecontroller, (
@@ -445,24 +443,10 @@ if __name__ == "__main__":
             if args.enable_autoref
             else contextlib.nullcontext()
         ) as autoref:
-            #     ProtoLogger(
-            #     log_path=args.blue_full_system_runtime_dir,
-            #     time_provider=autoref.time_provider if args.enable_autoref else None,
-            # ) as blue_logger, ProtoLogger(
-            #     log_path=args.yellow_full_system_runtime_dir,
-            #     time_provider=autoref.time_provider if args.enable_autoref else None,
-            # ) as yellow_logger:
 
             tscope.register_refresh_function(gamecontroller.refresh)
 
             autoref_proto_unix_io = ProtoUnixIO()
-
-            # tscope.proto_unix_io_map[
-            #     ProtoUnixIOTypes.BLUE
-            # ].register_to_observe_everything(blue_logger.buffer)
-            # tscope.proto_unix_io_map[
-            #     ProtoUnixIOTypes.YELLOW
-            # ].register_to_observe_everything(yellow_logger.buffer)
 
             blue_fs.setup_proto_unix_io(tscope.proto_unix_io_map[ProtoUnixIOTypes.BLUE])
             yellow_fs.setup_proto_unix_io(

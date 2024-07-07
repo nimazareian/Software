@@ -8,9 +8,9 @@ import glob
 import proto
 from proto.import_all_protos import *
 from extlibs.er_force_sim.src.protobuf.world_pb2 import *
-from software.thunderscope.replay.replay_constants import *
-from software.thunderscope.replay.proto_logger import ProtoLogger
+from software.py_constants import *
 from software.thunderscope.proto_unix_io import ProtoUnixIO
+import software.python_bindings as tbots_cpp
 from google.protobuf.message import DecodeError, Message
 from typing import Callable, Type
 
@@ -42,6 +42,8 @@ class ProtoPlayer:
     chunk) that contains the data at that time and continue playing from there.
 
     """
+
+    PLAY_PAUSE_POLL_INTERVAL_SECONDS = 0.1
 
     def __init__(self, log_folder_path: str, proto_unix_io: ProtoUnixIO) -> None:
         """Creates a proto player that plays back all protos
@@ -87,14 +89,32 @@ class ProtoPlayer:
 
         self.sorted_chunks = sorted(replay_files, key=__sort_replay_chunks)
 
+        if len(self.sorted_chunks) == 0:
+            raise ValueError(
+                f'No replay files found in "{self.log_folder_path}", make sure that an absolute path '
+                f"to the folder containing the .replay files is provided."
+            )
+
+        self.version = ProtoPlayer.get_replay_chunk_format_version(
+            self.sorted_chunks[0]
+        )
+
         # We can get the total runtime of the log from the last entry in the last chunk
-        last_chunk_data = ProtoPlayer.load_replay_chunk(self.sorted_chunks[-1])
+        last_chunk_data = ProtoPlayer.load_replay_chunk(
+            self.sorted_chunks[-1], self.version
+        )
         try:
-            self.end_time, _, _ = ProtoPlayer.unpack_log_entry(last_chunk_data[-1])
+            self.end_time, _, _ = ProtoPlayer.unpack_log_entry(
+                last_chunk_data[-1], self.version
+            )
         except DecodeError:
-            self.end_time, _, _ = ProtoPlayer.unpack_log_entry(last_chunk_data[-2])
+            self.end_time, _, _ = ProtoPlayer.unpack_log_entry(
+                last_chunk_data[-2], self.version
+            )
         logging.info(
-            "Loaded log file with total runtime of {:.2f} seconds".format(self.end_time)
+            "Loaded a version {} replay file with total runtime of {:.2f} seconds".format(
+                self.version, self.end_time
+            )
         )
 
         # Start playing thread
@@ -103,10 +123,11 @@ class ProtoPlayer:
         self.thread.start()
 
     @staticmethod
-    def load_replay_chunk(replay_chunk_path: str) -> list:
+    def load_replay_chunk(replay_chunk_path: str, version: int) -> list:
         """Reads a replay chunk.
 
         :param replay_chunk_path: The path to the replay chunk.
+        :param version: The format version of the replay file
         :return: The replay chunk. List of log entries
 
         """
@@ -114,6 +135,11 @@ class ProtoPlayer:
 
         # Load chunk into memory
         with gzip.open(replay_chunk_path, "rb") as log_file:
+            # Starting version 2, the first line of the chunk contains
+            # the replay file version
+            if version >= 2:
+                log_file.readline()
+
             while True:
                 try:
                     line = log_file.readline()
@@ -126,17 +152,48 @@ class ProtoPlayer:
         return cached_data
 
     @staticmethod
-    def unpack_log_entry(log_entry: str) -> (float, Type[Message], Message):
+    def get_replay_chunk_format_version(replay_chunk_path: str) -> int:
+        """Reads a replay chunk.
+
+        :param replay_chunk_path: The path to the replay chunk.
+        :return: The format version of the replay file
+
+        """
+        # Default to version 1
+        file_version = 1
+
+        # Starting version 2, the first line of the chunk should be
+        # the replay file version
+        with gzip.open(replay_chunk_path, "rb") as log_file:
+            try:
+                line = log_file.readline()
+                file_version_prefix_bytes = bytes(
+                    REPLAY_FILE_VERSION_PREFIX, encoding="utf-8"
+                )
+                if line is not None and line.startswith(file_version_prefix_bytes):
+                    file_version = int(line.split(file_version_prefix_bytes)[1])
+                else:
+                    print(f"Could not find version in {replay_chunk_path}")
+            except EOFError:
+                pass
+
+        return file_version
+
+    @staticmethod
+    def unpack_log_entry(
+        log_entry: str, version: int
+    ) -> (float, Type[Message], Message):
         """Unpacks a log entry into the timestamp and proto.
 
         :param log_entry: The log entry.
+        :param version: The format version of the replay file
         :return: The timestamp, proto_class, deserialized protobuf
 
         """
 
         # Unpack metadata
         timestamp, protobuf_type, data = log_entry.split(
-            bytes(REPLAY_METADATA_DELIMETER, encoding="utf-8")
+            bytes(REPLAY_METADATA_DELIMITER, encoding="utf-8")
         )
 
         # Convert string to type. eval is an order of magnitude
@@ -150,9 +207,18 @@ class ProtoPlayer:
             raise TypeError(f"Unknown proto type in replay: '{protobuf_type}'")
 
         # Deserialize protobuf
-        proto = proto_class.FromString(base64.b64decode(data[len("b") : -len("\n")]))
+        if version == 1:
+            deserialized_proto = proto_class.FromString(
+                base64.b64decode(data[len("b") : -len("\n")])
+            )
+        elif version == 2:
+            deserialized_proto = proto_class.FromString(
+                base64.b64decode(data[: -len("\n")])
+            )
+        else:
+            raise ValueError(f"Unknown replay file version: {version}")
 
-        return float(timestamp), proto_class, proto
+        return float(timestamp), proto_class, deserialized_proto
 
     def save_clip(self, filename: str, start_time: float, end_time: float) -> None:
         """Saves clip
@@ -190,17 +256,28 @@ class ProtoPlayer:
                 logging.info(
                     f"Writing to {log_file.name} starting at {self.current_packet_time}"
                 )
+
+                # Save all clips with the latest replay format version
+                log_file.write(
+                    bytes(
+                        REPLAY_FILE_VERSION_PREFIX + str(REPLAY_FILE_VERSION) + "\n",
+                        encoding="utf-8",
+                    )
+                )
+
                 while self.current_entry_index < len(self.current_chunk):
                     (
                         self.current_packet_time,
                         _,
                         proto,
                     ) = ProtoPlayer.unpack_log_entry(
-                        self.current_chunk[self.current_entry_index]
+                        self.current_chunk[self.current_entry_index], self.version
                     )
 
-                    log_entry = ProtoLogger.create_log_entry(
-                        proto, self.current_packet_time - start_time
+                    log_entry = tbots_cpp.ProtoLogger.createLogEntry(
+                        proto.DESCRIPTOR.full_name,
+                        proto.SerializeToString(),
+                        self.current_packet_time - start_time,
                     )
                     log_file.write(bytes(log_entry, encoding="utf-8"))
                     self.current_entry_index += 1
@@ -213,7 +290,7 @@ class ProtoPlayer:
 
                 if self.current_chunk_index < len(self.sorted_chunks):
                     self.current_chunk = ProtoPlayer.load_replay_chunk(
-                        self.sorted_chunks[self.current_chunk_index]
+                        self.sorted_chunks[self.current_chunk_index], self.version
                     )
                     self.current_entry_index = 0
 
@@ -272,7 +349,7 @@ class ProtoPlayer:
                 # adjust log entry index and fetch the right chunk
                 self.current_entry_index -= len(self.current_chunk)
                 self.current_chunk = ProtoPlayer.load_replay_chunk(
-                    self.sorted_chunks[self.current_chunk_index]
+                    self.sorted_chunks[self.current_chunk_index], self.version
                 )
 
         logging.info(
@@ -301,8 +378,8 @@ class ProtoPlayer:
         # with a timestamp less than (but closest to) the seek_time we want
         # to seek to.
         def __bisect_chunks_by_timestamp(chunk: str) -> None:
-            chunk = ProtoPlayer.load_replay_chunk(chunk)
-            start_timestamp, _, _ = ProtoPlayer.unpack_log_entry(chunk[0])
+            chunk = ProtoPlayer.load_replay_chunk(chunk, self.version)
+            start_timestamp, _, _ = ProtoPlayer.unpack_log_entry(chunk[0], self.version)
             return start_timestamp
 
         with self.replay_controls_mutex:
@@ -313,14 +390,14 @@ class ProtoPlayer:
         # Let's binary search through the entries in the chunk to find the closest
         # timestamp to seek to
         def __bisect_entries_by_timestamp(entry: str) -> float:
-            timestamp, _, _ = ProtoPlayer.unpack_log_entry(entry)
+            timestamp, _, _ = ProtoPlayer.unpack_log_entry(entry, self.version)
             return timestamp
 
         with self.replay_controls_mutex:
 
             # Load the chunk that would have the entry
             self.current_chunk = ProtoPlayer.load_replay_chunk(
-                self.sorted_chunks[self.current_chunk_index]
+                self.sorted_chunks[self.current_chunk_index], self.version
             )
 
             # Search through the chunk to find the entry that is closest to
@@ -393,7 +470,7 @@ class ProtoPlayer:
 
             # Only play if we are playing
             if not self.is_playing:
-                time.sleep(PLAY_PAUSE_POLL_INTERVAL_SECONDS)
+                time.sleep(self.PLAY_PAUSE_POLL_INTERVAL_SECONDS)
                 continue
 
             # Check if replay has ended and stop playing if so
@@ -415,7 +492,7 @@ class ProtoPlayer:
                             proto_class,
                             proto,
                         ) = ProtoPlayer.unpack_log_entry(
-                            self.current_chunk[self.current_entry_index]
+                            self.current_chunk[self.current_entry_index], self.version
                         )
                     except ValueError:
                         self.current_entry_index += 1
@@ -443,6 +520,6 @@ class ProtoPlayer:
 
                     if self.current_chunk_index < len(self.sorted_chunks):
                         self.current_chunk = ProtoPlayer.load_replay_chunk(
-                            self.sorted_chunks[self.current_chunk_index]
+                            self.sorted_chunks[self.current_chunk_index], self.version
                         )
                         self.current_entry_index = 0
