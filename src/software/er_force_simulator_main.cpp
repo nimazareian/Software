@@ -10,6 +10,8 @@
 #include "software/networking/unix/threaded_proto_unix_listener.hpp"
 #include "software/networking/unix/threaded_proto_unix_sender.hpp"
 #include "software/simulation/er_force_simulator.h"
+#include "software/networking/udp/threaded_proto_udp_sender.hpp"
+#include "software/networking/udp/threaded_proto_udp_listener.hpp"
 
 int main(int argc, char **argv)
 {
@@ -107,9 +109,12 @@ int main(int argc, char **argv)
         auto blue_ssl_wrapper_output =
             ThreadedProtoUnixSender<SSLProto::SSL_WrapperPacket>(runtime_dir +
                                                                  BLUE_SSL_WRAPPER_PATH);
+
         auto yellow_ssl_wrapper_output =
-            ThreadedProtoUnixSender<SSLProto::SSL_WrapperPacket>(runtime_dir +
-                                                                 YELLOW_SSL_WRAPPER_PATH);
+            ThreadedProtoUdpSender<SSLProto::SSL_WrapperPacket>("127.0.0.1", 2024, false);
+        auto yellow_radio_response_output =
+            ThreadedProtoUdpSender<robot::RadioResponse>("127.0.0.1", 2027, false);
+
         auto common_ssl_wrapper_output =
             ThreadedProtoUnixSender<SSLProto::SSL_WrapperPacket>(runtime_dir +
                                                                  SSL_WRAPPER_PATH);
@@ -166,11 +171,10 @@ int main(int argc, char **argv)
 
         // PrimitiveSet Input: set the primitive set with cached vision
         auto yellow_primitive_set_input =
-            ThreadedProtoUnixListener<TbotsProto::PrimitiveSet>(
-                runtime_dir + YELLOW_PRIMITIVE_SET, [&](TbotsProto::PrimitiveSet input) {
+            ThreadedProtoUdpListener<SSLSimulationProto::RobotControl>(
+                2026, [&](SSLSimulationProto::RobotControl input) {
                     std::scoped_lock lock(simulator_mutex);
-                    er_force_sim->setYellowRobotPrimitiveSet(
-                        input, std::make_unique<TbotsProto::World>(yellow_vision));
+                    er_force_sim->setYellowRobotControl(input);
                 });
 
         auto blue_primitive_set_input =
@@ -206,6 +210,11 @@ int main(int argc, char **argv)
                 for (const auto packet : er_force_sim->getYellowRobotStatuses())
                 {
                     yellow_robot_status_output.sendProto(packet);
+                }
+
+                for (const auto& packet : er_force_sim->getYellowRadioResponses())
+                {
+                    yellow_radio_response_output.sendProto(packet);
                 }
 
                 simulator_state_output.sendProto(er_force_sim->getSimulatorState());

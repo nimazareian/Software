@@ -34,6 +34,8 @@ cc_binary(
         "//software:constants",
         "//software/networking/unix:threaded_proto_unix_listener",
         "//software/networking/unix:threaded_proto_unix_sender",
+        "//software/networking/udp:threaded_proto_udp_sender",
+        "//software/networking/udp:threaded_proto_udp_listener",
         "//software/simulation:er_force_simulator",
         "@boost//:program_options",
     ],

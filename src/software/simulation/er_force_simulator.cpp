@@ -88,7 +88,7 @@ std::unique_ptr<RealismConfigErForce> ErForceSimulator::createDefaultRealismConf
     realism_config->set_stddev_robot_p(0);
     realism_config->set_stddev_robot_phi(0);
     realism_config->set_stddev_ball_area(0);
-    realism_config->set_enable_invisible_ball(true);
+    realism_config->set_enable_invisible_ball(false);
     realism_config->set_ball_visibility_threshold(0.4f);
     realism_config->set_camera_overlap(0.3f);
     realism_config->set_dribbler_ball_detections(0);
@@ -340,6 +340,16 @@ void ErForceSimulator::setBlueRobotPrimitiveSet(
     }
 }
 
+void ErForceSimulator::setYellowRobotControl(const SSLSimulationProto::RobotControl &control)
+{
+    yellow_robot_controls = control;
+}
+
+void ErForceSimulator::setBlueRobotControl(const SSLSimulationProto::RobotControl &control)
+{
+    blue_robot_controls = control;
+}
+
 void ErForceSimulator::setRobotPrimitive(
     RobotId id, const TbotsProto::PrimitiveSet& primitive_set_msg,
     std::unordered_map<unsigned int, std::shared_ptr<PrimitiveExecutor>>&
@@ -459,16 +469,14 @@ void ErForceSimulator::stepSimulation(const Duration& time_step)
 {
     current_time = current_time + time_step;
 
-    SSLSimulationProto::RobotControl yellow_robot_control =
-        updateSimulatorRobots(yellow_primitive_executor_map, *yellow_team_world_msg,
-                              gameController::Team::YELLOW);
+    SSLSimulationProto::RobotControl yellow_robot_control = yellow_robot_controls;
 
     SSLSimulationProto::RobotControl blue_robot_control = updateSimulatorRobots(
         blue_primitive_executor_map, *blue_team_world_msg, gameController::Team::BLUE);
 
-    auto yellow_radio_responses =
+    yellow_radio_responses =
         er_force_sim->acceptYellowRobotControlCommand(yellow_robot_control);
-    auto blue_radio_responses =
+    blue_radio_responses =
         er_force_sim->acceptBlueRobotControlCommand(blue_robot_control);
 
     blue_robot_with_ball.reset();
@@ -539,6 +547,16 @@ std::vector<TbotsProto::RobotStatus> ErForceSimulator::getYellowRobotStatuses() 
     robot_statuses.push_back(robot_status);
 
     return robot_statuses;
+}
+
+std::vector<robot::RadioResponse> ErForceSimulator::getYellowRadioResponses() const
+{
+    return yellow_radio_responses;
+}
+
+std::vector<robot::RadioResponse> ErForceSimulator::getBlueRadioResponses() const
+{
+    return blue_radio_responses;
 }
 
 std::vector<SSLProto::SSL_WrapperPacket> ErForceSimulator::getSSLWrapperPackets() const
