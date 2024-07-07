@@ -14,7 +14,8 @@
 
 PlaySelectionFSM::PlaySelectionFSM(std::shared_ptr<Strategy> strategy)
     : strategy_(strategy),
-      offense_play_(std::make_shared<OffensePlay>(strategy))
+      offense_play_(std::make_shared<OffensePlay>(strategy)),
+      current_set_play_(std::nullopt)
 {
 }
 
@@ -49,42 +50,67 @@ void PlaySelectionFSM::setupSetPlay(const Update& event)
 
     if (game_state.isOurBallPlacement())
     {
-        event.set_current_play(std::make_shared<BallPlacementPlay>(strategy_));
+        if (current_set_play_ != TbotsProto::PlayName::BallPlacementPlay)
+        {
+            current_set_play_ = TbotsProto::PlayName::BallPlacementPlay;
+            event.set_current_play(std::make_unique<BallPlacementPlay>(strategy_));
+        }
     }
-
-    if (game_state.isTheirBallPlacement())
+    else if (game_state.isTheirBallPlacement())
     {
-        event.set_current_play(std::make_shared<EnemyBallPlacementPlay>(strategy_));
+        if (current_set_play_ != TbotsProto::PlayName::EnemyBallPlacementPlay)
+        {
+            current_set_play_ = TbotsProto::PlayName::EnemyBallPlacementPlay;
+            event.set_current_play(std::make_unique<EnemyBallPlacementPlay>(strategy_));
+        }
     }
-
-    if (game_state.isOurKickoff())
+    else if (game_state.isOurKickoff())
     {
-        event.set_current_play(std::make_shared<KickoffFriendlyPlay>(strategy_));
+        if (current_set_play_ != TbotsProto::PlayName::KickoffFriendlyPlay)
+        {
+            current_set_play_ = TbotsProto::PlayName::KickoffFriendlyPlay;
+            event.set_current_play(std::make_unique<KickoffFriendlyPlay>(strategy_));
+        }
     }
-
-    if (game_state.isTheirKickoff())
+    else if (game_state.isTheirKickoff())
     {
-        event.set_current_play(std::make_shared<KickoffEnemyPlay>(strategy_));
+        if (current_set_play_ != TbotsProto::PlayName::KickoffEnemyPlay)
+        {
+            current_set_play_ = TbotsProto::PlayName::KickoffEnemyPlay;
+            event.set_current_play(std::make_unique<KickoffEnemyPlay>(strategy_));
+        }
     }
-
-    if (game_state.isOurPenalty())
+    else if (game_state.isOurPenalty())
     {
-        event.set_current_play(std::make_shared<PenaltyKickPlay>(strategy_));
+        if (current_set_play_ != TbotsProto::PlayName::PenaltyKickPlay)
+        {
+            current_set_play_ = TbotsProto::PlayName::PenaltyKickPlay;
+            event.set_current_play(std::make_unique<PenaltyKickPlay>(strategy_));
+        }
     }
-
-    if (game_state.isTheirPenalty())
+    else if (game_state.isTheirPenalty())
     {
-        event.set_current_play(std::make_shared<PenaltyKickEnemyPlay>(strategy_));
+        if (current_set_play_ != TbotsProto::PlayName::PenaltyKickEnemyPlay)
+        {
+            current_set_play_ = TbotsProto::PlayName::PenaltyKickEnemyPlay;
+            event.set_current_play(std::make_unique<PenaltyKickEnemyPlay>(strategy_));
+        }
     }
-
-    if (game_state.isOurDirectFree() || game_state.isOurIndirectFree())
+    else if (game_state.isOurDirectFree() || game_state.isOurIndirectFree())
     {
-        event.set_current_play(std::make_unique<FreeKickPlay>(strategy_));
+        if (current_set_play_ != TbotsProto::PlayName::FreeKickPlay)
+        {
+            current_set_play_ = TbotsProto::PlayName::FreeKickPlay;
+            event.set_current_play(std::make_unique<FreeKickPlay>(strategy_));
+        }
     }
-
-    if (game_state.isTheirDirectFree() || game_state.isTheirIndirectFree())
+    else if (game_state.isTheirDirectFree() || game_state.isTheirIndirectFree())
     {
-        event.set_current_play(std::make_shared<EnemyFreeKickPlay>(strategy_));
+        if (current_set_play_ != TbotsProto::PlayName::EnemyFreeKickPlay)
+        {
+            current_set_play_ = TbotsProto::PlayName::EnemyFreeKickPlay;
+            event.set_current_play(std::make_unique<EnemyFreeKickPlay>(strategy_));
+        }
     }
 }
 
@@ -111,4 +137,9 @@ void PlaySelectionFSM::setupDefensePlay(const Update& event)
 void PlaySelectionFSM::terminateOffensePlay(const Update& event)
 {
     offense_play_->terminate(event.world_ptr);
+}
+
+void PlaySelectionFSM::resetSetPlay(const Update& event)
+{
+    current_set_play_.reset();
 }
