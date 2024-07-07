@@ -1,6 +1,7 @@
 #pragma once
 
 #include "proto/parameters.pb.h"
+#include "software/ai/hl/stp/tactic/assigned_skill/assigned_skill_tactic.hpp"
 #include "shared/constants.h"
 #include "software/ai/hl/stp/play/play_fsm.h"
 #include "software/ai/hl/stp/tactic/assigned_skill/assigned_skill_tactic_copies.h"
