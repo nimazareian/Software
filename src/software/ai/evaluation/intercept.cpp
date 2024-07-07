@@ -96,8 +96,32 @@ Point findInterceptionPoint(const Robot &robot, const Ball &ball, const Field &f
     if (ball.velocity().length() < ball_moving_slow_speed_threshold)
     {
         auto face_ball_vector = (ball.position() - robot.position());
-        auto point_in_front_of_ball =
-            robotPositionToFaceBall(ball.position(), face_ball_vector.orientation());
+        // Draw a long polygon from the center of robot forward, with the width of the
+        // dribbler that the ball should be within before we try to dribble into it.
+        float dribbler_width      = robot.robotConstants().dribbler_width_meters;
+        Vector robot_front_vector = Vector::createFromAngle(robot.orientation());
+        Polygon infront_of_dribbler_polygon = Polygon::fromSegment(
+                Segment(robot.position(),
+                        robot.position() + robot_front_vector.normalize(20)),
+                0.0, dribbler_width / 2.0);
+
+        bool dribbler_aligned_with_ball =
+                contains(infront_of_dribbler_polygon, ball.position());
+        bool robot_turning_too_fast =
+                robot.angularVelocity().toDegrees() >
+                40.0;
+
+        double offset_to_ball = 0.0;
+        if (!dribbler_aligned_with_ball || robot_turning_too_fast)
+        {
+            // The ball is not infront of the robot, or the robot is turning too fast
+            // so add some additional offset to the ball destination, so we don't bump
+            // into it.
+            offset_to_ball = 0.08; // TODO (NIMA): Some of these constants were manually copied from the updated DribbleTacticConfig from #3234
+        }
+
+        auto point_in_front_of_ball = robotPositionToFaceBall(
+                ball.position(), face_ball_vector.orientation(), offset_to_ball);
         return point_in_front_of_ball;
     }
 
@@ -107,6 +131,13 @@ Point findInterceptionPoint(const Robot &robot, const Ball &ball, const Field &f
         Duration ball_time_to_pos = Duration::fromSeconds(
             distance(intercept_position, ball.position()) / ball.velocity().length());
         Duration robot_time_to_pos = robot.getTimeToPosition(intercept_position);
+
+        // Give the robot some slack time to intercept the ball.
+        // The slack time is reduced as we get closer to the ball and have
+        // a better chance of intercepting it.
+        Duration slack_time_sec =
+                std::min(ball_time_to_pos,
+                         Duration::fromSeconds(0.1));
 
         if (robot_time_to_pos < ball_time_to_pos)
         {
