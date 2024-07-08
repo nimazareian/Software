@@ -127,76 +127,48 @@ class Gamecontroller(object):
         if self.simulator_proto_unix_io is None:
             return
 
-        # Check to see if there are any too many robots game events
-        too_many_robots_game_events = [
-            game_event
-            for game_event in referee.game_events
-            if game_event.type == GameEvent.Type.TOO_MANY_ROBOTS
-        ]
-
-        if not too_many_robots_game_events:
-            return
+        max_allowed_bots_yellow = referee.yellow.max_allowed_bots
+        max_allowed_bots_blue = referee.blue.max_allowed_bots
 
         # Convert the latest blue world into a WorldState we can send to the simulator
         latest_blue_world = self.blue_team_world_buffer.get(
             block=False, return_cached=True
         )
+
+        if (len(latest_blue_world.friendly_team.team_robots) <= max_allowed_bots_blue and
+            len(latest_blue_world.enemy_team.team_robots) <= max_allowed_bots_yellow):
+            return
+
         world_state = WorldState()
         # Set robot velocities to zero to avoid any drift
         for robot in latest_blue_world.friendly_team.team_robots:
+            if max_allowed_bots_blue == 0:
+                break
+
             world_state.blue_robots[robot.id].CopyFrom(robot.current_state)
             velocity = world_state.yellow_robots[robot.id].global_velocity
             velocity.x_component_meters = 0
             velocity.y_component_meters = 0
+            max_allowed_bots_blue -= 1
 
         for robot in latest_blue_world.enemy_team.team_robots:
+            if max_allowed_bots_yellow == 0:
+                break
+
             world_state.yellow_robots[robot.id].CopyFrom(robot.current_state)
             velocity = world_state.yellow_robots[robot.id].global_velocity
             velocity.x_component_meters = 0
             velocity.y_component_meters = 0
+            max_allowed_bots_yellow -= 1
 
         # Check if we need to invert the world state
         if referee.blue_team_on_positive_half:
             for robot in itertools.chain(
-                world_state.blue_robots, world_state.blue_robots
+                world_state.blue_robots, world_state.yellow_robots
             ):
                 robot.current_state.global_position.x_meters *= -1
                 robot.current_state.global_position.y_meters *= -1
                 robot.current_state.global_orientation.radians += math.pi
-
-        for too_many_robots_game_event in too_many_robots_game_events:
-            # Remove the robots that are not allowed
-            team_with_too_many_robots = (
-                too_many_robots_game_event.too_many_robots.by_team
-            )
-            num_robots_allowed = (
-                too_many_robots_game_event.too_many_robots.num_robots_allowed
-            )
-
-            # Remove robots from the team that has too many robots
-            # Robots from the end of the list (highest robot ids) are removed first. This is to avoid
-            # removing robot 0 first which is conventionally the goalkeeper.
-            if team_with_too_many_robots == SslTeam.BLUE:
-                for i in range(len(world_state.blue_robots) - num_robots_allowed):
-                    robot_being_removed = latest_blue_world.friendly_team.team_robots[
-                        -(i + 1)
-                    ].id
-                    print(
-                        f"Blue team is has {len(world_state.blue_robots)} robots on the field but is allowed "
-                        f"only {num_robots_allowed} robots. Removing robot {robot_being_removed}."
-                    )
-                    del world_state.blue_robots[robot_being_removed]
-
-            elif team_with_too_many_robots == SslTeam.YELLOW:
-                for i in range(len(world_state.yellow_robots) - num_robots_allowed):
-                    robot_being_removed = latest_blue_world.enemy_team.team_robots[
-                        -(i + 1)
-                    ].id
-                    print(
-                        f"Yellow team is has {len(world_state.yellow_robots)} robots on the field but is allowed "
-                        f"only {num_robots_allowed} robots. Removing robot {robot_being_removed}."
-                    )
-                    del world_state.yellow_robots[robot_being_removed]
 
         # Send out updated world state
         self.simulator_proto_unix_io.send_proto(WorldState, world_state)
