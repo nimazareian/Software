@@ -11,6 +11,8 @@ from software.thunderscope.robot_diagnostics.motor_fault_view import MotorFaultV
 import time as time
 from typing import Type, List
 from collections import deque
+import json
+import socket
 
 
 class BreakbeamLabel(QLabel):
@@ -95,6 +97,8 @@ class RobotInfo(QWidget):
         self.control_mode_signal = control_mode_signal
 
         self.time_of_last_robot_status = time.time()
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         self.layout = QHBoxLayout()
 
@@ -367,6 +371,16 @@ class RobotInfo(QWidget):
                 rtt_time_seconds * MILLISECONDS_PER_SECOND
             )
         )
+
+        # Convert data to JSON format
+        json_data = json.dumps({
+            "rtt": rtt_time_seconds,
+            "packet_loss": network_status.primitive_packet_loss_percentage,
+        })
+
+        # Send the JSON data over UDP
+        self.socket.sendto(json_data.encode('utf-8'), ("127.0.0.1", 9870))
+
         self.breakbeam_label.update_breakbeam_status(power_status.breakbeam_tripped)
 
         self.motor_fault_view.refresh(
