@@ -3,11 +3,18 @@ import glob
 import gzip
 import os
 import argparse
+import csv
 
 from proto.import_all_protos import *
 from software.py_constants import *
 
 from software.thunderscope.replay.proto_player import ProtoPlayer
+
+rtt_file = open('/home/nima/thunderbots/it_androids.csv', mode='w')
+csv_writer = csv.writer(rtt_file)
+
+fields = ["time", "rtt"]
+csv_writer.writerow(fields)
 
 
 def read_one_chunk(replay_file_name: str):
@@ -43,11 +50,15 @@ def read_one_chunk(replay_file_name: str):
             #######################################
             # Do something with the protobuf here #
             #######################################
-            print(
-                "{}: {}: {} - {}".format(
-                    line_num, float(timestamp), protobuf_type, proto
-                )
-            )
+            if protobuf_type == RobotStatistic:
+                # print(f"printing {[timestamp, proto.round_trip_time_seconds]}")
+                csv_writer.writerow([timestamp, proto.round_trip_time_seconds])
+            # print(
+            #     "{}: {}: {} - {}".format(
+            #         line_num, float(timestamp), protobuf_type, proto
+            #     )
+            # )
+            # print(f"{protobuf_type}: {protobuf_type == RobotStatistic}")
             line_num += 1
 
     return line_num
